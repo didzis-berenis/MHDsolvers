@@ -69,6 +69,14 @@ int main(int argc, char *argv[])
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     receiving.recvVector(JxB);
 
+    // Create file for logging simulation times whenever Elmer is called
+    string elmerTimesFileName = "elmerTimes.log";
+    std::ofstream elmerTimes(elmerTimesFileName);
+    word thisStepTime = runTime.timeName();
+    // Log the current simulation time
+    elmerTimes << thisStepTime << std::endl;
+    elmerTimes.close();
+    
     while (simple.loop(runTime))
     {
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
@@ -117,6 +125,15 @@ int main(int argc, char *argv[])
             // Receive fields form Elmer
             receiving.sendStatus(1);
     	    receiving.recvVector(JxB);
+
+            thisStepTime = runTime.timeName();
+            // Log the current simulation time
+            if (Pstream::master())
+            {
+                elmerTimes.open(elmerTimesFileName, std::ios::app);
+                elmerTimes << thisStepTime << std::endl;
+                elmerTimes.close();
+            }
         }
     }
 
@@ -132,6 +149,15 @@ int main(int argc, char *argv[])
     // Receive fields form Elmer
     receiving.sendStatus(0);
    	receiving.recvVector(JxB);
+
+    thisStepTime = runTime.timeName();
+    // Log the current simulation time
+    if (Pstream::master())
+    {
+        elmerTimes.open(elmerTimesFileName, std::ios::app);
+        elmerTimes << thisStepTime << std::endl;
+        elmerTimes.close();
+    }
 
     Info<< "End\n" << endl;
 
