@@ -57,6 +57,9 @@ int main(int argc, char *argv[])
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+    double OFClock = 0;
+    double elmerClock = runTime.clockTimeIncrement();
+
     Info<< "\nStarting time loop\n" << endl;
 
     // Send fields to Elmer
@@ -76,10 +79,12 @@ int main(int argc, char *argv[])
     // Log the current simulation time
     elmerTimes << thisStepTime << std::endl;
     elmerTimes.close();
+
+    elmerClock = runTime.clockTimeIncrement();
     
     while (simple.loop(runTime))
     {
-        Info<< "Time = " << runTime.userTimeName() << nl << endl;
+        Info<< "SimulationTime = " << runTime.userTimeName() << nl << endl;
 
         fvModels.correct();
 
@@ -93,10 +98,12 @@ int main(int argc, char *argv[])
         turbulence->correct();
 
         runTime.write();
+        OFClock = runTime.clockTimeIncrement();
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"
+            << " ; Electrodynamics step = " << elmerClock << " s"
+            << " ; ClockTime = " << runTime.elapsedClockTime() << " s"
+	    << nl << endl;
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -135,11 +142,11 @@ int main(int argc, char *argv[])
                 elmerTimes.close();
             }
         }
+        elmerClock = runTime.clockTimeIncrement();
     }
 
     Info << "Final iteration: "
-        << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-        << "  ClockTime = " << runTime.elapsedClockTime() << " s" << nl << endl;
+        << " ClockTime = " << runTime.elapsedClockTime() << " s" << nl << endl;
 
     //Final iter for Elmer
     U_old = U;
@@ -158,6 +165,18 @@ int main(int argc, char *argv[])
         elmerTimes << thisStepTime << std::endl;
         elmerTimes.close();
     }
+
+    int clockDays = std::floor(runTime.elapsedClockTime()/3600.0/24.0);
+    int clockHours = std::floor(runTime.elapsedClockTime()/3600.0-clockDays*24.0);
+    int clockMinutes = std::floor(runTime.elapsedClockTime()/60.0-clockHours*60.0-clockDays*60.0*24.0);
+    int clockSeconds = std::floor(runTime.elapsedClockTime()-clockMinutes*60.0-clockHours*3600.0-clockDays*3600.0*24.0);
+
+	Info<< "Calculation complete: "
+		<< "ClockTime = " 
+		<< clockDays << " days "
+		<< clockHours << " h "
+		<< clockMinutes << " min "  << clockSeconds << " s" 
+		<< nl << endl;
 
     Info<< "End\n" << endl;
 
