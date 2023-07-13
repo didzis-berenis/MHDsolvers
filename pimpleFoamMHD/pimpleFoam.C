@@ -234,8 +234,7 @@ int main(int argc, char *argv[])
     int clockMinutes = std::floor(runTime.elapsedClockTime()/60.0-clockHours*60.0-clockDays*60.0*24.0);
     int clockSeconds = std::floor(runTime.elapsedClockTime()-clockMinutes*60.0-clockHours*3600.0-clockDays*3600.0*24.0);
 
-	Info<< "Calculation complete: "
-		<< "ClockTime = " 
+	Info<< "Calculation completed in "
 		<< clockDays << " days "
 		<< clockHours << " h "
 		<< clockMinutes << " min "  << clockSeconds << " s" 
