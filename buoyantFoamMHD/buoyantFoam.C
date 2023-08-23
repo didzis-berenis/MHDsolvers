@@ -96,14 +96,20 @@ int main(int argc, char *argv[])
     JxB = J ^ B;
     JJsigma = (J & J)/sigma;
 */
-
+	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
-    std::ofstream elmerTimes(elmerTimesFileName);
-    word thisStepTime = runTime.timeName();
-    // Log the current simulation time
-    elmerTimes << thisStepTime << std::endl;
-    elmerTimes.close();
+	// Log the current simulation time
+    if (Pstream::master())
+    {
+		std::ofstream elmerTimes(elmerTimesFileName, std::ios::out | std::ios::trunc);
+		if (elmerTimes.is_open())
+		{
+			elmerTimes << runTime.timeName() << std::endl;
+			elmerTimes.close();
+		}
+		else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
+	}
 
     elmerClock = runTime.clockTimeIncrement();
 
@@ -267,15 +273,18 @@ int main(int argc, char *argv[])
     		JxB = J ^ B;
     		JJsigma = (J & J)/sigma;
 			*/
-
-            thisStepTime = runTime.timeName();
-            // Log the current simulation time
-            if (Pstream::master())
-            {
-                elmerTimes.open(elmerTimesFileName, std::ios::app);
-                elmerTimes << thisStepTime << std::endl;
-                elmerTimes.close();
-            }
+			
+			// Log the current simulation time
+			if (Pstream::master())
+			{
+				std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
+				if (elmerTimes.is_open())
+				{
+					elmerTimes << runTime.timeName() << std::endl;
+					elmerTimes.close();
+				}
+				else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
+			}
         }
         elmerClock = runTime.clockTimeIncrement();
     }
@@ -299,15 +308,18 @@ int main(int argc, char *argv[])
     JxB = J ^ B;
     JJsigma = (J & J)/sigma;
 	*/
-
-    thisStepTime = runTime.timeName();
-    // Log the current simulation time
+	
+	// Log the current simulation time
     if (Pstream::master())
     {
-        elmerTimes.open(elmerTimesFileName, std::ios::app);
-        elmerTimes << thisStepTime << std::endl;
-        elmerTimes.close();
-    }
+		std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
+		if (elmerTimes.is_open())
+		{
+			elmerTimes << runTime.timeName() << std::endl;
+			elmerTimes.close();
+		}
+		else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
+	}
 
     int clockDays = std::floor(runTime.elapsedClockTime()/3600.0/24.0);
     int clockHours = std::floor(runTime.elapsedClockTime()/3600.0-clockDays*24.0);
