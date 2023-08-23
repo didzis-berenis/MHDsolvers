@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    Original pimpleFoam solver is part of OpenFOAM.
+    Original simpleFoam solver is part of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -22,30 +22,23 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    pimpleFoamMHD is a modified pimpleFoam solver, where the modification 
+    simpleFoamMHD is a modified pimpleFoam solver, where the modification 
     is based on EOF-Library solver mhdVxBPimpleFoam.
 
 Description
-    Transient solver for electromagnetically forced incompressible, 
-    turbulent flow of Newtonian fluids, with optional mesh motion and mesh 
-    topology changes.
-
-    Turbulence modelling is generic, i.e. laminar, RAS or LES may be selected.
+    Steady-state solver for electromagnetically forced incompressible, 
+    turbulent flow, using the SIMPLE algorithm.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
 #include "viscosityModel.H"
 #include "incompressibleMomentumTransportModels.H"
-#include "pimpleControl.H"
+#include "simpleControl.H"
 #include "pressureReference.H"
-#include "CorrectPhi.H"
 #include "fvModels.H"
 #include "fvConstraints.H"
-#include "localEulerDdtScheme.H"
-#include "fvcSmooth.H"
 #include "Elmer.H"
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,20 +49,27 @@ int main(int argc, char *argv[])
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
-    #include "initContinuityErrs.H"
-    #include "createDyMControls.H"
+    #include "createControl.H"
     #include "createFields.H"
-    #include "createUfIfPresent.H"
+    #include "initContinuityErrs.H"
 
     turbulence->validate();
 
-    if (!LTS)
-    {
-        #include "CourantNo.H"
-        #include "setInitialDeltaT.H"
-    }
-
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+	const Foam::vector ivec = Foam::vector(1,0,0);
+	const Foam::vector jvec = Foam::vector(0,1,0);
+	const Foam::vector kvec = Foam::vector(0,0,1);
+    
+	const pointField& cellCentres = mesh.cellCentres();
+	
+	double xDim = std::abs(max(cellCentres & ivec ) - min(cellCentres & ivec ));
+	double yDim = std::abs(max(cellCentres & jvec ) - min(cellCentres & jvec ));
+	double zDim = std::abs(max(cellCentres & kvec ) - min(cellCentres & kvec ));
+	
+	double Lchar = 0.5*std::min(xDim,std::min(yDim,zDim));
+	
+	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar;
+    Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -84,7 +84,15 @@ int main(int argc, char *argv[])
     // Receive fields from Elmer
     Elmer<fvMesh> receiving(mesh,-1); // 1=send, -1=receive
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
-    receiving.recvVector(JxB);
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
+    
+	//Lorentz force term initialization
+	//volVectorField Jre = U ^ Bre - fvc::grad(PotEre);
+	//volVectorField Jim = U ^ Bim - fvc::grad(PotEim);
+	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -101,70 +109,60 @@ int main(int argc, char *argv[])
 	}
 
     elmerClock = runTime.clockTimeIncrement();
-
-    while (pimple.run(runTime))
+    
+    while (simple.loop(runTime))
     {
-        #include "readDyMControls.H"
-
-        if (LTS)
-        {
-            #include "setRDeltaT.H"
-        }
-        else
-        {
-            #include "CourantNo.H"
-            #include "setDeltaT.H"
-        }
-
-        fvModels.preUpdateMesh();
-
-        // Update the mesh for topology change, mesh to mesh mapping
-        mesh.update();
-
-        runTime++;
-
         Info<< "SimulationTime = " << runTime.userTimeName() << nl << endl;
 
-        // --- Pressure-velocity PIMPLE corrector loop
-        while (pimple.loop())
+        fvModels.correct();
+
+        // --- Pressure-velocity SIMPLE corrector
         {
-            if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
-            {
-                // Move the mesh
-                mesh.move();
-
-                if (mesh.changing())
-                {
-                    MRF.update();
-
-                    if (correctPhi)
-                    {
-                        #include "correctPhi.H"
-                    }
-
-                    if (checkMeshCourantNo)
-                    {
-                        #include "meshCourantNo.H"
-                    }
-                }
-            }
-
-            fvModels.correct();
-
             #include "UEqn.H"
-
-            // --- Pressure corrector loop
-            while (pimple.correct())
-            {
-                #include "pEqn.H"
-            }
-
-            if (pimple.turbCorr())
-            {
-                viscosity->correct();
-                turbulence->correct();
-            }
+            #include "pEqn.H"
         }
+
+        viscosity->correct();
+        turbulence->correct();
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+        // Check whether we need to update electromagnetic stuff with Elmer
+
+        dimensionedScalar smallU
+        (
+            "smallU",
+            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
+            1e-6
+        );
+
+        bool doElmer = false;
+        
+        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
+        
+        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
+        
+        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
+            doElmer = true;
+        }
+        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
+            doElmer = true;
+        }
+
+        // Calculate electric potential if current density will not be updated
+        if (!doElmer)
+        {
+            volVectorField JUBre = Jre;
+            {
+                #include "PotEreEqn.H"
+            }
+            volVectorField JUBim = Jim;
+            {
+                #include "PotEimEqn.H"
+            }
+            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
+        }
+
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
         OFClock = runTime.clockTimeIncrement();
@@ -176,20 +174,7 @@ int main(int argc, char *argv[])
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
-
-        bool doElmer = false;
-        if(maxRelDiff_local>maxRelDiff && (maxRelDiff<SMALL || maxRelDiff+SMALL<=1.0)) {
-            doElmer = true;
-        }
+        // Update electromagnetic stuff with Elmer
 
         if(doElmer && runTime.run()) {
             U_old = U;
@@ -200,7 +185,11 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
-    	    receiving.recvVector(JxB);
+            receiving.recvVector(Jre);
+            receiving.recvVector(Jim);
+            receiving.recvVector(Bre);
+            receiving.recvVector(Bim);
+            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -227,7 +216,10 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
-   	receiving.recvVector(JxB);
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
 	
 	// Log the current simulation time
     if (Pstream::master())
