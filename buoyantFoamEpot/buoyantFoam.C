@@ -2,11 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    Original simpleFoam solver is part of OpenFOAM.
+    Original buoyantFoam solver is part of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -22,22 +22,31 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    simpleFoamMHD is a modified pimpleFoam solver, where the modification 
+    buoyantFoamMHD is a modified buoyantFoam solver, where the modification 
     is based on EOF-Library solver mhdVxBPimpleFoam.
 
 Description
-    Steady-state solver for electromagnetically forced incompressible, 
-    turbulent flow, using the SIMPLE algorithm.
+    Solver for steady or transient buoyant, turbulent flow of compressible
+    fluids for electromagnetically forced and heated flows, with optional 
+    mesh motion and mesh topology changes.
+
+    Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
+    pseudo-transient simulations.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "viscosityModel.H"
-#include "incompressibleMomentumTransportModels.H"
-#include "simpleControl.H"
+#include "fluidThermo.H"
+#include "compressibleMomentumTransportModels.H"
+#include "fluidThermophysicalTransportModel.H"
+#include "pimpleControl.H"
 #include "pressureReference.H"
+#include "hydrostaticInitialisation.H"
+#include "CorrectPhi.H"
 #include "fvModels.H"
 #include "fvConstraints.H"
+#include "localEulerDdtScheme.H"
+#include "fvcSmooth.H"
 #include "Elmer.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -49,11 +58,19 @@ int main(int argc, char *argv[])
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
-    #include "createControl.H"
-    #include "createFields.H"
+    #include "createDyMControls.H"
     #include "initContinuityErrs.H"
+    #include "createFields.H"
+    #include "createFieldRefs.H"
+    #include "createRhoUfIfPresent.H"
 
     turbulence->validate();
+
+    if (!LTS)
+    {
+        #include "compressibleCourantNo.H"
+        #include "setInitialDeltaT.H"
+    }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 	const Foam::vector ivec = Foam::vector(1,0,0);
@@ -90,9 +107,8 @@ int main(int argc, char *argv[])
     receiving.recvVector(Bim);
     
 	//Lorentz force term initialization
-	//volVectorField Jre = U ^ Bre - fvc::grad(PotEre);
-	//volVectorField Jim = U ^ Bim - fvc::grad(PotEim);
 	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	JJsigma =  0.5*((Jre . Jre) + (Jim . Jim) )/sigma;
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -109,21 +125,123 @@ int main(int argc, char *argv[])
 	}
 
     elmerClock = runTime.clockTimeIncrement();
-    
-    while (simple.loop(runTime))
+
+    while (pimple.run(runTime))
     {
-        Info<< "SimulationTime = " << runTime.userTimeName() << nl << endl;
+        #include "readDyMControls.H"
 
-        fvModels.correct();
-
-        // --- Pressure-velocity SIMPLE corrector
+        // Store divrhoU from the previous mesh so that it can be mapped
+        // and used in correctPhi to ensure the corrected phi has the
+        // same divergence
+        autoPtr<volScalarField> divrhoU;
+        if (correctPhi)
         {
-            #include "UEqn.H"
-            #include "pEqn.H"
+            divrhoU = new volScalarField
+            (
+                "divrhoU",
+                fvc::div(fvc::absolute(phi, rho, U))
+            );
         }
 
-        viscosity->correct();
-        turbulence->correct();
+        if (LTS)
+        {
+            #include "setRDeltaT.H"
+        }
+        else
+        {
+            #include "compressibleCourantNo.H"
+            #include "setDeltaT.H"
+        }
+
+        fvModels.preUpdateMesh();
+
+        // Store momentum to set rhoUf for introduced faces.
+        autoPtr<volVectorField> rhoU;
+        if (rhoUf.valid())
+        {
+            rhoU = new volVectorField("rhoU", rho*U);
+        }
+
+        // Update the mesh for topology change, mesh to mesh mapping
+        mesh.update();
+
+        runTime++;
+
+        Info<< "SimulationTime = " << runTime.userTimeName() << nl << endl;
+
+        // --- Pressure-velocity PIMPLE corrector loop
+        while (pimple.loop())
+        {
+            if (!pimple.flow())
+            {
+                if (pimple.models())
+                {
+                    fvModels.correct();
+                }
+
+                if (pimple.thermophysics())
+                {
+                    #include "EEqn.H"
+                }
+            }
+            else
+            {
+                if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
+                {
+                    // Move the mesh
+                    mesh.move();
+
+                    if (mesh.changing())
+                    {
+                        gh = (g & mesh.C()) - ghRef;
+                        ghf = (g & mesh.Cf()) - ghRef;
+
+                        MRF.update();
+
+                        if (correctPhi)
+                        {
+                            #include "correctPhi.H"
+                        }
+
+                        if (checkMeshCourantNo)
+                        {
+                            #include "meshCourantNo.H"
+                        }
+                    }
+                }
+
+                if (pimple.firstPimpleIter() && !pimple.simpleRho())
+                {
+                    #include "rhoEqn.H"
+                }
+
+                if (pimple.models())
+                {
+                    fvModels.correct();
+                }
+
+                #include "UEqn.H"
+
+                if (pimple.thermophysics())
+                {
+                    #include "EEqn.H"
+                }
+
+                // --- Pressure corrector loop
+                while (pimple.correct())
+                {
+                    #include "pEqn.H"
+                }
+
+                if (pimple.turbCorr())
+                {
+                    turbulence->correct();
+                    thermophysicalTransport->correct();
+                }
+            }
+        }
+
+        rho = thermo.rho();
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
@@ -160,6 +278,7 @@ int main(int argc, char *argv[])
                 #include "PotEimEqn.H"
             }
             JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
+	        JJsigma =  0.5*(((Jre+JUBre) . (Jre+JUBre)) + ((Jim+JUBim) . (Jim+JUBim)) )/sigma;
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -190,6 +309,7 @@ int main(int argc, char *argv[])
             receiving.recvVector(Bre);
             receiving.recvVector(Bim);
             JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	        JJsigma =  0.5*((Jre . Jre) + (Jim . Jim) )/sigma;
 			
 			// Log the current simulation time
 			if (Pstream::master())

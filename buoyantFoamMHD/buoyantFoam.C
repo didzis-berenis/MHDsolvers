@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	// Log the current simulation time
     if (Pstream::master())
     {
-		std::ofstream elmerTimes(elmerTimesFileName, std::ios::out | std::ios::trunc);
+		std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
 		if (elmerTimes.is_open())
 		{
 			elmerTimes << runTime.timeName() << std::endl;
