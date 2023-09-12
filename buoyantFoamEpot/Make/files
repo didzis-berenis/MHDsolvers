@@ -1,3 +1,3 @@
 buoyantFoam.C
 
-EXE = $(FOAM_USER_APPBIN)/buoyantFoamMHD
+EXE = $(FOAM_USER_APPBIN)/buoyantFoamEpot

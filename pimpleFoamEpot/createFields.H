@@ -190,6 +190,14 @@ dimensionedScalar sigma
     physicalProperties
 );
 
+//Characteristic length
+dimensionedScalar Lchar
+(
+    "Lchar",
+    dimensionSet(0, 1, 0, 0, 0, 0, 0),
+    physicalProperties
+);
+
 // Maximum allowable magnetic Reynolds number difference comparing
 // to last Elmer update. This option controls frequency Elmer is called.
 //     (0,inf) - when relative difference in any cell exceeds given value

@@ -70,19 +70,8 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	const Foam::vector ivec = Foam::vector(1,0,0);
-	const Foam::vector jvec = Foam::vector(0,1,0);
-	const Foam::vector kvec = Foam::vector(0,0,1);
-    
-	const pointField& cellCentres = mesh.cellCentres();
 	
-	double xDim = std::abs(max(cellCentres & ivec ) - min(cellCentres & ivec ));
-	double yDim = std::abs(max(cellCentres & jvec ) - min(cellCentres & jvec ));
-	double zDim = std::abs(max(cellCentres & kvec ) - min(cellCentres & kvec ));
-	
-	double Lchar = 0.5*std::min(xDim,std::min(yDim,zDim));
-	
-	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar;
+	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
     Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
