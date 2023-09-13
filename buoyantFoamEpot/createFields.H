@@ -1,15 +1,24 @@
-Info<< "Reading field p\n" << endl;
-volScalarField p
+#include "createRDeltaT.H"
+
+Info<< "Reading thermophysical properties\n" << endl;
+
+autoPtr<fluidThermo> pThermo(fluidThermo::New(mesh));
+fluidThermo& thermo = pThermo();
+thermo.validate(args.executable(), "h", "e");
+
+volScalarField& p = thermo.p();
+
+volScalarField rho
 (
     IOobject
     (
-        "p",
+        "rho",
         runTime.timeName(),
         mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    mesh
+    thermo.rho()
 );
 
 Info<< "Reading field U\n" << endl;
@@ -39,12 +48,28 @@ volVectorField U_old
     ),
     U
 );
+
 Info<< "Initializing field JxB\n" << endl;
 volVectorField JxB
 (
     IOobject
     (
         "JxB",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+
+Info<< "Initializing field JJsigma\n" << endl;
+volScalarField JJsigma
+(
+    IOobject
+    (
+        "JJsigma",
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
@@ -109,9 +134,6 @@ volVectorField Bim
     mesh
 );
 
-
-#include "createPhi.H"
-
 //Electric potential field
 Info<< "Reading field PotEre\n" << endl;
 volScalarField PotEre
@@ -141,31 +163,103 @@ volScalarField PotEim
     mesh
 );
 
-pressureReference pressureReference(p, simple.dict());
-mesh.schemes().setFluxRequired(p.name());
+#include "compressibleCreatePhi.H"
+
+Info<< "Creating turbulence model\n" << endl;
+autoPtr<compressible::momentumTransportModel> turbulence
+(
+    compressible::momentumTransportModel::New
+    (
+        rho,
+        U,
+        phi,
+        thermo
+    )
+);
+
+Info<< "Creating thermophysical transport model\n" << endl;
+autoPtr<fluidThermophysicalTransportModel> thermophysicalTransport
+(
+    fluidThermophysicalTransportModel::New(turbulence(), thermo)
+);
+
+
+#include "readGravitationalAcceleration.H"
+#include "readhRef.H"
+#include "gh.H"
+#include "readpRef.H"
+
+
+Info<< "Reading field p_rgh\n" << endl;
+volScalarField p_rgh
+(
+    IOobject
+    (
+        "p_rgh",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+pressureReference pressureReference
+(
+    p,
+    p_rgh,
+    pimple.dict(),
+    thermo.incompressible()
+);
+
+mesh.schemes().setFluxRequired(p_rgh.name());
 
 //Electric potential reference point
 label PotEreRefCell = 0;
 scalar PotEreRefValue = 0.0;
-setRefCell(PotEre, simple.dict(), PotEreRefCell, PotEreRefValue);
+setRefCell(PotEre, pimple.dict(), PotEreRefCell, PotEreRefValue);
 mesh.schemes().setFluxRequired(PotEre.name());
 
 label PotEimRefCell = 0;
 scalar PotEimRefValue = 0.0;
-setRefCell(PotEim, simple.dict(), PotEimRefCell, PotEimRefValue);
+setRefCell(PotEim, pimple.dict(), PotEimRefCell, PotEimRefValue);
 mesh.schemes().setFluxRequired(PotEim.name());
 
-
-autoPtr<viscosityModel> viscosity(viscosityModel::New(mesh));
-
-autoPtr<incompressible::momentumTransportModel> turbulence
+hydrostaticInitialisation
 (
-    incompressible::momentumTransportModel::New(U, phi, viscosity)
+    p_rgh,
+    p,
+    rho,
+    U,
+    gh,
+    ghf,
+    pRef,
+    thermo,
+    pimple.dict()
 );
+
+Info<< "Creating field dpdt\n" << endl;
+volScalarField dpdt
+(
+    IOobject
+    (
+        "dpdt",
+        runTime.timeName(),
+        mesh
+    ),
+    mesh,
+    dimensionedScalar(p.dimensions()/dimTime, 0)
+);
+
+Info<< "Creating field kinetic energy K\n" << endl;
+volScalarField K("K", 0.5*magSqr(U));
+
+dimensionedScalar initialMass = fvc::domainIntegrate(rho);
 
 #include "createMRF.H"
 #include "createFvModels.H"
 #include "createFvConstraints.H"
+#include "checkRadiationModel.H"
 
 IOdictionary physicalProperties
 (
@@ -178,7 +272,6 @@ IOdictionary physicalProperties
         IOobject::NO_WRITE
     )
 );
-dimensionedScalar rho("rho", dimensionSet(1, -3, 0, 0, 0, 0, 0), physicalProperties);
 
 //Electrical conductivity
 dimensionedScalar sigma
@@ -212,4 +305,3 @@ scalar maxRemDiff(readScalar(physicalProperties.lookup("maxRemDiff")));
 //     0     - every iteration
 
 scalar maxRelDiff(readScalar(physicalProperties.lookup("maxRelDiff")));
-

@@ -73,6 +73,9 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+	
+	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
+    Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -87,15 +90,14 @@ int main(int argc, char *argv[])
     // Receive fields from Elmer
     Elmer<fvMesh> receiving(mesh,-1); // 1=send, -1=receive
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
-    receiving.recvVector(JxB);
-    receiving.recvScalar(JJsigma);
-/*
-	//alternatively receive current and magnetic field separately
-    receiving.recvVector(J);
-    receiving.recvVector(B);
-    JxB = J ^ B;
-    JJsigma = (J & J)/sigma;
-*/
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
+    
+	//Lorentz force term initialization
+	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -229,6 +231,46 @@ int main(int argc, char *argv[])
         }
 
         rho = thermo.rho();
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+        // Check whether we need to update electromagnetic stuff with Elmer
+
+        dimensionedScalar smallU
+        (
+            "smallU",
+            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
+            1e-6
+        );
+
+        bool doElmer = false;
+        
+        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
+        
+        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
+        
+        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
+            doElmer = true;
+        }
+        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
+            doElmer = true;
+        }
+
+        // Calculate electric potential if current density will not be updated
+        if (!doElmer)
+        {
+            volVectorField JUBre = Jre;
+            {
+                #include "PotEreEqn.H"
+            }
+            volVectorField JUBim = Jim;
+            {
+                #include "PotEimEqn.H"
+            }
+            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
+	        JJsigma =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
+        }
+
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
         OFClock = runTime.clockTimeIncrement();
@@ -240,20 +282,7 @@ int main(int argc, char *argv[])
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
-
-        bool doElmer = false;
-        if(maxRelDiff_local>maxRelDiff && (maxRelDiff<SMALL || maxRelDiff+SMALL<=1.0)) {
-            doElmer = true;
-        }
+        // Update electromagnetic stuff with Elmer
 
         if(doElmer && runTime.run()) {
             U_old = U;
@@ -264,15 +293,12 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
-    	    receiving.recvVector(JxB);
-			receiving.recvScalar(JJsigma);
-			/*
-			//alternatively receive current and magnetic field separately
-    		receiving.recvVector(J);
-    		receiving.recvVector(B);
-    		JxB = J ^ B;
-    		JJsigma = (J & J)/sigma;
-			*/
+            receiving.recvVector(Jre);
+            receiving.recvVector(Jim);
+            receiving.recvVector(Bre);
+            receiving.recvVector(Bim);
+            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	        JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -299,15 +325,10 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
-   	receiving.recvVector(JxB);
-    receiving.recvScalar(JJsigma);
-	/*
-	//alternatively receive current and magnetic field separately
-    receiving.recvVector(J);
-    receiving.recvVector(B);
-    JxB = J ^ B;
-    JJsigma = (J & J)/sigma;
-	*/
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
 	
 	// Log the current simulation time
     if (Pstream::master())

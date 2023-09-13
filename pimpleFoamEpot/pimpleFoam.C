@@ -6,7 +6,7 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    Original buoyantFoam solver is part of OpenFOAM.
+    Original pimpleFoam solver is part of OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -22,32 +22,30 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantFoamMHD is a modified buoyantFoam solver, where the modification 
+    pimpleFoamMHD is a modified pimpleFoam solver, where the modification 
     is based on EOF-Library solver mhdVxBPimpleFoam.
 
 Description
-    Solver for steady or transient buoyant, turbulent flow of compressible
-    fluids for electromagnetically forced and heated flows, with optional 
-    mesh motion and mesh topology changes.
+    Transient solver for electromagnetically forced incompressible, 
+    turbulent flow of Newtonian fluids, with optional mesh motion and mesh 
+    topology changes.
 
-    Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
-    pseudo-transient simulations.
+    Turbulence modelling is generic, i.e. laminar, RAS or LES may be selected.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "fluidThermo.H"
-#include "compressibleMomentumTransportModels.H"
-#include "fluidThermophysicalTransportModel.H"
+#include "viscosityModel.H"
+#include "incompressibleMomentumTransportModels.H"
 #include "pimpleControl.H"
 #include "pressureReference.H"
-#include "hydrostaticInitialisation.H"
 #include "CorrectPhi.H"
 #include "fvModels.H"
 #include "fvConstraints.H"
 #include "localEulerDdtScheme.H"
 #include "fvcSmooth.H"
 #include "Elmer.H"
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,21 +56,23 @@ int main(int argc, char *argv[])
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
-    #include "createDyMControls.H"
     #include "initContinuityErrs.H"
+    #include "createDyMControls.H"
     #include "createFields.H"
-    #include "createFieldRefs.H"
-    #include "createRhoUfIfPresent.H"
+    #include "createUfIfPresent.H"
 
     turbulence->validate();
 
     if (!LTS)
     {
-        #include "compressibleCourantNo.H"
+        #include "CourantNo.H"
         #include "setInitialDeltaT.H"
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+	
+	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
+    Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -87,15 +87,13 @@ int main(int argc, char *argv[])
     // Receive fields from Elmer
     Elmer<fvMesh> receiving(mesh,-1); // 1=send, -1=receive
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
-    receiving.recvVector(JxB);
-    receiving.recvScalar(JJsigma);
-/*
-	//alternatively receive current and magnetic field separately
-    receiving.recvVector(J);
-    receiving.recvVector(B);
-    JxB = J ^ B;
-    JJsigma = (J & J)/sigma;
-*/
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
+    
+	//Lorentz force term initialization
+	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -117,37 +115,17 @@ int main(int argc, char *argv[])
     {
         #include "readDyMControls.H"
 
-        // Store divrhoU from the previous mesh so that it can be mapped
-        // and used in correctPhi to ensure the corrected phi has the
-        // same divergence
-        autoPtr<volScalarField> divrhoU;
-        if (correctPhi)
-        {
-            divrhoU = new volScalarField
-            (
-                "divrhoU",
-                fvc::div(fvc::absolute(phi, rho, U))
-            );
-        }
-
         if (LTS)
         {
             #include "setRDeltaT.H"
         }
         else
         {
-            #include "compressibleCourantNo.H"
+            #include "CourantNo.H"
             #include "setDeltaT.H"
         }
 
         fvModels.preUpdateMesh();
-
-        // Store momentum to set rhoUf for introduced faces.
-        autoPtr<volVectorField> rhoU;
-        if (rhoUf.valid())
-        {
-            rhoU = new volVectorField("rhoU", rho*U);
-        }
 
         // Update the mesh for topology change, mesh to mesh mapping
         mesh.update();
@@ -159,76 +137,82 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-            if (!pimple.flow())
+            if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
             {
-                if (pimple.models())
-                {
-                    fvModels.correct();
-                }
+                // Move the mesh
+                mesh.move();
 
-                if (pimple.thermophysics())
+                if (mesh.changing())
                 {
-                    #include "EEqn.H"
-                }
-            }
-            else
-            {
-                if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
-                {
-                    // Move the mesh
-                    mesh.move();
+                    MRF.update();
 
-                    if (mesh.changing())
+                    if (correctPhi)
                     {
-                        gh = (g & mesh.C()) - ghRef;
-                        ghf = (g & mesh.Cf()) - ghRef;
+                        #include "correctPhi.H"
+                    }
 
-                        MRF.update();
-
-                        if (correctPhi)
-                        {
-                            #include "correctPhi.H"
-                        }
-
-                        if (checkMeshCourantNo)
-                        {
-                            #include "meshCourantNo.H"
-                        }
+                    if (checkMeshCourantNo)
+                    {
+                        #include "meshCourantNo.H"
                     }
                 }
+            }
 
-                if (pimple.firstPimpleIter() && !pimple.simpleRho())
-                {
-                    #include "rhoEqn.H"
-                }
+            fvModels.correct();
 
-                if (pimple.models())
-                {
-                    fvModels.correct();
-                }
+            #include "UEqn.H"
 
-                #include "UEqn.H"
+            // --- Pressure corrector loop
+            while (pimple.correct())
+            {
+                #include "pEqn.H"
+            }
 
-                if (pimple.thermophysics())
-                {
-                    #include "EEqn.H"
-                }
-
-                // --- Pressure corrector loop
-                while (pimple.correct())
-                {
-                    #include "pEqn.H"
-                }
-
-                if (pimple.turbCorr())
-                {
-                    turbulence->correct();
-                    thermophysicalTransport->correct();
-                }
+            if (pimple.turbCorr())
+            {
+                viscosity->correct();
+                turbulence->correct();
             }
         }
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        rho = thermo.rho();
+        // Check whether we need to update electromagnetic stuff with Elmer
+
+        dimensionedScalar smallU
+        (
+            "smallU",
+            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
+            1e-6
+        );
+
+        bool doElmer = false;
+        
+        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
+        
+        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
+        
+        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
+            doElmer = true;
+        }
+        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
+            doElmer = true;
+        }
+
+        // Calculate electric potential if current density will not be updated
+        if (!doElmer)
+        {
+            volVectorField JUBre = Jre;
+            {
+                #include "PotEreEqn.H"
+            }
+            volVectorField JUBim = Jim;
+            {
+                #include "PotEimEqn.H"
+            }
+            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
+        }
+
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
         OFClock = runTime.clockTimeIncrement();
@@ -240,20 +224,7 @@ int main(int argc, char *argv[])
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
-
-        bool doElmer = false;
-        if(maxRelDiff_local>maxRelDiff && (maxRelDiff<SMALL || maxRelDiff+SMALL<=1.0)) {
-            doElmer = true;
-        }
+        // Update electromagnetic stuff with Elmer
 
         if(doElmer && runTime.run()) {
             U_old = U;
@@ -264,15 +235,11 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
-    	    receiving.recvVector(JxB);
-			receiving.recvScalar(JJsigma);
-			/*
-			//alternatively receive current and magnetic field separately
-    		receiving.recvVector(J);
-    		receiving.recvVector(B);
-    		JxB = J ^ B;
-    		JJsigma = (J & J)/sigma;
-			*/
+            receiving.recvVector(Jre);
+            receiving.recvVector(Jim);
+            receiving.recvVector(Bre);
+            receiving.recvVector(Bim);
+            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -299,15 +266,10 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
-   	receiving.recvVector(JxB);
-    receiving.recvScalar(JJsigma);
-	/*
-	//alternatively receive current and magnetic field separately
-    receiving.recvVector(J);
-    receiving.recvVector(B);
-    JxB = J ^ B;
-    JJsigma = (J & J)/sigma;
-	*/
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
 	
 	// Log the current simulation time
     if (Pstream::master())

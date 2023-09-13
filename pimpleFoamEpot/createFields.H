@@ -1,3 +1,5 @@
+#include "createRDeltaT.H"
+
 Info<< "Reading field p\n" << endl;
 volScalarField p
 (
@@ -109,9 +111,6 @@ volVectorField Bim
     mesh
 );
 
-
-#include "createPhi.H"
-
 //Electric potential field
 Info<< "Reading field PotEre\n" << endl;
 volScalarField PotEre
@@ -141,18 +140,21 @@ volScalarField PotEim
     mesh
 );
 
-pressureReference pressureReference(p, simple.dict());
+#include "createPhi.H"
+
+pressureReference pressureReference(p, pimple.dict());
+
 mesh.schemes().setFluxRequired(p.name());
 
 //Electric potential reference point
 label PotEreRefCell = 0;
 scalar PotEreRefValue = 0.0;
-setRefCell(PotEre, simple.dict(), PotEreRefCell, PotEreRefValue);
+setRefCell(PotEre, pimple.dict(), PotEreRefCell, PotEreRefValue);
 mesh.schemes().setFluxRequired(PotEre.name());
 
 label PotEimRefCell = 0;
 scalar PotEimRefValue = 0.0;
-setRefCell(PotEim, simple.dict(), PotEimRefCell, PotEimRefValue);
+setRefCell(PotEim, pimple.dict(), PotEimRefCell, PotEimRefValue);
 mesh.schemes().setFluxRequired(PotEim.name());
 
 
