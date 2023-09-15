@@ -22,8 +22,12 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    pimpleFoamMHD is a modified pimpleFoam solver, where the modification 
-    is based on EOF-Library solver mhdVxBPimpleFoam.
+    pimpleFoamEpot is a modified pimpleFoam solver, where the modification 
+    is based on EOF-Library solver mhdVxBPimpleFoam. Additional modification 
+	was made to update electrical currents in OpenFOAM, while the change in 
+	magnetic Reynolds number doesn't exceed the provided value. This 
+	modification was based on the epotFoam solver, which can be found
+	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
     Transient solver for electromagnetically forced incompressible, 
