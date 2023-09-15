@@ -22,8 +22,12 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantFoamMHD is a modified buoyantFoam solver, where the modification 
-    is based on EOF-Library solver mhdVxBPimpleFoam.
+    buoyantFoamEpot is a modified buoyantFoam solver, where the modification 
+    is based on EOF-Library solver mhdVxBPimpleFoam. Additional modification 
+	was made to update electrical currents in OpenFOAM, while the change in 
+	magnetic Reynolds number doesn't exceed the provided value. This 
+	modification was based on the epotFoam solver, which can be found
+	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
     Solver for steady or transient buoyant, turbulent flow of compressible
