@@ -8,5 +8,7 @@ wmake simpleFoamMHD
 wmake buoyantFoamEpot
 wmake pimpleFoamEpot
 wmake simpleFoamEpot
+wmake generateSimpleEOFFiles
+wmake generatePimpleEOFFiles
 
 # ----------------------------------------------------------------- end-of-file

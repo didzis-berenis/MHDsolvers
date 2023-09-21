@@ -7,3 +7,6 @@
 ## v0.2.1: Added pimpleFoam and buoyantFoam solvers that update electrical potential w/o Elmer. ##
 * buoyantFoamEpot
 * pimpleFoamEpot
+## v0.2.2: Added generateSimpleEOFFiles and generatePimpleEOFFiles for populating case directory with O2E files. ##
+* generateSimpleEOFFiles
+* generatePimpleEOFFiles
