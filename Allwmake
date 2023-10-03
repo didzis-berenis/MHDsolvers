@@ -5,6 +5,8 @@ set -x
 wmake buoyantFoamMHD
 wmake pimpleFoamMHD
 wmake simpleFoamMHD
+wmake buoyantFoamEpotTransient
+wmake pimpleFoamEpotTransient
 wmake buoyantFoamEpot
 wmake pimpleFoamEpot
 wmake simpleFoamEpot
