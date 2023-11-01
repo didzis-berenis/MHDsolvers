@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    generatePimpleEOFFiles is based on code in EOF-Library solver mhdVxBPimpleFoam.
+    generateSimpleEOFFiles is based on code in EOF-Library solver mhdVxBPimpleFoam.
 
 Description
     Case is expected to be initialized for SIMPLE solver. 
@@ -31,31 +31,28 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "viscosityModel.H"
+#include "incompressibleMomentumTransportModels.H"
 #include "simpleControl.H"
+#include "pressureReference.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 #include "Elmer.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
 {
+    #include "postProcess.H"
+
     #include "setRootCaseLists.H"
     #include "createTime.H"
     #include "createMesh.H"
     #include "createControl.H"
+    #include "createFields.H"
+    #include "initContinuityErrs.H"
 	
-	Info<< "Reading field U\n" << endl;
-	volVectorField U
-	(
-		IOobject
-		(
-			"U",
-			runTime.timeName(),
-			mesh,
-			IOobject::MUST_READ,
-			IOobject::NO_WRITE
-		),
-		mesh
-	);
+    turbulence->validate();
 
     Info<< "\nSend fields to Elmer once\n" << endl;
 
