@@ -13,3 +13,4 @@
 ## v0.2.3: Added pimpleFoam and buoyantFoam solvers that updates through Elmer after fixed time interval, but updates only electrical potential for the time steps in-between. ##
 * buoyantFoamEpotTransient
 * pimpleFoamEpotTransient
+## v0.2.4: Fixed generateSimpleEOFFiles. ##
