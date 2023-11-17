@@ -14,3 +14,5 @@
 * buoyantFoamEpotTransient
 * pimpleFoamEpotTransient
 ## v0.2.4: Fixed generateSimpleEOFFiles. ##
+## v0.2.5: Added initializeTemperature for generating initial temperature gradient ##
+* initializeTemperature
