@@ -12,5 +12,6 @@ wmake pimpleFoamEpot
 wmake simpleFoamEpot
 wmake generateSimpleEOFFiles
 wmake generatePimpleEOFFiles
+wmake initializeTemperature
 
 # ----------------------------------------------------------------- end-of-file
