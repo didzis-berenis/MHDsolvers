@@ -16,5 +16,6 @@
 ## v0.2.4: Fixed generateSimpleEOFFiles. ##
 ## v0.2.5: Added initializeTemperature for generating initial temperature gradient ##
 * initializeTemperature
-## v0.3: Added chtMultiRegionFoamEpot solver for multi region simulations with harmonic Elmer solver. ##
+## v0.3: Added chtMultiRegionFoamEpot and chtMultiRegionFoamEpotTransient solvers for multi region simulations with harmonic Elmer solver. ##
 * chtMultiRegionFoamEpot
+* chtMultiRegionFoamEpotTransient

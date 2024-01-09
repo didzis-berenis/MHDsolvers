@@ -22,17 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantFoamEpot is a modified buoyantFoam solver, where the modification 
-    is based on EOF-Library solver mhdVxBPimpleFoam. Additional modification 
-	was made to update electrical currents in OpenFOAM, while the change in 
-	magnetic Reynolds number doesn't exceed the provided value. This 
+    buoyantFoamEpotTransient is a modified buoyantFoam solver, where the 
+    modification is based on EOF-Library solver mhdVxBPimpleFoam. Additional 
+    modification was made to update electrical currents in OpenFOAM, while the
+    change in magnetic Reynolds number doesn't exceed the provided value. This 
 	modification was based on the epotFoam solver, which can be found
 	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
     Solver for steady or transient buoyant, turbulent flow of compressible
     fluids for electromagnetically forced and heated flows, with optional 
-    mesh motion and mesh topology changes.
+    mesh motion and mesh topology changes. buoyantFoamEpotTransient assumes 
+    coupling with transient ElmerFEM solver.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
     pseudo-transient simulations.

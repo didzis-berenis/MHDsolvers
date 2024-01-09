@@ -32,7 +32,8 @@ Application
 Description
     Solver for steady or transient buoyant, turbulent flow of compressible
     fluids for electromagnetically forced and heated flows, with optional 
-    mesh motion and mesh topology changes.
+    mesh motion and mesh topology changes. buoyantFoamEpot assumes coupling 
+    with harmonic (time-averaged) ElmerFEM solver.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
     pseudo-transient simulations.

@@ -22,19 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    chtMultiRegionFoamEpot is a modified chtMultiRegionFoam solver, where the 
-    modification is based on EOF-Library solver mhdVxBPimpleFoam. Additional 
-    modification was made to update electrical currents in OpenFOAM, while the 
-    change in magnetic Reynolds number doesn't exceed the provided value. This 
-	modification was based on the epotFoam solver, which can be found
-	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    chtMultiRegionFoamEpotTransient is a modified chtMultiRegionFoam solver, 
+    where the modification is based on EOF-Library solver mhdVxBPimpleFoam. 
+    Additional modification was made to update electrical currents in OpenFOAM, 
+    while the change in magnetic Reynolds number doesn't exceed the provided 
+    value. This modification was based on the epotFoam solver, which can be 
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
     Solver for steady or transient electromagnetically forced fluid flow and 
     solid heat conduction, with conjugate heat transfer between regions, 
     buoyancy effects, turbulence, reactions and radiation modelling. 
-    buoyantFoamEpot assumes coupling with harmonic (time-averaged) ElmerFEM 
-    solver.
+    buoyantFoamEpot assumes coupling with transient ElmerFEM solver.
 
 \*---------------------------------------------------------------------------*/
 
@@ -191,24 +190,17 @@ int main(int argc, char *argv[])
                 fvMesh& mesh = fluidRegions[i];
                 volVectorField& U = UFluid[i];
                 volVectorField& U_old = U_oldFluid[i];
-                volVectorField& Jre = JreFluid[i];
-                volVectorField& Jim = JimFluid[i];
-                volVectorField& Bre = BreFluid[i];
-                volVectorField& Bim = BimFluid[i];
+                volVectorField& J = JFluid[i];
+                volVectorField& B = BFluid[i];
                 dimensionedScalar sigma = sigmaFluid[i];
-                volScalarField& PotEim = PotEimFluid[i];
-                volScalarField& PotEre = PotEreFluid[i];
+                volScalarField& PotE = PotEFluid[i];
 
-                volVectorField JUBre = Jre;
+                volVectorField JUB = J;
                 {
-                    #include "PotEreEqn.H"
+                    #include "PotEEqn.H"
                 }
-                volVectorField JUBim = Jim;
-                {
-                    #include "PotEimEqn.H"
-                }
-                JxBFluid[i] =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
-                JJsigmaFluid[i] =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
+                JxBFluid[i] =  ((J+JUB) ^ B );
+                JJsigmaFluid[i] =  ((J+JUB) & (J+JUB))/sigma;
             }
         }
 
