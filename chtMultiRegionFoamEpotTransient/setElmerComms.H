@@ -23,7 +23,8 @@ forAll(fluidRegions, i)
 
     //Lorentz force term initialization
     JxBFluid[i] =  (JFluid[i] ^ BFluid[i]);
-    JJsigmaFluid[i] =  (JFluid[i] & JFluid[i])/sigmaFluid[i];
+    dimensionedScalar& sigma = sigmaFluid[i];
+    JJsigmaFluid[i] =  (JFluid[i] & JFluid[i])/sigma;
 }
 forAll(solidRegions, i)
 {

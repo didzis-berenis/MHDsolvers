@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
                 volVectorField& Jim = JimFluid[i];
                 volVectorField& Bre = BreFluid[i];
                 volVectorField& Bim = BimFluid[i];
-                dimensionedScalar sigma = sigmaFluid[i];
+                dimensionedScalar& sigma = sigmaFluid[i];
                 volScalarField& PotEim = PotEimFluid[i];
                 volScalarField& PotEre = PotEreFluid[i];
 

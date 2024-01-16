@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
                 volVectorField& U_old = U_oldFluid[i];
                 volVectorField& J = JFluid[i];
                 volVectorField& B = BFluid[i];
-                dimensionedScalar sigma = sigmaFluid[i];
+                dimensionedScalar& sigma = sigmaFluid[i];
                 volScalarField& PotE = PotEFluid[i];
 
                 volVectorField JUB = J;

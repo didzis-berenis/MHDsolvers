@@ -29,8 +29,7 @@ PtrList<multivariateSurfaceInterpolationScheme<scalar>::fieldTable>
     fieldsFluid(fluidRegions.size());
 
 List<scalar> initialMassFluid(fluidRegions.size());
-List<dimensionedScalar> characteristicSize(fluidRegions.size());
-List<dimensionedScalar> sigmaFluid(fluidRegions.size());
+PtrList<dimensionedScalar> sigmaFluid(fluidRegions.size());
 List<double> magneticReynolds(fluidRegions.size());
 
 PtrList<IOMRFZoneList> MRFfluid(fluidRegions.size());
@@ -477,15 +476,19 @@ forAll(fluidRegions, i)
         );
 
     //Electrical conductivity
-    sigmaFluid[i] = dimensionedScalar
+    sigmaFluid.set
+    (
+        i,
+        new dimensionedScalar
         (
             "sigma",
             dimensionSet(-1, -3, 3, 0, 0, 2, 0),
             physicalProperties
-        );
+        )
+    );
 
     //Characteristic length
-    characteristicSize[i] = dimensionedScalar
+    dimensionedScalar characteristicSize 
         (
             "Lchar",
             dimensionSet(0, 1, 0, 0, 0, 0, 0),
@@ -493,6 +496,6 @@ forAll(fluidRegions, i)
         );
 
 	magneticReynolds[i] = 
-        4*3.14159*(std::pow(10,-7))*sigmaFluid[i].value()*characteristicSize[i].value();
+        4*3.14159*(std::pow(10,-7))*sigmaFluid[i].value()*characteristicSize.value();
     Info<< "Rem0 = " << magneticReynolds[i] << endl;
 }
