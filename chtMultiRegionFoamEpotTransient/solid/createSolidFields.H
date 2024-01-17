@@ -2,7 +2,11 @@
 PtrList<solidThermo> thermoSolid(solidRegions.size());
 PtrList<Foam::fvModels> fvModelsSolid(solidRegions.size());
 PtrList<fvConstraints> fvConstraintsSolid(solidRegions.size());
-PtrList<volScalarField> JJsigmaSolid(fluidRegions.size());
+PtrList<volVectorField> JxBSolid(solidRegions.size());
+PtrList<volScalarField> JJsigmaSolid(solidRegions.size());
+PtrList<volVectorField> JSolid(solidRegions.size());
+PtrList<volVectorField> BSolid(solidRegions.size());
+PtrList<dimensionedScalar> sigmaSolid(solidRegions.size());
 
 // Populate solid field pointer lists
 forAll(solidRegions, i)
@@ -27,6 +31,24 @@ forAll(solidRegions, i)
         new fvConstraints(solidRegions[i])
     );
 
+    Info<< "    Adding to JxBSolid\n" << endl;
+    JxBSolid.set
+    (
+        i,
+        new volVectorField
+        (
+            IOobject
+            (
+                "JxB",
+                runTime.timeName(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            solidRegions[i]
+        )
+    );
+
     Info<< "    Adding to JJsigmaSolid\n" << endl;
     JJsigmaSolid.set
     (
@@ -42,6 +64,66 @@ forAll(solidRegions, i)
                 IOobject::AUTO_WRITE
             ),
             solidRegions[i]
+        )
+    );
+
+    Info<< "    Adding to JSolid\n" << endl;
+    JSolid.set
+    (
+        i,
+        new volVectorField
+        (
+            IOobject
+            (
+                "J",
+                runTime.timeName(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            solidRegions[i]
+        )
+    );
+
+    Info<< "    Adding to BSolid\n" << endl;
+    BSolid.set
+    (
+        i,
+        new volVectorField
+        (
+            IOobject
+            (
+                "B",
+                runTime.timeName(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            solidRegions[i]
+        )
+    );
+
+    IOdictionary physicalProperties
+        (
+            IOobject
+            (
+                "physicalProperties",
+                runTime.constant(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        );
+
+    //Electrical conductivity
+    sigmaSolid.set
+    (
+        i,
+        new dimensionedScalar
+        (
+            "sigma",
+            dimensionSet(-1, -3, 3, 0, 0, 2, 0),
+            physicalProperties
         )
     );
 }
