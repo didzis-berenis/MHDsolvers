@@ -12,7 +12,7 @@
     volVectorField& U = UFluid[i];
     surfaceScalarField& phi = phiFluid[i];
     
-    volScalarField& JJsigma = JJsigmaSolid[i];
+    volScalarField& JJsigma = JJsigmaFluid[i];
     volVectorField& JxB = JxBFluid[i];
 
     compressible::momentumTransportModel& turbulence = turbulenceFluid[i];

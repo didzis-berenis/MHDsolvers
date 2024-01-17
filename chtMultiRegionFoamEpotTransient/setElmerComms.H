@@ -25,7 +25,7 @@ forAll(fluidRegions, i)
     JxBFluid[i] =  (JFluid[i] ^ BFluid[i]);
     dimensionedScalar& sigma = sigmaFluid[i];
     JJsigmaFluid[i] =  (JFluid[i] & JFluid[i])/sigma;
-}
+}/*
 forAll(solidRegions, i)
 {
     Info<< "\nReceiving fields from Elmer for solid region "
@@ -34,4 +34,4 @@ forAll(solidRegions, i)
     if (initialize_elmer) receiving.initialize();
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     receiving.recvScalar(JJsigmaSolid[i]);
-}
+}*/

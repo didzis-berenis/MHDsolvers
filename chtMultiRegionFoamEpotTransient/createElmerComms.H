@@ -35,7 +35,7 @@ forAll(fluidRegions, i)
     );
 
 }
-
+/*
 // Initialise Elmer sending pointer lists for solid regions
 PtrList<Elmer<fvMesh>> receivingSolid(solidRegions.size());
 
@@ -58,7 +58,7 @@ forAll(solidRegions, i)
         )
     );
 
-}
+}*/
 
 // Maximum allowable magnetic Reynolds number difference comparing
 // to last Elmer update. This option controls frequency Elmer is called.
