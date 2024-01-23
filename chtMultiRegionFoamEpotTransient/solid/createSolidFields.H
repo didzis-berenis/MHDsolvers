@@ -6,6 +6,7 @@ PtrList<volVectorField> JxBSolid(solidRegions.size());
 PtrList<volScalarField> JJsigmaSolid(solidRegions.size());
 PtrList<volVectorField> JSolid(solidRegions.size());
 PtrList<volVectorField> BSolid(solidRegions.size());
+PtrList<volVectorField> USolid(solidRegions.size());
 PtrList<dimensionedScalar> sigmaSolid(solidRegions.size());
 
 // Populate solid field pointer lists
@@ -98,6 +99,24 @@ forAll(solidRegions, i)
                 solidRegions[i],
                 IOobject::MUST_READ,
                 IOobject::AUTO_WRITE
+            ),
+            solidRegions[i]
+        )
+    );
+
+    Info<< "    Adding to USolid\n" << endl;
+    USolid.set
+    (
+        i,
+        new volVectorField
+        (
+            IOobject
+            (
+                "U",
+                runTime.timeName(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
             ),
             solidRegions[i]
         )

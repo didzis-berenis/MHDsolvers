@@ -88,12 +88,20 @@ int main(int argc, char *argv[])
     Info<< "\nStarting time loop\n" << endl;
 
     // Send fields to Elmer
-    Elmer<fvMesh> sending(mesh,1); // 1=send, -1=receive
+    Elmer<fvMesh> sending(mesh, //mesh
+        1, // 1=send, -1=receive
+        1, // 1=initialize, 0=w/o init
+        1 // 1=multiregion/no O2E files, 0=exports O2E files
+    );
     sending.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     sending.sendVector(U);
 
     // Receive fields from Elmer
-    Elmer<fvMesh> receiving(mesh,-1); // 1=send, -1=receive
+    Elmer<fvMesh> receiving(mesh, //mesh
+        -1, // 1=send, -1=receive
+        1, // 1=initialize, 0=w/o init
+        1 // 1=multiregion/no O2E files, 0=exports O2E files
+    );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     receiving.recvVector(Jre);
     receiving.recvVector(Jim);

@@ -13,6 +13,8 @@ wmake simpleFoamEpot
 wmake generateSimpleEOFFiles
 wmake generatePimpleEOFFiles
 wmake initializeTemperature
+wmake initializeTemperatureMultiRegion
 wmake chtMultiRegionFoamEpot
+wmake chtMultiRegionFoamEpotTransient
 
 # ----------------------------------------------------------------- end-of-file

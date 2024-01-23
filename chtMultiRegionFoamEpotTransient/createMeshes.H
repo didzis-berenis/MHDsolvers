@@ -2,14 +2,14 @@ regionProperties rp(runTime);
 
 #include "createFluidMeshes.H"
 #include "createSolidMeshes.H"
-
-Foam::fvMesh meshGlobal
+// Read global mesh of all regions
+fvMesh meshGlobal
 (
-    Foam::IOobject
+    IOobject
     (
-        Foam::fvMesh::defaultRegion,
+        fvMesh::defaultRegion,
         runTime.timeName(),
         runTime,
-        Foam::IOobject::MUST_READ
+        IOobject::MUST_READ
     )
 );

@@ -55,6 +55,7 @@ Description
 #include "pressureReference.H"
 #include "hydrostaticInitialisation.H"
 #include "Elmer.H"
+#include "globalRegionInterpolator.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

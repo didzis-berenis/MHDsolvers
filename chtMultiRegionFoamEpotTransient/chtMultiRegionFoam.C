@@ -54,6 +54,7 @@ Description
 #include "pressureReference.H"
 #include "hydrostaticInitialisation.H"
 #include "Elmer.H"
+#include "globalRegionInterpolator.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -78,6 +79,11 @@ int main(int argc, char *argv[])
     #include "createElmerComms.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+	int writeMultiplier( readScalar(runTime.controlDict().lookup("writeMultiplier")) );
+	long long int writeCounter = 0;
+	
+	word writeControlDict(runTime.controlDict().lookup("writeControl"));
+	const bool adjustableRunTime = (writeControlDict=="adjustableRunTime");
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -151,36 +157,17 @@ int main(int argc, char *argv[])
 
         // Check whether we need to update electromagnetic stuff with Elmer
 
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
         bool doElmer = false;
         
-        scalar maxRemDiff_local = SMALL;        
-        
-        scalar maxRelDiff_local = SMALL;
-        
-        forAll(fluidRegions, i)
-        {
-            maxRemDiff_local = max(
-                magneticReynolds[i]*max(mag(U_oldFluid[i]-UFluid[i])).value(),
-                maxRemDiff_local);        
-        
-            maxRelDiff_local = max(
-                (max(mag(U_oldFluid[i]-UFluid[i])/(average(mag(UFluid[i]))+smallU))).value(),
-                maxRemDiff_local);
-        }
-        
-        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
-            doElmer = true;
-        }
-        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
-            doElmer = true;
-        }
+        if (adjustableRunTime)
+		{
+			if (runTime.writeTime()) doElmer = true;
+		}
+		else
+		{
+			writeCounter++;
+			if ( (writeCounter % writeMultiplier) == 0 && runTime.run()) doElmer = true;
+		}
 
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
