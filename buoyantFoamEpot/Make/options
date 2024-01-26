@@ -10,6 +10,8 @@ else
               -I$(EOF_SRC)/commSplit/lnInclude
 endif
 
+ELMER_TIME = HARMONIC
+
 EXE_INC = \
     -I. \
     -I$(LIB_SRC)/../applications/solvers/compressible/rhoPimpleFoam \

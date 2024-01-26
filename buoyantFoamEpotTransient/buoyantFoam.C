@@ -22,18 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantFoamEpotTransient is a modified buoyantFoam solver, where the 
-    modification is based on EOF-Library solver mhdVxBPimpleFoam. Additional 
-    modification was made to update electrical currents in OpenFOAM, while the
-    change in magnetic Reynolds number doesn't exceed the provided value. This 
+    buoyantFoamEpot is a modified buoyantFoam solver, where the modification 
+    is based on EOF-Library solver mhdVxBPimpleFoam. Additional modification 
+	was made to update electrical currents in OpenFOAM, while the change in 
+	magnetic Reynolds number doesn't exceed the provided value. This 
 	modification was based on the epotFoam solver, which can be found
 	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
     Solver for steady or transient buoyant, turbulent flow of compressible
     fluids for electromagnetically forced and heated flows, with optional 
-    mesh motion and mesh topology changes. buoyantFoamEpotTransient assumes 
-    coupling with transient ElmerFEM solver.
+    mesh motion and mesh topology changes. buoyantFoamEpot assumes coupling 
+    with harmonic (time-averaged) ElmerFEM solver.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
     pseudo-transient simulations.
@@ -78,11 +78,6 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	int writeMultiplier( readScalar(runTime.controlDict().lookup("writeMultiplier")) );
-	long long int writeCounter = 0;
-	
-	word writeControlDict(runTime.controlDict().lookup("writeControl"));
-	const bool adjustableRunTime = (writeControlDict=="adjustableRunTime");
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -105,12 +100,23 @@ int main(int argc, char *argv[])
         1 // 1=multiregion/no O2E files, 0=exports O2E files
     );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
+    #if (ELMER_TIME == HARMONIC)
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
+
+	//Lorentz force term initialization
+	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
+    #elif (ELMER_TIME == TRANSIENT)
     receiving.recvVector(J);
     receiving.recvVector(B);
-    
+
 	//Lorentz force term initialization
 	JxB =  (J ^ B);
 	JJsigma =  (J & J)/sigma;
+    #endif
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -247,9 +253,28 @@ int main(int argc, char *argv[])
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
-
         bool doElmer = false;
+
+        #if (ELMER_TIME == HARMONIC)
+        dimensionedScalar smallU
+        (
+            "smallU",
+            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
+            1e-6
+        );
         
+        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
+        
+        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
+        
+        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
+            doElmer = true;
+        }
+        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
+            doElmer = true;
+        }
+
+        #elif (ELMER_TIME == TRANSIENT)
         if (adjustableRunTime)
 		{
 			if (runTime.writeTime()) doElmer = true;
@@ -259,21 +284,38 @@ int main(int argc, char *argv[])
 			writeCounter++;
 			if ( (writeCounter % writeMultiplier) == 0 && runTime.run()) doElmer = true;
 		}
+        #endif
 
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
         {
+            #if (ELMER_TIME == HARMONIC)
+            volVectorField JUBre = Jre;
+            {
+                #include "PotEreEqn.H"
+            }
+            volVectorField JUBim = Jim;
+            {
+                #include "PotEimEqn.H"
+            }
+            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
+	        JJsigma =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
+
+            #elif (ELMER_TIME == TRANSIENT)
             volVectorField JUB = J;
             {
                 #include "PotEEqn.H"
             }
 			JxB =  ((J+JUB) ^ B);
 			JJsigma =  ((J+JUB) & (J+JUB))/sigma;
+
+            #endif
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
+        #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"
@@ -294,10 +336,21 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
+            #if (ELMER_TIME == HARMONIC)
+            receiving.recvVector(Jre);
+            receiving.recvVector(Jim);
+            receiving.recvVector(Bre);
+            receiving.recvVector(Bim);
+            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+	        JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
+
+            #elif (ELMER_TIME == TRANSIENT)
             receiving.recvVector(J);
             receiving.recvVector(B);
 			JxB =  (J ^ B);
 			JJsigma =  (J & J)/sigma;
+
+            #endif
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -324,8 +377,15 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
+    #if (ELMER_TIME == HARMONIC)
+    receiving.recvVector(Jre);
+    receiving.recvVector(Jim);
+    receiving.recvVector(Bre);
+    receiving.recvVector(Bim);
+    #elif (ELMER_TIME == TRANSIENT)
     receiving.recvVector(J);
     receiving.recvVector(B);
+    #endif
 	
 	// Log the current simulation time
     if (Pstream::master())

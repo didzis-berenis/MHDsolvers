@@ -78,9 +78,6 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	
-	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
-    Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -103,14 +100,23 @@ int main(int argc, char *argv[])
         1 // 1=multiregion/no O2E files, 0=exports O2E files
     );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
+    #if (ELMER_TIME == HARMONIC)
     receiving.recvVector(Jre);
     receiving.recvVector(Jim);
     receiving.recvVector(Bre);
     receiving.recvVector(Bim);
-    
+
 	//Lorentz force term initialization
 	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
+    #elif (ELMER_TIME == TRANSIENT)
+    receiving.recvVector(J);
+    receiving.recvVector(B);
+
+	//Lorentz force term initialization
+	JxB =  (J ^ B);
+	JJsigma =  (J & J)/sigma;
+    #endif
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -247,15 +253,15 @@ int main(int argc, char *argv[])
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
+        bool doElmer = false;
 
+        #if (ELMER_TIME == HARMONIC)
         dimensionedScalar smallU
         (
             "smallU",
             dimensionSet(0, 1, -1, 0, 0, 0 ,0),
             1e-6
         );
-
-        bool doElmer = false;
         
         scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
         
@@ -268,9 +274,22 @@ int main(int argc, char *argv[])
             doElmer = true;
         }
 
+        #elif (ELMER_TIME == TRANSIENT)
+        if (adjustableRunTime)
+		{
+			if (runTime.writeTime()) doElmer = true;
+		}
+		else
+		{
+			writeCounter++;
+			if ( (writeCounter % writeMultiplier) == 0 && runTime.run()) doElmer = true;
+		}
+        #endif
+
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
         {
+            #if (ELMER_TIME == HARMONIC)
             volVectorField JUBre = Jre;
             {
                 #include "PotEreEqn.H"
@@ -281,11 +300,22 @@ int main(int argc, char *argv[])
             }
             JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
 	        JJsigma =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
+
+            #elif (ELMER_TIME == TRANSIENT)
+            volVectorField JUB = J;
+            {
+                #include "PotEEqn.H"
+            }
+			JxB =  ((J+JUB) ^ B);
+			JJsigma =  ((J+JUB) & (J+JUB))/sigma;
+
+            #endif
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
+        #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"
@@ -306,12 +336,21 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
+            #if (ELMER_TIME == HARMONIC)
             receiving.recvVector(Jre);
             receiving.recvVector(Jim);
             receiving.recvVector(Bre);
             receiving.recvVector(Bim);
             JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	        JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
+
+            #elif (ELMER_TIME == TRANSIENT)
+            receiving.recvVector(J);
+            receiving.recvVector(B);
+			JxB =  (J ^ B);
+			JJsigma =  (J & J)/sigma;
+
+            #endif
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -338,10 +377,15 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
+    #if (ELMER_TIME == HARMONIC)
     receiving.recvVector(Jre);
     receiving.recvVector(Jim);
     receiving.recvVector(Bre);
     receiving.recvVector(Bim);
+    #elif (ELMER_TIME == TRANSIENT)
+    receiving.recvVector(J);
+    receiving.recvVector(B);
+    #endif
 	
 	// Log the current simulation time
     if (Pstream::master())

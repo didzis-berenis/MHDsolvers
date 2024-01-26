@@ -26,9 +26,9 @@ forAll(fluidRegions, i)
         JJsigmaIntegral += JJsigma[cellI]*dV;
     }
     string regionName = "";
-    if (fluidRegions.size() > 1)
+    if (fluidRegions.size() + i > 1)
     {
-        regionName = "_"+ fluidNames[i];
+        regionName = fluidNames[i];
     }
     // Write
     string velocityFileName = "velocityIntegrals" + std::to_string(Pstream::myProcNo()) + regionName + ".dat";
@@ -36,18 +36,20 @@ forAll(fluidRegions, i)
 
     if (velocityFile.is_open())
     {
-        velocityFile << runTime.timeName() << "\t" << UmagIntegral << "\t" << UxIntegral << "\t" << UyIntegral << "\t" << UzIntegral << std::endl;
+        velocityFile << runTime.timeName() << "\t" << max(magU).value() << "\t" << UmagIntegral << "\t" << UxIntegral << "\t" 
+        << UyIntegral << "\t" << UzIntegral << std::endl;
         velocityFile.close();
     }
     else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " for writing!\n" << abort(FatalError);
 
     // Write
-    string thermalFileName = "thermalIntegrals" + std::to_string(Pstream::myProcNo()) + regionName + ".dat";
+    string thermalFileName = "thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream thermalFile(thermalFileName, std::ios::app);
 
     if (thermalFile.is_open())
     {
-        thermalFile << runTime.timeName() << "\t" << TIntegral << "\t" << JJsigmaIntegral << std::endl;
+        thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral << 
+        "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
         thermalFile.close();
     }
     else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
@@ -68,18 +70,19 @@ forAll(solidRegions, i)
         JJsigmaIntegral += JJsigma[cellI]*dV;
     }
     string regionName = "";
-    if (fluidRegions.size() + solidRegions.size() > 1)
+    if (fluidRegions.size() + solidRegions.size() + i > 1)
     {
-        regionName = "_"+ solidNames[i];
+        regionName = solidNames[i];
     }
 
     // Write
-    string thermalFileName = "thermalIntegrals" + std::to_string(Pstream::myProcNo()) + regionName + ".dat";
+    string thermalFileName = "thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream thermalFile(thermalFileName, std::ios::app);
 
     if (thermalFile.is_open())
     {
-        thermalFile << runTime.timeName() << "\t" << TIntegral << "\t" << JJsigmaIntegral << std::endl;
+        thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral << 
+        "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
         thermalFile.close();
     }
     else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);

@@ -78,6 +78,7 @@ volScalarField JJsigma
     mesh
 );
 
+#if (ELMER_TIME == HARMONIC)
 Info<< "Initializing field Jre\n" << endl;
 volVectorField Jre
 (
@@ -162,6 +163,51 @@ volScalarField PotEim
     ),
     mesh
 );
+
+#elif (ELMER_TIME == TRANSIENT)
+Info<< "Initializing field J\n" << endl;
+volVectorField J
+(
+    IOobject
+    (
+        "J",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+Info<< "Initializing field B\n" << endl;
+volVectorField B
+(
+    IOobject
+    (
+        "B",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+//Electric potential field
+Info<< "Reading field PotE\n" << endl;
+volScalarField PotE
+(
+    IOobject
+    (
+        "PotE",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+#endif
 
 #include "compressibleCreatePhi.H"
 
@@ -281,6 +327,7 @@ dimensionedScalar sigma
     physicalProperties
 );
 
+#if (ELMER_TIME == HARMONIC)
 //Characteristic length
 dimensionedScalar Lchar
 (
@@ -288,6 +335,9 @@ dimensionedScalar Lchar
     dimensionSet(0, 1, 0, 0, 0, 0, 0),
     physicalProperties
 );
+
+double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
+Info<< "Rem0 = " << Rem0 << endl;
 
 // Maximum allowable magnetic Reynolds number difference comparing
 // to last Elmer update. This option controls frequency Elmer is called.
@@ -305,3 +355,11 @@ scalar maxRemDiff(readScalar(physicalProperties.lookup("maxRemDiff")));
 //     0     - every iteration
 
 scalar maxRelDiff(readScalar(physicalProperties.lookup("maxRelDiff")));
+
+#elif (ELMER_TIME == TRANSIENT)
+int writeMultiplier( readScalar(runTime.controlDict().lookup("writeMultiplier")) );
+long long int writeCounter = 0;
+word writeControlDict(runTime.controlDict().lookup("writeControl"));
+const bool adjustableRunTime = (writeControlDict=="adjustableRunTime");
+
+#endif
