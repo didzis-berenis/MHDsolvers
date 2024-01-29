@@ -153,10 +153,11 @@ forAll(solidRegions, i)
                 "U",
                 runTime.timeName(),
                 solidRegions[i],
-                IOobject::MUST_READ,
+                IOobject::NO_READ,
                 IOobject::NO_WRITE
             ),
-            solidRegions[i]
+            solidRegions[i],
+            dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
         )
     );
 

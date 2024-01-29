@@ -32,8 +32,13 @@ Application
 Description
     Solver for steady or transient buoyant, turbulent flow of compressible
     fluids for electromagnetically forced and heated flows, with optional 
-    mesh motion and mesh topology changes. buoyantFoamEpot assumes coupling 
-    with harmonic (time-averaged) ElmerFEM solver.
+    mesh motion and mesh topology changes.
+
+    Compile option ELMER_TIME == HARMONIC_TIME builds buoyantFoamEpot solver,
+    which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
+
+    Compile option ELMER_TIME == TRANSIENT_TIME builds buoyantFoamEpotTransient
+    solver, which assumes coupling with transient ElmerFEM solver.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
     pseudo-transient simulations.
@@ -53,6 +58,15 @@ Description
 #include "localEulerDdtScheme.H"
 #include "fvcSmooth.H"
 #include "Elmer.H"
+#define TRANSIENT_TIME  2
+#define HARMONIC_TIME   3
+#if (ELMER_TIME == HARMONIC_TIME)
+#warning "Compiling for coupling with HARMONIC Elmer simulation!"
+#elif (ELMER_TIME == TRANSIENT_TIME)
+#warning "Compiling for coupling with TRANSIENT Elmer simulation!"
+#else
+#error "Please define appropriate functions for your Elmer simulation!"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -100,7 +114,7 @@ int main(int argc, char *argv[])
         1 // 1=multiregion/no O2E files, 0=exports O2E files
     );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
-    #if (ELMER_TIME == HARMONIC)
+    #if (ELMER_TIME == HARMONIC_TIME)
     receiving.recvVector(Jre);
     receiving.recvVector(Jim);
     receiving.recvVector(Bre);
@@ -109,7 +123,7 @@ int main(int argc, char *argv[])
 	//Lorentz force term initialization
 	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
-    #elif (ELMER_TIME == TRANSIENT)
+    #elif (ELMER_TIME == TRANSIENT_TIME)
     receiving.recvVector(J);
     receiving.recvVector(B);
 
@@ -255,7 +269,7 @@ int main(int argc, char *argv[])
         // Check whether we need to update electromagnetic stuff with Elmer
         bool doElmer = false;
 
-        #if (ELMER_TIME == HARMONIC)
+        #if (ELMER_TIME == HARMONIC_TIME)
         dimensionedScalar smallU
         (
             "smallU",
@@ -274,7 +288,7 @@ int main(int argc, char *argv[])
             doElmer = true;
         }
 
-        #elif (ELMER_TIME == TRANSIENT)
+        #elif (ELMER_TIME == TRANSIENT_TIME)
         if (adjustableRunTime)
 		{
 			if (runTime.writeTime()) doElmer = true;
@@ -289,7 +303,7 @@ int main(int argc, char *argv[])
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
         {
-            #if (ELMER_TIME == HARMONIC)
+            #if (ELMER_TIME == HARMONIC_TIME)
             volVectorField JUBre = Jre;
             {
                 #include "PotEreEqn.H"
@@ -301,7 +315,7 @@ int main(int argc, char *argv[])
             JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
 	        JJsigma =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
 
-            #elif (ELMER_TIME == TRANSIENT)
+            #elif (ELMER_TIME == TRANSIENT_TIME)
             volVectorField JUB = J;
             {
                 #include "PotEEqn.H"
@@ -336,7 +350,7 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
-            #if (ELMER_TIME == HARMONIC)
+            #if (ELMER_TIME == HARMONIC_TIME)
             receiving.recvVector(Jre);
             receiving.recvVector(Jim);
             receiving.recvVector(Bre);
@@ -344,7 +358,7 @@ int main(int argc, char *argv[])
             JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	        JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
 
-            #elif (ELMER_TIME == TRANSIENT)
+            #elif (ELMER_TIME == TRANSIENT_TIME)
             receiving.recvVector(J);
             receiving.recvVector(B);
 			JxB =  (J ^ B);
@@ -377,12 +391,12 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
-    #if (ELMER_TIME == HARMONIC)
+    #if (ELMER_TIME == HARMONIC_TIME)
     receiving.recvVector(Jre);
     receiving.recvVector(Jim);
     receiving.recvVector(Bre);
     receiving.recvVector(Bim);
-    #elif (ELMER_TIME == TRANSIENT)
+    #elif (ELMER_TIME == TRANSIENT_TIME)
     receiving.recvVector(J);
     receiving.recvVector(B);
     #endif

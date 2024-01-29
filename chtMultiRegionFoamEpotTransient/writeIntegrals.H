@@ -28,10 +28,10 @@ forAll(fluidRegions, i)
     string regionName = "";
     if (fluidRegions.size() + i > 1)
     {
-        regionName = fluidNames[i];
+        regionName = "_" + fluidNames[i] + "_";
     }
     // Write
-    string velocityFileName = "velocityIntegrals" + std::to_string(Pstream::myProcNo()) + regionName + ".dat";
+    string velocityFileName = "velocityIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream velocityFile(velocityFileName, std::ios::app);
 
     if (velocityFile.is_open())
@@ -72,7 +72,7 @@ forAll(solidRegions, i)
     string regionName = "";
     if (fluidRegions.size() + solidRegions.size() + i > 1)
     {
-        regionName = solidNames[i];
+        regionName = "_" + solidNames[i] + "_";
     }
 
     // Write

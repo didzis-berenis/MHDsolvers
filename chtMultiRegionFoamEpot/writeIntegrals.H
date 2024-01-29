@@ -28,7 +28,7 @@ forAll(fluidRegions, i)
     string regionName = "";
     if (fluidRegions.size() + i > 1)
     {
-        regionName = fluidNames[i];
+        regionName = "_" + fluidNames[i] + "_";
     }
     // Write
     string velocityFileName = "velocityIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
@@ -43,7 +43,7 @@ forAll(fluidRegions, i)
     else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " for writing!\n" << abort(FatalError);
 
     // Write
-    string thermalFileName = "thermalIntegrals" + std::to_string(Pstream::myProcNo()) + regionName + ".dat";
+    string thermalFileName = "thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream thermalFile(thermalFileName, std::ios::app);
 
     if (thermalFile.is_open())
@@ -72,7 +72,7 @@ forAll(solidRegions, i)
     string regionName = "";
     if (fluidRegions.size() + solidRegions.size() + i > 1)
     {
-        regionName = solidNames[i];
+        regionName = "_" + solidNames[i] + "_";
     }
 
     // Write

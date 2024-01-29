@@ -78,7 +78,7 @@ volScalarField JJsigma
     mesh
 );
 
-#if (ELMER_TIME == HARMONIC)
+#if (ELMER_TIME == HARMONIC_TIME)
 Info<< "Initializing field Jre\n" << endl;
 volVectorField Jre
 (
@@ -164,7 +164,18 @@ volScalarField PotEim
     mesh
 );
 
-#elif (ELMER_TIME == TRANSIENT)
+//Electric potential reference point
+label PotEreRefCell = 0;
+scalar PotEreRefValue = 0.0;
+setRefCell(PotEre, pimple.dict(), PotEreRefCell, PotEreRefValue);
+mesh.schemes().setFluxRequired(PotEre.name());
+
+label PotEimRefCell = 0;
+scalar PotEimRefValue = 0.0;
+setRefCell(PotEim, pimple.dict(), PotEimRefCell, PotEimRefValue);
+mesh.schemes().setFluxRequired(PotEim.name());
+
+#elif (ELMER_TIME == TRANSIENT_TIME)
 Info<< "Initializing field J\n" << endl;
 volVectorField J
 (
@@ -207,6 +218,12 @@ volScalarField PotE
     ),
     mesh
 );
+
+//Electric potential reference point
+label PotERefCell = 0;
+scalar PotERefValue = 0.0;
+setRefCell(PotE, pimple.dict(), PotERefCell, PotERefValue);
+mesh.schemes().setFluxRequired(PotE.name());
 #endif
 
 #include "compressibleCreatePhi.H"
@@ -259,17 +276,6 @@ pressureReference pressureReference
 );
 
 mesh.schemes().setFluxRequired(p_rgh.name());
-
-//Electric potential reference point
-label PotEreRefCell = 0;
-scalar PotEreRefValue = 0.0;
-setRefCell(PotEre, pimple.dict(), PotEreRefCell, PotEreRefValue);
-mesh.schemes().setFluxRequired(PotEre.name());
-
-label PotEimRefCell = 0;
-scalar PotEimRefValue = 0.0;
-setRefCell(PotEim, pimple.dict(), PotEimRefCell, PotEimRefValue);
-mesh.schemes().setFluxRequired(PotEim.name());
 
 hydrostaticInitialisation
 (
@@ -327,7 +333,7 @@ dimensionedScalar sigma
     physicalProperties
 );
 
-#if (ELMER_TIME == HARMONIC)
+#if (ELMER_TIME == HARMONIC_TIME)
 //Characteristic length
 dimensionedScalar Lchar
 (
@@ -356,7 +362,7 @@ scalar maxRemDiff(readScalar(physicalProperties.lookup("maxRemDiff")));
 
 scalar maxRelDiff(readScalar(physicalProperties.lookup("maxRelDiff")));
 
-#elif (ELMER_TIME == TRANSIENT)
+#elif (ELMER_TIME == TRANSIENT_TIME)
 int writeMultiplier( readScalar(runTime.controlDict().lookup("writeMultiplier")) );
 long long int writeCounter = 0;
 word writeControlDict(runTime.controlDict().lookup("writeControl"));
