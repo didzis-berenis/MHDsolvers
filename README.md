@@ -7,15 +7,15 @@
 * A modified version of OpenFOAM v10 solver chtMultiRegionFoam.
 * Solver for steady or transient electromagnetically forced fluid flow and solid heat conduction, with conjugate heat transfer between regions, buoyancy effects, turbulence, reactions and radiation modelling.
 
-## buoyantFoamMHD ##
+## buoyantFoamEpot ##
 * A modified version of OpenFOAM v10 solver buoyantFoam.
 * Solver for steady or transient buoyant, turbulent flow of compressible fluids for electromagnetically forced and heated flows.
 
-## pimpleFoamMHD ##
+## pimpleFoamEpot ##
 * A modified version of OpenFOAM v10 solver pimpleFoam.
 * Transient solver for electromagnetically forced incompressible, turbulent flow of Newtonian fluids.
 
-## simpleFoamMHD ##
+## simpleFoamEpot ##
 * A modified version of OpenFOAM v10 solver simpleFoam.
 * Steady-state solver for electromagnetically forced incompressible, turbulent flow.
 

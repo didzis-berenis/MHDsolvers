@@ -115,21 +115,9 @@ int main(int argc, char *argv[])
     );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     #if (ELMER_TIME == HARMONIC_TIME)
-    receiving.recvVector(Jre);
-    receiving.recvVector(Jim);
-    receiving.recvVector(Bre);
-    receiving.recvVector(Bim);
-
-	//Lorentz force term initialization
-	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
-	JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
+        #include "setHarmonicElmerComms.H"
     #elif (ELMER_TIME == TRANSIENT_TIME)
-    receiving.recvVector(J);
-    receiving.recvVector(B);
-
-	//Lorentz force term initialization
-	JxB =  (J ^ B);
-	JJsigma =  (J & J)/sigma;
+        #include "setTransientElmerComms.H"
     #endif
 	
     // Create file for logging simulation times whenever Elmer is called
@@ -270,61 +258,10 @@ int main(int argc, char *argv[])
         bool doElmer = false;
 
         #if (ELMER_TIME == HARMONIC_TIME)
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-        
-        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
-        
-        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
-        
-        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
-            doElmer = true;
-        }
-        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
-            doElmer = true;
-        }
-
+            #include "setHarmonicPotential.H"
         #elif (ELMER_TIME == TRANSIENT_TIME)
-        if (adjustableRunTime)
-		{
-			if (runTime.writeTime()) doElmer = true;
-		}
-		else
-		{
-			writeCounter++;
-			if ( (writeCounter % writeMultiplier) == 0 && runTime.run()) doElmer = true;
-		}
+            #include "setTransientPotential.H"
         #endif
-
-        // Calculate electric potential if current density will not be updated
-        if (!doElmer)
-        {
-            #if (ELMER_TIME == HARMONIC_TIME)
-            volVectorField JUBre = Jre;
-            {
-                #include "PotEreEqn.H"
-            }
-            volVectorField JUBim = Jim;
-            {
-                #include "PotEimEqn.H"
-            }
-            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
-	        JJsigma =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
-
-            #elif (ELMER_TIME == TRANSIENT_TIME)
-            volVectorField JUB = J;
-            {
-                #include "PotEEqn.H"
-            }
-			JxB =  ((J+JUB) ^ B);
-			JJsigma =  ((J+JUB) & (J+JUB))/sigma;
-
-            #endif
-        }
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -351,19 +288,9 @@ int main(int argc, char *argv[])
             // Receive fields form Elmer
             receiving.sendStatus(1);
             #if (ELMER_TIME == HARMONIC_TIME)
-            receiving.recvVector(Jre);
-            receiving.recvVector(Jim);
-            receiving.recvVector(Bre);
-            receiving.recvVector(Bim);
-            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
-	        JJsigma =  0.5*((Jre & Jre) + (Jim & Jim) )/sigma;
-
+                #include "setHarmonicElmerComms.H"
             #elif (ELMER_TIME == TRANSIENT_TIME)
-            receiving.recvVector(J);
-            receiving.recvVector(B);
-			JxB =  (J ^ B);
-			JJsigma =  (J & J)/sigma;
-
+                #include "setTransientElmerComms.H"
             #endif
 			
 			// Log the current simulation time
@@ -392,13 +319,9 @@ int main(int argc, char *argv[])
     // Receive fields form Elmer
     receiving.sendStatus(0);
     #if (ELMER_TIME == HARMONIC_TIME)
-    receiving.recvVector(Jre);
-    receiving.recvVector(Jim);
-    receiving.recvVector(Bre);
-    receiving.recvVector(Bim);
+        #include "setHarmonicElmerComms.H"
     #elif (ELMER_TIME == TRANSIENT_TIME)
-    receiving.recvVector(J);
-    receiving.recvVector(B);
+        #include "setTransientElmerComms.H"
     #endif
 	
 	// Log the current simulation time

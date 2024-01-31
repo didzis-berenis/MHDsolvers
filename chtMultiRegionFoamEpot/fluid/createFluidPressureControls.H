@@ -25,25 +25,10 @@ forAll(fluidRegions, i)
         thermoFluid[i],
         pimples.pimple(i).dict()
     );
-
-    //Electric potential reference point
-    label PotEreRefCell = 0;
-    scalar PotEreRefValue = 0.0;
-    setRefCell
-    ( 
-        PotEreFluid[i],
-        pimples.pimple(i).dict(),
-        PotEreRefCell,
-        PotEreRefValue
-    );
-    
-    label PotEimRefCell = 0;
-    scalar PotEimRefValue = 0.0;
-    setRefCell
-    ( 
-        PotEimFluid[i],
-        pimples.pimple(i).dict(),
-        PotEimRefCell,
-        PotEimRefValue
-    );
 }
+
+#if (ELMER_TIME == HARMONIC_TIME)
+    #include "createFluidHarmonicEpotControls.H"
+#elif (ELMER_TIME == TRANSIENT_TIME)
+    #include "createFluidTransientEpotControls.H"
+#endif

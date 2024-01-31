@@ -1,57 +1,3 @@
-Info<< "Reading field p\n" << endl;
-volScalarField p
-(
-    IOobject
-    (
-        "p",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-Info<< "Reading field U\n" << endl;
-volVectorField U
-(
-    IOobject
-    (
-        "U",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
-Info<< "Initializing field U_old\n" << endl;
-volVectorField U_old
-(
-    IOobject
-    (
-        "U_old",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    U
-);
-Info<< "Initializing field JxB\n" << endl;
-volVectorField JxB
-(
-    IOobject
-    (
-        "JxB",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
 
 Info<< "Initializing field Jre\n" << endl;
 volVectorField Jre
@@ -109,9 +55,6 @@ volVectorField Bim
     mesh
 );
 
-
-#include "createPhi.H"
-
 //Electric potential field
 Info<< "Reading field PotEre\n" << endl;
 volScalarField PotEre
@@ -141,52 +84,16 @@ volScalarField PotEim
     mesh
 );
 
-pressureReference pressureReference(p, simple.dict());
-mesh.schemes().setFluxRequired(p.name());
-
 //Electric potential reference point
 label PotEreRefCell = 0;
 scalar PotEreRefValue = 0.0;
-setRefCell(PotEre, simple.dict(), PotEreRefCell, PotEreRefValue);
+setRefCell(PotEre, pimple.dict(), PotEreRefCell, PotEreRefValue);
 mesh.schemes().setFluxRequired(PotEre.name());
 
 label PotEimRefCell = 0;
 scalar PotEimRefValue = 0.0;
-setRefCell(PotEim, simple.dict(), PotEimRefCell, PotEimRefValue);
+setRefCell(PotEim, pimple.dict(), PotEimRefCell, PotEimRefValue);
 mesh.schemes().setFluxRequired(PotEim.name());
-
-
-autoPtr<viscosityModel> viscosity(viscosityModel::New(mesh));
-
-autoPtr<incompressible::momentumTransportModel> turbulence
-(
-    incompressible::momentumTransportModel::New(U, phi, viscosity)
-);
-
-#include "createMRF.H"
-#include "createFvModels.H"
-#include "createFvConstraints.H"
-
-IOdictionary physicalProperties
-(
-    IOobject
-    (
-        "physicalProperties",
-        runTime.constant(),
-        mesh,
-        IOobject::MUST_READ_IF_MODIFIED,
-        IOobject::NO_WRITE
-    )
-);
-dimensionedScalar rho("rho", dimensionSet(1, -3, 0, 0, 0, 0, 0), physicalProperties);
-
-//Electrical conductivity
-dimensionedScalar sigma
-(
-    "sigma",
-    dimensionSet(-1, -3, 3, 0, 0, 2, 0),
-    physicalProperties
-);
 
 //Characteristic length
 dimensionedScalar Lchar
@@ -195,6 +102,9 @@ dimensionedScalar Lchar
     dimensionSet(0, 1, 0, 0, 0, 0, 0),
     physicalProperties
 );
+
+double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
+Info<< "Rem0 = " << Rem0 << endl;
 
 // Maximum allowable magnetic Reynolds number difference comparing
 // to last Elmer update. This option controls frequency Elmer is called.
@@ -212,4 +122,3 @@ scalar maxRemDiff(readScalar(runTime.controlDict().lookup("maxRemDiff")));
 //     0     - every iteration
 
 scalar maxRelDiff(readScalar(runTime.controlDict().lookup("maxRelDiff")));
-

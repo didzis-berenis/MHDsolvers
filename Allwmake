@@ -2,19 +2,14 @@
 cd ${0%/*} || exit 1    # run from this directory
 set -x
 
-wmake buoyantFoamMHD
-wmake pimpleFoamMHD
-wmake simpleFoamMHD
-wmake buoyantFoamEpotTransient
+wmake simpleFoamEpot
+wmake pimpleFoamEpot
 wmake pimpleFoamEpotTransient
 wmake buoyantFoamEpot
-wmake pimpleFoamEpot
-wmake simpleFoamEpot
-wmake generateSimpleEOFFiles
-wmake generatePimpleEOFFiles
-wmake initializeTemperature
-wmake initializeTemperatureMultiRegion
+wmake buoyantFoamEpotTransient
 wmake chtMultiRegionFoamEpot
 wmake chtMultiRegionFoamEpotTransient
+wmake initializeTemperature
+wmake initializeMultiRegionTemperature
 
 # ----------------------------------------------------------------- end-of-file

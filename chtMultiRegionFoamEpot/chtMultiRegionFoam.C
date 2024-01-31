@@ -36,6 +36,12 @@ Description
     buoyantFoamEpot assumes coupling with harmonic (time-averaged) ElmerFEM 
     solver.
 
+    Compile option ELMER_TIME == HARMONIC_TIME builds chtMultiRegionFoamEpot
+    solver, which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
+
+    Compile option ELMER_TIME == TRANSIENT_TIME builds chtMultiRegionFoamEpotTransient
+    solver, which assumes coupling with transient ElmerFEM solver.
+
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
@@ -56,6 +62,15 @@ Description
 #include "hydrostaticInitialisation.H"
 #include "Elmer.H"
 #include "globalRegionInterpolator.H"
+#define TRANSIENT_TIME  2
+#define HARMONIC_TIME   3
+#if (ELMER_TIME == HARMONIC_TIME)
+#warning "Compiling for coupling with HARMONIC Elmer simulation!"
+#elif (ELMER_TIME == TRANSIENT_TIME)
+#warning "Compiling for coupling with TRANSIENT Elmer simulation!"
+#else
+#error "Please define appropriate functions for your Elmer simulation!"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -87,7 +102,12 @@ int main(int argc, char *argv[])
     Info<< "\nStarting time loop\n" << endl;
 
     bool initialize_elmer = true;
-    #include "setElmerComms.H"
+    int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
+    #if (ELMER_TIME == HARMONIC_TIME)
+        #include "setHarmonicElmerComms.H"
+    #elif (ELMER_TIME == TRANSIENT_TIME)
+        #include "setTransientElmerComms.H"
+    #endif
     initialize_elmer = false;
 	
     // Create file for logging simulation times whenever Elmer is called
@@ -152,66 +172,13 @@ int main(int argc, char *argv[])
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
-
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
         bool doElmer = false;
-        
-        scalar maxRemDiff_local = SMALL;        
-        
-        scalar maxRelDiff_local = SMALL;
-        
-        forAll(fluidRegions, i)
-        {
-            maxRemDiff_local = max(
-                magneticReynolds[i]*max(mag(U_oldFluid[i]-UFluid[i])).value(),
-                maxRemDiff_local);        
-        
-            maxRelDiff_local = max(
-                (max(mag(U_oldFluid[i]-UFluid[i])/(average(mag(UFluid[i]))+smallU))).value(),
-                maxRemDiff_local);
-        }
-        
-        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
-            doElmer = true;
-        }
-        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
-            doElmer = true;
-        }
 
-        // Calculate electric potential if current density will not be updated
-        if (!doElmer)
-        {
-            forAll(fluidRegions, i)
-            {
-                fvMesh& mesh = fluidRegions[i];
-                volVectorField& U = UFluid[i];
-                volVectorField& U_old = U_oldFluid[i];
-                volVectorField& Jre = JreFluid[i];
-                volVectorField& Jim = JimFluid[i];
-                volVectorField& Bre = BreFluid[i];
-                volVectorField& Bim = BimFluid[i];
-                dimensionedScalar& sigma = sigmaFluid[i];
-                volScalarField& PotEim = PotEimFluid[i];
-                volScalarField& PotEre = PotEreFluid[i];
-
-                volVectorField JUBre = Jre;
-                {
-                    #include "PotEreEqn.H"
-                }
-                volVectorField JUBim = Jim;
-                {
-                    #include "PotEimEqn.H"
-                }
-                JxBFluid[i] =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
-                JJsigmaFluid[i] =  0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )/sigma;
-            }
-        }
+        #if (ELMER_TIME == HARMONIC_TIME)
+            #include "setFluidHarmonicPotential.H"
+        #elif (ELMER_TIME == TRANSIENT_TIME)
+            #include "setFluidTransientPotential.H"
+        #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -229,7 +196,11 @@ int main(int argc, char *argv[])
         // Update electromagnetic stuff with Elmer
 
         if(doElmer && runTime.run()) {
-            #include "setElmerComms.H"
+            #if (ELMER_TIME == HARMONIC_TIME)
+                #include "setHarmonicElmerComms.H"
+            #elif (ELMER_TIME == TRANSIENT_TIME)
+                #include "setTransientElmerComms.H"
+            #endif
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -250,7 +221,12 @@ int main(int argc, char *argv[])
         << " ClockTime = " << runTime.elapsedClockTime() << " s" << nl << endl;
 
     //Final iter for Elmer
-    #include "setElmerComms.H"
+    elmer_status = 0; // 1=ok, 0=lastIter, -1=error
+    #if (ELMER_TIME == HARMONIC_TIME)
+        #include "setHarmonicElmerComms.H"
+    #elif (ELMER_TIME == TRANSIENT_TIME)
+        #include "setTransientElmerComms.H"
+    #endif
 	
 	// Log the current simulation time
     if (Pstream::master())

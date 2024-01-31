@@ -31,7 +31,7 @@ forAll(fluidRegions, i)
         regionName = "_" + fluidNames[i] + "_";
     }
     // Write
-    string velocityFileName = "velocityIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
+    string velocityFileName = "postProcessing/velocityIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream velocityFile(velocityFileName, std::ios::app);
 
     if (velocityFile.is_open())
@@ -43,7 +43,7 @@ forAll(fluidRegions, i)
     else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " for writing!\n" << abort(FatalError);
 
     // Write
-    string thermalFileName = "thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
+    string thermalFileName = "postProcessing/thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream thermalFile(thermalFileName, std::ios::app);
 
     if (thermalFile.is_open())
@@ -76,7 +76,7 @@ forAll(solidRegions, i)
     }
 
     // Write
-    string thermalFileName = "thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
+    string thermalFileName = "postProcessing/thermalIntegrals" + regionName + std::to_string(Pstream::myProcNo()) + ".dat";
     std::ofstream thermalFile(thermalFileName, std::ios::app);
 
     if (thermalFile.is_open())
