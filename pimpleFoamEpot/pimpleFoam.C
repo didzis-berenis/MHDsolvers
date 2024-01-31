@@ -34,6 +34,12 @@ Description
     turbulent flow of Newtonian fluids, with optional mesh motion and mesh 
     topology changes.
 
+    Compile option ELMER_TIME == HARMONIC_TIME builds pimpleFoamEpot solver,
+    which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
+
+    Compile option ELMER_TIME == TRANSIENT_TIME builds pimpleFoamEpotTransient
+    solver, which assumes coupling with transient ElmerFEM solver.
+
     Turbulence modelling is generic, i.e. laminar, RAS or LES may be selected.
 
 \*---------------------------------------------------------------------------*/
@@ -49,6 +55,15 @@ Description
 #include "localEulerDdtScheme.H"
 #include "fvcSmooth.H"
 #include "Elmer.H"
+#define TRANSIENT_TIME  2
+#define HARMONIC_TIME   3
+#if (ELMER_TIME == HARMONIC_TIME)
+#warning "Compiling for coupling with HARMONIC Elmer simulation!"
+#elif (ELMER_TIME == TRANSIENT_TIME)
+#warning "Compiling for coupling with TRANSIENT Elmer simulation!"
+#else
+#error "Please define appropriate functions for your Elmer simulation!"
+#endif
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -74,9 +89,6 @@ int main(int argc, char *argv[])
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	
-	double Rem0 = 4*3.14159*(std::pow(10,-7))*sigma.value()*Lchar.value();
-    Info<< "Rem0 = " << Rem0 << endl;
 
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
@@ -84,20 +96,26 @@ int main(int argc, char *argv[])
     Info<< "\nStarting time loop\n" << endl;
 
     // Send fields to Elmer
-    Elmer<fvMesh> sending(mesh,1); // 1=send, -1=receive
+    Elmer<fvMesh> sending(mesh, //mesh
+        1, // 1=send, -1=receive
+        1, // 1=initialize, 0=w/o init
+        1 // 1=multiregion/no O2E files, 0=exports O2E files
+    );
     sending.sendStatus(1); // 1=ok, 0=lastIter, -1=error
     sending.sendVector(U);
 
     // Receive fields from Elmer
-    Elmer<fvMesh> receiving(mesh,-1); // 1=send, -1=receive
+    Elmer<fvMesh> receiving(mesh, //mesh
+        -1, // 1=send, -1=receive
+        1, // 1=initialize, 0=w/o init
+        1 // 1=multiregion/no O2E files, 0=exports O2E files
+    );
     receiving.sendStatus(1); // 1=ok, 0=lastIter, -1=error
-    receiving.recvVector(Jre);
-    receiving.recvVector(Jim);
-    receiving.recvVector(Bre);
-    receiving.recvVector(Bim);
-    
-	//Lorentz force term initialization
-	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+    #if (ELMER_TIME == HARMONIC_TIME)
+        #include "setHarmonicElmerComms.H"
+    #elif (ELMER_TIME == TRANSIENT_TIME)
+        #include "setTransientElmerComms.H"
+    #endif
 	
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "elmerTimes.log";
@@ -181,44 +199,18 @@ int main(int argc, char *argv[])
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
-
-        dimensionedScalar smallU
-        (
-            "smallU",
-            dimensionSet(0, 1, -1, 0, 0, 0 ,0),
-            1e-6
-        );
-
         bool doElmer = false;
-        
-        scalar maxRemDiff_local = Rem0*max(mag(U_old-U)).value();        
-        
-        scalar maxRelDiff_local = (max(mag(U_old-U)/(average(mag(U))+smallU))).value();
-        
-        if((maxRelDiff_local>maxRelDiff || maxRelDiff<SMALL) && maxRelDiff+SMALL<=1.0) {
-            doElmer = true;
-        }
-        else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
-            doElmer = true;
-        }
 
-        // Calculate electric potential if current density will not be updated
-        if (!doElmer)
-        {
-            volVectorField JUBre = Jre;
-            {
-                #include "PotEreEqn.H"
-            }
-            volVectorField JUBim = Jim;
-            {
-                #include "PotEimEqn.H"
-            }
-            JxB =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
-        }
+        #if (ELMER_TIME == HARMONIC_TIME)
+            #include "setHarmonicPotential.H"
+        #elif (ELMER_TIME == TRANSIENT_TIME)
+            #include "setTransientPotential.H"
+        #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         runTime.write();
+        #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"
@@ -239,11 +231,11 @@ int main(int argc, char *argv[])
 
             // Receive fields form Elmer
             receiving.sendStatus(1);
-            receiving.recvVector(Jre);
-            receiving.recvVector(Jim);
-            receiving.recvVector(Bre);
-            receiving.recvVector(Bim);
-            JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
+            #if (ELMER_TIME == HARMONIC_TIME)
+                #include "setHarmonicElmerComms.H"
+            #elif (ELMER_TIME == TRANSIENT_TIME)
+                #include "setTransientElmerComms.H"
+            #endif
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -270,10 +262,11 @@ int main(int argc, char *argv[])
     sending.sendVector(U);
     // Receive fields form Elmer
     receiving.sendStatus(0);
-    receiving.recvVector(Jre);
-    receiving.recvVector(Jim);
-    receiving.recvVector(Bre);
-    receiving.recvVector(Bim);
+    #if (ELMER_TIME == HARMONIC_TIME)
+        #include "setHarmonicElmerComms.H"
+    #elif (ELMER_TIME == TRANSIENT_TIME)
+        #include "setTransientElmerComms.H"
+    #endif
 	
 	// Log the current simulation time
     if (Pstream::master())

@@ -201,7 +201,7 @@ dimensionedScalar Lchar
 //     (0,inf) - when relative difference in any cell exceeds given value
 //     0     - every iteration
 
-scalar maxRemDiff(readScalar(physicalProperties.lookup("maxRemDiff")));
+scalar maxRemDiff(readScalar(runTime.controlDict().lookup("maxRemDiff")));
 
 //
 // Maximum allowable relative field difference in any cell comparing
@@ -211,5 +211,5 @@ scalar maxRemDiff(readScalar(physicalProperties.lookup("maxRemDiff")));
 //     (0,1) - when relative difference in any cell exceeds given value
 //     0     - every iteration
 
-scalar maxRelDiff(readScalar(physicalProperties.lookup("maxRelDiff")));
+scalar maxRelDiff(readScalar(runTime.controlDict().lookup("maxRelDiff")));
 
