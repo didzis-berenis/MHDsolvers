@@ -4,6 +4,7 @@ PtrList<Foam::fvModels> fvModelsSolid(solidRegions.size());
 PtrList<fvConstraints> fvConstraintsSolid(solidRegions.size());
 PtrList<volVectorField> JxBSolid(solidRegions.size());
 PtrList<volScalarField> JJsigmaSolid(solidRegions.size());
+PtrList<volScalarField> GeometryIdsSolid(solidRegions.size());
 PtrList<volVectorField> USolid(solidRegions.size());
 PtrList<dimensionedScalar> sigmaSolid(solidRegions.size());
 
@@ -57,6 +58,24 @@ forAll(solidRegions, i)
             IOobject
             (
                 "JJsigma",
+                runTime.timeName(),
+                solidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            solidRegions[i]
+        )
+    );
+
+    Info<< "    Adding to GeometryIdsSolid\n" << endl;
+    GeometryIdsSolid.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                "GeometryIds",
                 runTime.timeName(),
                 solidRegions[i],
                 IOobject::MUST_READ,

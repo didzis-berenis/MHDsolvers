@@ -5,6 +5,7 @@ PtrList<volVectorField> UFluid(fluidRegions.size());
 PtrList<volVectorField> U_oldFluid(fluidRegions.size());
 PtrList<volVectorField> JxBFluid(fluidRegions.size());
 PtrList<volScalarField> JJsigmaFluid(fluidRegions.size());
+PtrList<volScalarField> GeometryIdsFluid(fluidRegions.size());
 PtrList<surfaceScalarField> phiFluid(fluidRegions.size());
 PtrList<uniformDimensionedVectorField> gFluid(fluidRegions.size());
 PtrList<uniformDimensionedScalarField> hRefFluid(fluidRegions.size());
@@ -119,6 +120,24 @@ forAll(fluidRegions, i)
             IOobject
             (
                 "JJsigma",
+                runTime.timeName(),
+                fluidRegions[i],
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            fluidRegions[i]
+        )
+    );
+
+    Info<< "    Adding to GeometryIdsFluid\n" << endl;
+    GeometryIdsFluid.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                "GeometryIds",
                 runTime.timeName(),
                 fluidRegions[i],
                 IOobject::MUST_READ,

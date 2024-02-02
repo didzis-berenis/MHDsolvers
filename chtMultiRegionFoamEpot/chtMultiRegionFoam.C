@@ -181,8 +181,14 @@ int main(int argc, char *argv[])
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        runTime.write();
+        if(writeMerged)
+        {
+            #include "writeGlobal.H"
+        }
+        else
+        {
+            runTime.write();
+        }
         #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
