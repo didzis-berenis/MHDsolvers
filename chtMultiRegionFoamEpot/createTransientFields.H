@@ -6,11 +6,10 @@ volVectorField JGlobal
         "J",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
+    meshGlobal
 );
 Info<< "Initializing field BGlobal\n" << endl;
 volVectorField BGlobal
@@ -20,9 +19,22 @@ volVectorField BGlobal
         "B",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
+    meshGlobal
 );
+Info<< "Initializing field PotEGlobal\n" << endl;
+volScalarField PotEGlobal
+(
+    IOobject
+    (
+        "PotE",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+meshGlobal.schemes().setFluxRequired(PotEGlobal.name());

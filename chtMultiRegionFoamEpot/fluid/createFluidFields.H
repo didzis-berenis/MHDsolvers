@@ -25,6 +25,7 @@ PtrList<multivariateSurfaceInterpolationScheme<scalar>::fieldTable>
 
 List<scalar> initialMassFluid(fluidRegions.size());
 PtrList<dimensionedScalar> sigmaFluid(fluidRegions.size());
+List<double> magneticReynolds(fluidRegions.size());
 
 PtrList<IOMRFZoneList> MRFfluid(fluidRegions.size());
 PtrList<Foam::fvModels> fvModelsFluid(fluidRegions.size());
@@ -104,10 +105,12 @@ forAll(fluidRegions, i)
                 "JxB",
                 runTime.timeName(),
                 fluidRegions[i],
-                IOobject::MUST_READ,
+                IOobject::NO_READ,
                 IOobject::AUTO_WRITE
             ),
-            fluidRegions[i]
+            fluidRegions[i],
+            //not reading because solved in global mesh
+            dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
         )
     );
 
@@ -122,10 +125,12 @@ forAll(fluidRegions, i)
                 "JJsigma",
                 runTime.timeName(),
                 fluidRegions[i],
-                IOobject::MUST_READ,
+                IOobject::NO_READ,
                 IOobject::AUTO_WRITE
             ),
-            fluidRegions[i]
+            fluidRegions[i],
+            //not reading because solved in global mesh
+            dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
         )
     );
 
@@ -385,4 +390,19 @@ forAll(fluidRegions, i)
             physicalProperties
         )
     );
+
+
+    #if (ELMER_TIME == HARMONIC_TIME)
+        //Characteristic length
+        dimensionedScalar characteristicSize 
+            (
+                "Lchar",
+                dimensionSet(0, 1, 0, 0, 0, 0, 0),
+                physicalProperties
+            );
+
+        magneticReynolds[i] = 
+            4*3.14159*(std::pow(10,-7))*sigmaFluid[i].value()*characteristicSize.value();
+        Info<< "Rem0 = " << magneticReynolds[i] << endl;
+    #endif
 }

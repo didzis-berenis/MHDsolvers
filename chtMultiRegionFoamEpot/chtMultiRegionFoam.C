@@ -58,10 +58,11 @@ Description
 #include "fvConstraints.H"
 #include "coordinateSystem.H"
 #include "pimpleMultiRegionControl.H"
+#include "pimpleControl.H"
 #include "pressureReference.H"
 #include "hydrostaticInitialisation.H"
 #include "Elmer.H"
-#include "globalRegionInterpolator.H"
+#include "globalRegionMapper.H"
 #define TRANSIENT_TIME  2
 #define HARMONIC_TIME   3
 #if (ELMER_TIME == HARMONIC_TIME)
@@ -87,6 +88,12 @@ int main(int argc, char *argv[])
     #include "createFields.H"
     #include "initContinuityErrs.H"
     #include "createFluidPressureControls.H"
+    pimpleControl pimple(meshGlobal);
+    #if (ELMER_TIME == HARMONIC_TIME)
+        #include "createHarmonicEpotControls.H"
+    #elif (ELMER_TIME == TRANSIENT_TIME)
+        #include "createTransientEpotControls.H"
+    #endif
     #include "createTimeControls.H"
     #include "readSolidTimeControls.H"
     #include "compressibleMultiRegionCourantNo.H"
@@ -175,9 +182,9 @@ int main(int argc, char *argv[])
         bool doElmer = false;
 
         #if (ELMER_TIME == HARMONIC_TIME)
-            #include "setFluidHarmonicPotential.H"
+            #include "setHarmonicPotential.H"
         #elif (ELMER_TIME == TRANSIENT_TIME)
-            #include "setFluidTransientPotential.H"
+            #include "setTransientPotential.H"
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

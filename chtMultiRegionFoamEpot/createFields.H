@@ -10,11 +10,38 @@ volVectorField UGlobal
         "U",
         runTime.timeName(),
         meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+    //read to get boundary conditions
+    //that will be set before writing global field
+);
+volVectorField U_oldGlobal
+(
+    IOobject
+    (
+        "U_old",
+        runTime.timeName(),
+        meshGlobal,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
+    UGlobal
+);
+volScalarField pGlobal
+(
+    IOobject
+    (
+        "p",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+    //read to get boundary conditions
+    //that will be set before writing global field
 );
 volScalarField TGlobal
 (
@@ -23,11 +50,37 @@ volScalarField TGlobal
         "T",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
+        IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(0, 0, 0, 1, 0, 0, 0), 0)
+    meshGlobal
+    //read to get boundary conditions
+    //that will be set before writing global field
+);
+volScalarField JJsigmaGlobal
+(
+    IOobject
+    (
+        "JJsigma",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+
+volVectorField JxBGlobal
+(
+    IOobject
+    (
+        "JxB",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
 );
 volScalarField GeometryIdsGlobal
 (
@@ -43,42 +96,53 @@ volScalarField GeometryIdsGlobal
     dimensionedScalar(dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
 );
 scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsFluid,GeometryIdsSolid);
-volScalarField pGlobal
+volScalarField sigmaGlobal
 (
     IOobject
     (
-        "p",
+        "sigma",
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     meshGlobal,
-    dimensionedScalar(dimensionSet(1, -1, -2, 0, 0, 0, 0), 0)
+    dimensionedScalar(dimensionSet(-1, -3, 3, 0, 0, 2, 0), 1)
 );
-volScalarField JJsigmaGlobal
+volScalarField sigmaGlobalInv
 (
     IOobject
     (
-        "JJsigma",
+        "sigmaInv",
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     meshGlobal,
-    dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
+    dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
 );
+List<scalar> conductivity(fluidRegions.size()+solidRegions.size());
+forAll(fluidNames, i)
+{
+    conductivity[regionID[fluidNames[i]]] = sigmaFluid[i].value();
+}
+forAll(solidNames, i)
+{
+    conductivity[regionID[solidNames[i]]] = sigmaSolid[i].value();
+}
+forAll(sigmaGlobal, cellI)
+{
+    scalar sigma = conductivity[cellToRegion[cellI]];
+    sigmaGlobal[cellI] = sigma;
+    sigmaGlobalInv[cellI] = 1/sigma;
+}
 //Use only fluid mesh if single fluid region
 //Use global mesh if multiple fluid regions
 volVectorField Usent = fluidRegions.size() == 1 ? UFluid[0] : UGlobal;
 
 #if (ELMER_TIME == HARMONIC_TIME)
-    #include "createFluidHarmonicFields.H"
-    #include "createSolidHarmonicFields.H"
     #include "createHarmonicFields.H"
 #elif (ELMER_TIME == TRANSIENT_TIME)
-    #include "createFluidTransientFields.H"
-    #include "createSolidTransientFields.H"
     #include "createTransientFields.H"
 #endif

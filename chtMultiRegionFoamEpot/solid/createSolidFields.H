@@ -5,7 +5,6 @@ PtrList<fvConstraints> fvConstraintsSolid(solidRegions.size());
 PtrList<volVectorField> JxBSolid(solidRegions.size());
 PtrList<volScalarField> JJsigmaSolid(solidRegions.size());
 PtrList<volScalarField> GeometryIdsSolid(solidRegions.size());
-PtrList<volVectorField> USolid(solidRegions.size());
 PtrList<dimensionedScalar> sigmaSolid(solidRegions.size());
 
 // Populate solid field pointer lists
@@ -42,10 +41,12 @@ forAll(solidRegions, i)
                 "JxB",
                 runTime.timeName(),
                 solidRegions[i],
-                IOobject::MUST_READ,
+                IOobject::NO_READ,
                 IOobject::AUTO_WRITE
             ),
-            solidRegions[i]
+            solidRegions[i],
+            //not reading because solved in global mesh
+            dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
         )
     );
 
@@ -60,10 +61,12 @@ forAll(solidRegions, i)
                 "JJsigma",
                 runTime.timeName(),
                 solidRegions[i],
-                IOobject::MUST_READ,
+                IOobject::NO_READ,
                 IOobject::AUTO_WRITE
             ),
-            solidRegions[i]
+            solidRegions[i],
+            //not reading because solved in global mesh
+            dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
         )
     );
 
@@ -82,25 +85,6 @@ forAll(solidRegions, i)
                 IOobject::AUTO_WRITE
             ),
             solidRegions[i]
-        )
-    );
-
-    Info<< "    Adding to USolid\n" << endl;
-    USolid.set
-    (
-        i,
-        new volVectorField
-        (
-            IOobject
-            (
-                "U",
-                runTime.timeName(),
-                solidRegions[i],
-                IOobject::NO_READ,
-                IOobject::NO_WRITE
-            ),
-            solidRegions[i],
-            dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
         )
     );
 

@@ -26,9 +26,3 @@ forAll(fluidRegions, i)
         pimples.pimple(i).dict()
     );
 }
-
-#if (ELMER_TIME == HARMONIC_TIME)
-    #include "createFluidHarmonicEpotControls.H"
-#elif (ELMER_TIME == TRANSIENT_TIME)
-    #include "createFluidTransientEpotControls.H"
-#endif

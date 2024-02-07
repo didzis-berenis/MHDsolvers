@@ -3,9 +3,9 @@
 	//Poisson equation for electric potential
 	fvScalarMatrix PotEEqn
 	(
-	fvm::laplacian(PotEre)
+	fvm::laplacian(sigma,PotEre)
 	==
-	fvc::div(psiUB)
+	sigma*fvc::div(psiUB)
 	);
 	//Reference potential
     label PotEreRefCell = 0;

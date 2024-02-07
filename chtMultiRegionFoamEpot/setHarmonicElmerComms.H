@@ -15,7 +15,10 @@ else
 { 
     Info<< "\nSending fields to Elmer for all regions " << endl;
     //convert global field to regions
-    vectorMultiRegionToGlobal(UGlobal,UFluid,USolid);
+    forAll(fluidRegions, i)
+    {
+        vectorFluidFieldToGlobal(UGlobal,UFluid[i],i);
+    }
     Usent = UGlobal;
 }
 // Send fields to Elmer
@@ -31,18 +34,9 @@ receiving.recvVector(JimGlobal);
 receiving.recvVector(BreGlobal);
 receiving.recvVector(BimGlobal);
 
+//Lorentz force term
+JxBGlobal =  0.5*((JreGlobal ^ BreGlobal)+(JimGlobal^ BimGlobal));
+JJsigmaGlobal =  0.5*((JreGlobal & JreGlobal)+(JimGlobal & JimGlobal))*sigmaGlobalInv;
 //convert global field to regions
-vectorGlobalToMultiRegion(JreGlobal,JreFluid,JreSolid);
-vectorGlobalToMultiRegion(BimGlobal,BimFluid,BimSolid);
-forAll(fluidRegions, i)
-{
-    //Lorentz force term initialization
-    JxBFluid[i] =  0.5*((JreFluid[i] ^ BreFluid[i])+(JimFluid[i] ^ BimFluid[i]));
-    JJsigmaFluid[i] =  0.5*((JreFluid[i] & JreFluid[i])+(JimFluid[i] & JimFluid[i]))/sigmaFluid[i];
-}
-forAll(solidRegions, i)
-{
-    //Lorentz force term initialization
-    JxBSolid[i] =  0.5*((JreSolid[i] ^ BreSolid[i])+(JimSolid[i] ^ BimSolid[i]));
-    JJsigmaSolid[i] =  0.5*((JreSolid[i] & JreSolid[i])+(JimSolid[i] & JimSolid[i]))/sigmaSolid[i];
-}
+vectorGlobalToMultiRegion(JxBGlobal,JxBFluid,JxBSolid);
+scalarGlobalToMultiRegion(JJsigmaGlobal,JJsigmaFluid,JJsigmaSolid);

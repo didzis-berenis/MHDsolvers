@@ -7,25 +7,10 @@ volVectorField JreGlobal
         "Jre",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
-);
-Info<< "Initializing field BreGlobal\n" << endl;
-volVectorField BreGlobal
-(
-    IOobject
-    (
-        "Bre",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
+    meshGlobal
 );
 Info<< "Initializing field JimGlobal\n" << endl;
 volVectorField JimGlobal
@@ -35,11 +20,23 @@ volVectorField JimGlobal
         "Jim",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
+    meshGlobal
+);
+Info<< "Initializing field BreGlobal\n" << endl;
+volVectorField BreGlobal
+(
+    IOobject
+    (
+        "Bre",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
 );
 Info<< "Initializing field BimGlobal\n" << endl;
 volVectorField BimGlobal
@@ -49,9 +46,38 @@ volVectorField BimGlobal
         "Bim",
         runTime.timeName(),
         meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
     ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -1, -3, 0, 0, 0, 0), Foam::vector(0,0,0))
+    meshGlobal
 );
+Info<< "Initializing field PotEreGlobal\n" << endl;
+volScalarField PotEreGlobal
+(
+    IOobject
+    (
+        "PotEre",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+Info<< "Initializing field PotEimGlobal\n" << endl;
+volScalarField PotEimGlobal
+(
+    IOobject
+    (
+        "PotEim",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+
+meshGlobal.schemes().setFluxRequired(PotEreGlobal.name());
+
+meshGlobal.schemes().setFluxRequired(PotEimGlobal.name());
