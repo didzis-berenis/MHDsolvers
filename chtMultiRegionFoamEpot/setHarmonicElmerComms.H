@@ -17,14 +17,14 @@ else
     //convert global field to regions
     forAll(fluidRegions, i)
     {
-        vectorFluidFieldToGlobal(UGlobal,Usent,i);
+        vectorFluidFieldToGlobal(UGlobal,UFluid[0],i);
     }
     Usent = UGlobal;
 }
 // Send fields to Elmer
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-sending.sendVector(UFluid[0]);
+sending.sendVector(Usent);
 // Receive fields from Elmer
 Info<< "\nReceiving fields from Elmer for all regions " << endl;
 if (initialize_elmer) receiving.initialize();
