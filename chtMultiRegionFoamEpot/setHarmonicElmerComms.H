@@ -17,7 +17,7 @@ else
     //convert global field to regions
     forAll(fluidRegions, i)
     {
-        vectorFluidFieldToGlobal(UGlobal,UFluid[0],i);
+        vectorFluidFieldToGlobal(UGlobal,UFluid[i],i);
     }
     Usent = UGlobal;
 }
