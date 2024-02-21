@@ -107,3 +107,35 @@ void vectorSolidFieldToGlobal(volVectorField& global,volVectorField& solid,label
         global[cellI+solidOffset[i]] = solid[cellI];
     }
 }
+//Assigns single fluid/solid region values from global field to region
+void scalarGlobalToFluidField(volScalarField& global,volScalarField& fluid,label i)
+{
+    forAll(fluid, cellI)
+    {
+        fluid[cellI] = global[cellI+fluidOffset[i]];
+    }
+}
+
+void scalarGlobalToSolidField(volScalarField& global,volScalarField& solid,label i)
+{
+    forAll(solid, cellI)
+    {
+        solid[cellI] = global[cellI+solidOffset[i]];
+    }
+}
+
+void vectorGlobalToFluidField(volVectorField& global,volVectorField& fluid,label i)
+{
+    forAll(fluid, cellI)
+    {
+        fluid[cellI] = global[cellI+fluidOffset[i]];
+    }
+}
+
+void vectorGlobalToSolidField(volVectorField& global,volVectorField& solid,label i)
+{
+    forAll(solid, cellI)
+    {
+        solid[cellI] = global[cellI+solidOffset[i]];
+    }
+}

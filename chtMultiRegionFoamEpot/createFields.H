@@ -134,8 +134,8 @@ forAll(solidNames, i)
 forAll(sigmaGlobal, cellI)
 {
     scalar sigma = conductivity[cellToRegion[cellI]];
-    sigmaGlobal[cellI] = sigma;
-    sigmaGlobalInv[cellI] = 1/sigma;
+    sigmaGlobal[cellI] = sigma == 0 ? ROOTVSMALL : sigma;
+    sigmaGlobalInv[cellI] = sigma == 0 ? 0 : 1/sigma;
 }
 //Use only fluid mesh if single fluid region
 //Use global mesh if multiple fluid regions

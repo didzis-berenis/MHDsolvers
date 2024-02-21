@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 	JxB =  0.5*((Jre ^ Bre) + (Jim ^ Bim) );
 	
     // Create file for logging simulation times whenever Elmer is called
-    string elmerTimesFileName = "elmerTimes.log";
+    string elmerTimesFileName = "postProcessing/elmerTimes.log";
 	// Log the current simulation time
     if (Pstream::master())
     {

@@ -29,4 +29,20 @@ if(runTime.writeTime())
 	JJsigmaGlobal.correctBoundaryConditions();
     JJsigmaGlobal.write();
     GeometryIdsGlobal.write();
+
+#if (ELMER_TIME == HARMONIC_TIME)
+	PotEreGlobal.correctBoundaryConditions();
+    PotEreGlobal.write();
+	PotEimGlobal.correctBoundaryConditions();
+    PotEimGlobal.write();
+	JreGlobal.correctBoundaryConditions();
+    JreGlobal.write();
+	JimGlobal.correctBoundaryConditions();
+    JimGlobal.write();
+#elif (ELMER_TIME == TRANSIENT_TIME)
+	PotEGlobal.correctBoundaryConditions();
+    PotEGlobal.write();
+	JGlobal.correctBoundaryConditions();
+    JGlobal.write();
+#endif
 }
