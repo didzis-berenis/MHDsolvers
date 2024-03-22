@@ -5,7 +5,7 @@ scalar PotEreRefValue = 0.0;
 setRefCell
 ( 
     PotEreGlobal,
-    pimples.dict(),
+    pimple.dict(),
     PotEreRefCell,
     PotEreRefValue
 );
@@ -15,7 +15,7 @@ scalar PotEimRefValue = 0.0;
 setRefCell
 ( 
     PotEimGlobal,
-    pimples.dict(),
+    pimple.dict(),
     PotEimRefCell,
     PotEimRefValue
 );

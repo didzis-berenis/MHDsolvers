@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2022-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,46 +22,75 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    chtMultiRegionFoamEpot is a modified chtMultiRegionFoam solver, where the 
-    modification is based on EOF-Library solver mhdVxBPimpleFoam. Additional 
-    modification was made to update electrical currents in OpenFOAM, while the 
-    change in magnetic Reynolds number doesn't exceed the provided value. This 
-	modification was based on the epotFoam solver, which can be found
-	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    foamMultiRun
 
 Description
-    Solver for steady or transient electromagnetically forced fluid flow and 
-    solid heat conduction, with conjugate heat transfer between regions, 
-    buoyancy effects, turbulence, reactions and radiation modelling. 
-    buoyantFoamEpot assumes coupling with harmonic (time-averaged) ElmerFEM 
-    solver.
+    Loads and executes an OpenFOAM solver modules for each region of a
+    multiregion simulation e.g. for conjugate heat transfer.
 
-    Compile option ELMER_TIME == HARMONIC_TIME builds chtMultiRegionFoamEpot
-    solver, which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
+    The region solvers are specified in the \c regionSolvers dictionary entry in
+    \c controlDict, containing a list of pairs of region and solver names,
+    e.g. for a two region case with one fluid region named
+    liquid and one solid region named tubeWall:
+    \verbatim
+        regionSolvers
+        {
+            liquid          fluid;
+            tubeWall        solid;
+        }
+    \endverbatim
 
-    Compile option ELMER_TIME == TRANSIENT_TIME builds chtMultiRegionFoamEpotTransient
-    solver, which assumes coupling with transient ElmerFEM solver.
+    The \c regionSolvers entry is a dictionary to support name substitutions to
+    simplify the specification of a single solver type for a set of
+    regions, e.g.
+    \verbatim
+        fluidSolver     fluid;
+        solidSolver     solid;
+
+        regionSolvers
+        {
+            tube1             $fluidSolver;
+            tubeWall1         solid;
+            tube2             $fluidSolver;
+            tubeWall2         solid;
+            tube3             $fluidSolver;
+            tubeWall3         solid;
+        }
+    \endverbatim
+
+    Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
+    pseudo-transient and steady simulations.
+
+Usage
+    \b foamMultiRun [OPTION]
+
+      - \par -libs '(\"lib1.so\" ... \"libN.so\")'
+        Specify the additional libraries loaded
+
+    Example usage:
+      - To update and run a \c chtMultiRegion case add the following entries to
+        the controlDict:
+        \verbatim
+            application     foamMultiRun;
+
+            regionSolvers
+            {
+                fluid           fluid;
+                solid           solid;
+            }
+        \endverbatim
+        then execute \c foamMultiRun
 
 \*---------------------------------------------------------------------------*/
 
-#include "fvCFD.H"
-#include "compressibleMomentumTransportModels.H"
-#include "fluidReactionThermophysicalTransportModel.H"
-#include "fluidReactionThermo.H"
-#include "combustionModel.H"
-#include "fixedGradientFvPatchFields.H"
-#include "regionProperties.H"
-#include "compressibleCourantNo.H"
-#include "solidRegionDiffNo.H"
-#include "solidThermo.H"
-#include "fvModels.H"
-#include "fvConstraints.H"
-#include "coordinateSystem.H"
+#include "argList.H"
+#include "regionSolvers.H"
 #include "pimpleMultiRegionControl.H"
-//#include "pimpleControl.H"
-#include "pressureReference.H"
-#include "hydrostaticInitialisation.H"
+#include "setDeltaT.H"
+
+using namespace Foam;
 #include "Elmer.H"
+#include <fstream>
 #include "globalRegionMapper.H"
 #define TRANSIENT_TIME  2
 #define HARMONIC_TIME   3
@@ -77,28 +106,24 @@ Description
 
 int main(int argc, char *argv[])
 {
-    #define NO_CONTROL
-    #define CREATE_MESH createMeshesPostProcess.H
-    #include "postProcess.H"
-
-    #include "setRootCaseLists.H"
+    #include "setRootCase.H"
     #include "createTime.H"
+
+    // Create the region meshes and solvers
+    regionSolvers solvers(runTime);
+    regionSolverNames = solvers.getNames();
     #include "createMeshes.H"
-    pimpleMultiRegionControl pimples(fluidRegions, solidRegions);
+    // Create the outer PIMPLE loop and control structure
+    pimpleMultiRegionControl pimple(runTime, solvers);
     #include "createFields.H"
-    #include "initContinuityErrs.H"
-    #include "createFluidPressureControls.H"
-    //pimpleControl pimple(meshGlobal);
+
+    // Set the initial time-step
+    setDeltaT(runTime, solvers);
     #if (ELMER_TIME == HARMONIC_TIME)
         #include "createHarmonicEpotControls.H"
     #elif (ELMER_TIME == TRANSIENT_TIME)
         #include "createTransientEpotControls.H"
     #endif
-    #include "createTimeControls.H"
-    #include "readSolidTimeControls.H"
-    #include "compressibleMultiRegionCourantNo.H"
-    #include "solidRegionDiffusionNo.H"
-    #include "setInitialMultiRegionDeltaT.H"
     #include "createElmerComms.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -106,7 +131,7 @@ int main(int argc, char *argv[])
     double OFClock = 0;
     double elmerClock = runTime.clockTimeIncrement();
 
-    Info<< "\nStarting time loop\n" << endl;
+    Info<< nl << "Starting time loop\n" << endl;
 
     bool initialize_elmer = true;
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
@@ -133,49 +158,70 @@ int main(int argc, char *argv[])
 
     elmerClock = runTime.clockTimeIncrement();
 
-    while (pimples.run(runTime))
+    while (pimple.run(runTime))
     {
-        #include "readTimeControls.H"
-        #include "readSolidTimeControls.H"
+        forAll(solvers, i)
+        {
+            solvers[i].preSolve();
+        }
 
-        #include "compressibleMultiRegionCourantNo.H"
-        #include "solidRegionDiffusionNo.H"
-        #include "setMultiRegionDeltaT.H"
+        solvers.setGlobalPrefix();
+
+        // Adjust the time-step according to the solver maxDeltaT
+        adjustDeltaT(runTime, solvers);
 
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
 
-        // Optional number of energy correctors
-        const int nEcorr = pimples.dict().lookupOrDefault<int>
-        (
-            "nEcorrectors",
-            1
-        );
-
-        // --- PIMPLE loop
-        while (pimples.loop())
+        // Multi-region PIMPLE corrector loop
+        while (pimple.loop())
         {
-            List<tmp<fvVectorMatrix>> UEqns(fluidRegions.size());
-
-            for(int Ecorr=0; Ecorr<nEcorr; Ecorr++)
+            forAll(solvers, i)
             {
-                forAll(solidRegions, i)
+                solvers[i].moveMesh();
+            }
+
+            forAll(solvers, i)
+            {
+                solvers[i].fvModels().correct();
+            }
+
+            forAll(solvers, i)
+            {
+                solvers[i].prePredictor();
+            }
+
+            forAll(solvers, i)
+            {
+                solvers[i].momentumPredictor();
+            }
+
+            while (pimple.correctEnergy())
+            {
+                forAll(solvers, i)
                 {
-                    Info<< "\nSolving for solid region "
-                        << solidRegions[i].name() << endl;
-                    #include "setRegionSolidFields.H"
-                    #include "solveSolid.H"
-                }
-                forAll(fluidRegions, i)
-                {
-                    Info<< "\nSolving for fluid region "
-                        << fluidRegions[i].name() << endl;
-                    #include "setRegionFluidFields.H"
-                    #include "solveFluid.H"
+                    solvers[i].thermophysicalPredictor();
                 }
             }
+
+            forAll(solvers, i)
+            {
+                solvers[i].pressureCorrector();
+            }
+
+            forAll(solvers, i)
+            {
+                solvers[i].postCorrector();
+            }
         }
+
+        forAll(solvers, i)
+        {
+            solvers[i].postSolve();
+        }
+
+        solvers.setGlobalPrefix();
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer

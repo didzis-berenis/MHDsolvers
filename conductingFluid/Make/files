@@ -1,0 +1,5 @@
+conductingFluid.C
+momentumPredictor.C
+thermophysicalPredictor.C
+
+LIB = $(FOAM_USER_LIBBIN)/libconductingFluid

@@ -1,0 +1,99 @@
+int fluidRegionsSize = 0;
+forAll(regionSolverNames, i)
+{
+    const word& solverName = regionSolverNames[i].second();
+    if (solverName == "conductingFluid") fluidRegionsSize++;
+}
+forAll(regionSolverNames, i)
+{
+    const word& regionName = regionSolverNames[i].first();
+    const word& solverName = regionSolverNames[i].second();
+    if (solverName == "conductingFluid")
+    {
+        volVectorField& U = solvers.fluids(fluidID[solverName])->getVelocity();
+        volScalarField magU(mag(U));
+        scalarField V = solvers.mesh(i).V();
+        scalar UmagIntegral = 0;
+        scalar UxIntegral = 0;
+        scalar UyIntegral = 0;
+        scalar UzIntegral = 0;
+
+        volScalarField& T = solvers.fluids(fluidID[solverName])->getTemperature();
+        volScalarField& JJsigma = JJsigmaRegion[i];
+        scalar TIntegral = 0;
+        scalar JJsigmaIntegral = 0;
+
+        forAll (V, cellI)
+        {
+            scalar dV = V[cellI];
+            UmagIntegral += magU[cellI]*dV;
+            UxIntegral += std::abs(U[cellI][0])*dV;
+            UyIntegral += std::abs(U[cellI][1])*dV;
+            UzIntegral += std::abs(U[cellI][2])*dV;
+
+            TIntegral += T[cellI]*dV;
+            JJsigmaIntegral += JJsigma[cellI]*dV;
+        }
+        string regionNameStr = "";
+        if (fluidRegionsSize > 1)
+        {
+            regionNameStr = "_" + regionName + "_";
+        }
+        // Write
+        string velocityFileName = "postProcessing/velocityIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
+        std::ofstream velocityFile(velocityFileName, std::ios::app);
+
+        if (velocityFile.is_open())
+        {
+            velocityFile << runTime.timeName() << "\t" << max(magU).value() << "\t" << UmagIntegral << "\t" << UxIntegral << "\t" 
+            << UyIntegral << "\t" << UzIntegral << std::endl;
+            velocityFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " for writing!\n" << abort(FatalError);
+
+        // Write
+        string thermalFileName = "postProcessing/thermalIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
+        std::ofstream thermalFile(thermalFileName, std::ios::app);
+
+        if (thermalFile.is_open())
+        {
+            thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral << 
+            "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
+            thermalFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
+    }
+
+    if (solverName == "conductingSolid")
+    {
+        scalarField V = solvers.mesh(i).V();
+        volScalarField& T = solvers.solids(solidID[solverName])->getTemperature();
+        volScalarField& JJsigma = JJsigmaRegion[i];
+        scalar TIntegral = 0;
+        scalar JJsigmaIntegral = 0;
+
+        forAll (V, cellI)
+        {
+            scalar dV = V[cellI];
+            TIntegral += T[cellI]*dV;
+            JJsigmaIntegral += JJsigma[cellI]*dV;
+        }
+        string regionNameStr = "";
+        if (regionSolverNames.size() > 1)
+        {
+            regionNameStr = "_" + regionName + "_";
+        }
+
+        // Write
+        string thermalFileName = "postProcessing/thermalIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
+        std::ofstream thermalFile(thermalFileName, std::ios::app);
+
+        if (thermalFile.is_open())
+        {
+            thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral << 
+            "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
+            thermalFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
+    }
+}
