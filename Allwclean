@@ -1,0 +1,20 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+set -x
+
+wclean modules/incompressibleConductingFluid
+wclean modules/conductingFluid
+wclean modules/conductingSolid
+
+wclean moduleHandlers/conductingRegionSolver
+wclean moduleHandlers/conductingRegionSolvers
+
+wclean utilities/initializeTemperature
+wclean utilities/initializeMultiRegionTemperature
+
+wclean solvers/foamRunEpot
+wclean solvers/foamRunEpotTransient
+wclean solvers/foamMultiRunEpot
+wclean solvers/foamMultiRunEpotTransient
+
+# ----------------------------------------------------------------- end-of-file

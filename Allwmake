@@ -2,14 +2,19 @@
 cd ${0%/*} || exit 1    # run from this directory
 set -x
 
-wmake simpleFoamEpot
-wmake pimpleFoamEpot
-wmake pimpleFoamEpotTransient
-wmake buoyantFoamEpot
-wmake buoyantFoamEpotTransient
-wmake chtMultiRegionFoamEpot
-wmake chtMultiRegionFoamEpotTransient
-wmake initializeTemperature
-wmake initializeMultiRegionTemperature
+wmake modules/incompressibleConductingFluid
+wmake modules/conductingFluid
+wmake modules/conductingSolid
+
+wmake moduleHandlers/conductingRegionSolver
+wmake moduleHandlers/conductingRegionSolvers
+
+wmake utilities/initializeTemperature
+wmake utilities/initializeMultiRegionTemperature
+
+wmake solvers/foamRunEpot
+wmake solvers/foamRunEpotTransient
+wmake solvers/foamMultiRunEpot
+wmake solvers/foamMultiRunEpotTransient
 
 # ----------------------------------------------------------------- end-of-file

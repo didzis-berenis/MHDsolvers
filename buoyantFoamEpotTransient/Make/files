@@ -1,3 +1,0 @@
-../buoyantFoamEpot/buoyantFoam.C
-
-EXE = $(FOAM_USER_APPBIN)/buoyantFoamEpotTransient

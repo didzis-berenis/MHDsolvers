@@ -1,5 +1,0 @@
-../foamMultiRunEpot/regionSolvers/regionSolvers.C
-../foamMultiRunEpot/setDeltaT.C
-../foamMultiRunEpot/foamMultiRun.C
-
-EXE = $(FOAM_USER_APPBIN)/foamMultiRunEpotTransient

@@ -1,0 +1,4 @@
+incompressibleConductingFluid.C
+momentumPredictor.C
+
+LIB = $(FOAM_USER_LIBBIN)/libincompressibleConductingFluid

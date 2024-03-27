@@ -1,0 +1,4 @@
+../foamRunEpot/setDeltaT.C
+../foamRunEpot/foamRun.C
+
+EXE = $(FOAM_USER_APPBIN)/foamRunEpotTransient
