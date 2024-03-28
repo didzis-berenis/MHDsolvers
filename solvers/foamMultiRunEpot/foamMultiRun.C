@@ -21,65 +21,25 @@ License
     You should have received a copy of the GNU General Public License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
+
 Application
-    foamMultiRun
+    foamMultiRunEpot is a modified foamMultiRun solver, where the 
+    modification is based on EOF-Library solver mhdVxBPimpleFoam. Additional 
+    modification was made to update electrical currents in OpenFOAM, while the 
+    change in magnetic Reynolds number doesn't exceed the provided value. This 
+	modification was based on the epotFoam solver, which can be found
+	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
-    Loads and executes an OpenFOAM solver modules for each region of a
-    multiregion simulation e.g. for conjugate heat transfer.
+    Solver for steady or transient electromagnetically forced fluid flow and 
+    solid heat conduction, with conjugate heat transfer between regions, 
+    buoyancy effects, turbulence and radiation modelling.
 
-    The region solvers are specified in the \c regionSolvers dictionary entry in
-    \c controlDict, containing a list of pairs of region and solver names,
-    e.g. for a two region case with one fluid region named
-    liquid and one solid region named tubeWall:
-    \verbatim
-        regionSolvers
-        {
-            liquid          fluid;
-            tubeWall        solid;
-        }
-    \endverbatim
+    Compile option ELMER_TIME == HARMONIC_TIME builds foamMultiRunEpot
+    solver, which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
 
-    The \c regionSolvers entry is a dictionary to support name substitutions to
-    simplify the specification of a single solver type for a set of
-    regions, e.g.
-    \verbatim
-        fluidSolver     fluid;
-        solidSolver     solid;
-
-        regionSolvers
-        {
-            tube1             $fluidSolver;
-            tubeWall1         solid;
-            tube2             $fluidSolver;
-            tubeWall2         solid;
-            tube3             $fluidSolver;
-            tubeWall3         solid;
-        }
-    \endverbatim
-
-    Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
-    pseudo-transient and steady simulations.
-
-Usage
-    \b foamMultiRun [OPTION]
-
-      - \par -libs '(\"lib1.so\" ... \"libN.so\")'
-        Specify the additional libraries loaded
-
-    Example usage:
-      - To update and run a \c chtMultiRegion case add the following entries to
-        the controlDict:
-        \verbatim
-            application     foamMultiRun;
-
-            regionSolvers
-            {
-                fluid           fluid;
-                solid           solid;
-            }
-        \endverbatim
-        then execute \c foamMultiRun
+    Compile option ELMER_TIME == TRANSIENT_TIME builds foamMultiRunEpotTransient
+    solver, which assumes coupling with transient ElmerFEM solver.
 
 \*---------------------------------------------------------------------------*/
 

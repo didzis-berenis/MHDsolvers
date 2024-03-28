@@ -143,25 +143,25 @@ public:
         // Return region fvMesh
         fvMesh& mesh(const word regionName);
 
-        // Return region fvMesh
+        // Assign volume force to the solver
         void setJxB(const word regionName, volVectorField& field);
 
-        // Return region fvMesh
+        // Assign volume heating to the solver
         void setJJsigma(const word regionName, volScalarField& field);
 
-        // Return region fvMesh
-        void getVelocity(const word regionName, volVectorField& field);
+        // Get velocity from solver
+        volVectorField& getVelocity(const word regionName);
 
-        // Return region fvMesh
-        void getPressure(const word regionName, volScalarField& field);
+        // Get pressure from solver
+        volScalarField& getPressure(const word regionName);
 
-        // Return region fvMesh
-        void getTemperature(const word regionName, volScalarField& field);
+        // Get temperature from solver
+        volScalarField& getTemperature(const word regionName);
 
-        // Return region fvMesh
+        // Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);
 
-        // Return region fvMesh
+        // Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
 
         // Get names

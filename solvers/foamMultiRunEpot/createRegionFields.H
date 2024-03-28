@@ -32,7 +32,10 @@ forAll(regionNames, i)
             dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
         )
     );
-    solvers.getVelocity(regionNames[i],URegion[i]);
+    if (solvers.isFluid(regionNames[i]))
+    {
+        URegion[i] = solvers.getVelocity(regionNames[i]);
+    }
 
     Info<< "    Adding to U_oldRegion\n" << endl;
     U_oldRegion.set

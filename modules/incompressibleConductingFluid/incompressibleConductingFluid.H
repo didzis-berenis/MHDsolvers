@@ -61,11 +61,19 @@ protected:
 
         volVectorField JxB_;
 
+    // density
+
+        dimensionedScalar rho_;
+
 public:
 
     // Lorentz force
 
         const volVectorField& JxB;
+
+    // density
+
+        const dimensionedScalar& rho;
 
 
     //- Runtime type information
@@ -87,14 +95,14 @@ public:
 
     // Member Functions
 
-        // Not implemented
+        // Assign volume force to the solver
         virtual void setJxB(volVectorField&);
 
-        // return U
-        virtual void getVelocity(volVectorField&);
+        // Get velocity from solver
+        virtual volVectorField& getVelocity();
 
-        // return p
-        virtual void getPressure(volScalarField&);
+        // Get pressure from solver
+        virtual volScalarField& getPressure();
 
         // update transport properties
         virtual void momentumPredictor();

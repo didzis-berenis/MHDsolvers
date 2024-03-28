@@ -189,52 +189,58 @@ void Foam::conductingRegionSolvers::setJJsigma(const word regionName, Foam::volS
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolvers::getVelocity(const word regionName, Foam::volVectorField& field)
+Foam::volVectorField& Foam::conductingRegionSolvers::getVelocity(const word regionName)
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
     if (fluidPtr)
     {
-        fluidPtr->getVelocity(field);
+        return fluidPtr->getVelocity();
     }
     else
     {
-        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Velocity field!\n"; 
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << "!\n" << "Cannot get Velocity field!\n"
+        << exit(FatalIOError);
     }
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolvers::getPressure(const word regionName, Foam::volScalarField& field)
+Foam::volScalarField& Foam::conductingRegionSolvers::getPressure(const word regionName)
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
     if (fluidPtr)
     {
-        fluidPtr->getPressure(field);
+        return fluidPtr->getPressure();
     }
     else
     {
-        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get pressure field!\n"; 
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << "!\n" << "Cannot get Pressure field!\n"
+        << exit(FatalIOError);
     }
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolvers::getTemperature(const word regionName, Foam::volScalarField& field)
+Foam::volScalarField& Foam::conductingRegionSolvers::getTemperature(const word regionName)
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
     Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
     if (fluidPtr)
     {
-        fluidPtr->getTemperature(field);
+        return fluidPtr->getTemperature();
     }
     else if (solidPtr)
     {
-        solidPtr->getTemperature(field);
+        return solidPtr->getTemperature();
     }
     else
     {
-        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Temperature field!\n"; 
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get Temperature field!\n"
+        << exit(FatalIOError);
     }
 }
 

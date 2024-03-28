@@ -87,17 +87,21 @@ class conductingRegionSolver
 {
     // Private Member Data
 
-        //- Region solvers
+        //- Solver pointer
         solver* solverPtr_;
-        autoPtr<solver> solver_;
+        //autoPtr<solver> solver_;
 
-        //- Region name and solver name pairs
+        //- Solver name
         word name_;
 
+        //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
+
         const word fluidSolverName_ = "conductingFluid";
+
         const word solidSolverName_ = "conductingSolid";
 
+        //- Get pointers to derived solver class object
         solvers::incompressibleConductingFluid* getIncompressibleFluidPtr_();
 
         solvers::conductingFluid* getFluidPtr_();
@@ -122,42 +126,41 @@ public:
 
     // Member Functions
 
-        // Return region fvMesh
+        // Assign volume force to the solver
         void setJxB(volVectorField& field);
 
-        // Return region fvMesh
+        // Assign volume heating to the solver
         void setJJsigma(volScalarField& field);
 
-        // Return region fvMesh
-        void getVelocity(volVectorField& field);
+        // Get velocity from solver
+        volVectorField& getVelocity();
 
-        // Return region fvMesh
-        void getPressure(volScalarField& field);
+        // Get pressure from solver
+        volScalarField& getPressure();
 
-        // Return region fvMesh
-        void getTemperature(volScalarField& field);
+        // Get temperature from solver
+        volScalarField& getTemperature();
 
-        // Return region fvMesh
+        // Check if solver type is incompressibleFluidSolverName_
         bool isIncompressibleFluid();
 
-        // Return region fvMesh
+        // Check if solver type is fluidSolverName_
         bool isFluid();
 
-        // Return region fvMesh
+        // Check if solver type is solidSolverName_
         bool isSolid();
 
-        // Get names
-        //word getName();
+        // Getsolver name
+        word getName();
 
-        inline solver& operator()();
+        // Get reference to solver
+        inline solver& operator()()
+        {
+            return *solverPtr_;//solver_();
+        }
 
 };
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-Foam::solver& Foam::conductingRegionSolver::operator()()
-{
-    return solver_();
-}
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -1,33 +1,8 @@
 
-
-volScalarField p
-(
-    IOobject
-    (
-        "p",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedScalar(dimPressure,0)
-);
+volScalarField p = regionSolver.getPressure();
 
 Info<< "Initializing field U\n" << endl;
-volVectorField U
-(
-    IOobject
-    (
-        "U",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedVector(dimVelocity,Foam::vector(0,0,0))
-);
+volVectorField& U = regionSolver.getVelocity();
 
 Info<< "Initializing field U_old\n" << endl;
 volVectorField U_old
@@ -101,21 +76,6 @@ volScalarField JJsigma
     ),
     mesh,
     dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
-);
-
-Info<< "Initializing field T\n" << endl;
-volScalarField T
-(
-    IOobject
-    (
-        "T",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedScalar(dimTemperature, 0)
 );
 
 #if (ELMER_TIME == HARMONIC_TIME)

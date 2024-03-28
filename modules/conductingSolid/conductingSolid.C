@@ -79,15 +79,9 @@ void Foam::solvers::conductingSolid::setJJsigma(volScalarField& JJsigma)
     JJsigma_=JJsigma;
 }
 
-//void Foam::solvers::conductingSolid::setJxB(volVectorField& JxB)
-//{   
-    //Not implemented
-    //JxB_=JxB;
-//}
-
-void Foam::solvers::conductingSolid::getTemperature(volScalarField& T_external)
+Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScalarField& T_external)
 {   
-    T_external = thermo_.T();
+    return thermo_.T();
 }
 
 

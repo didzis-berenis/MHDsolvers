@@ -31,6 +31,9 @@ Description
 
 #include "argList.H"
 #include "conductingRegionSolvers.H"
+//#include "fluidThermo.H"
+//#include "compressibleMomentumTransportModels.H"
+//#include "fluidThermophysicalTransportModel.H"
 
 using namespace Foam;
 
@@ -82,20 +85,7 @@ int main(int argc, char *argv[])
             );
             
             Info<< "Reading field T\n" << endl;
-            volScalarField T
-            (
-                IOobject
-                (
-                    "T",
-                    runTime.timeName(),
-                    fluidMesh,
-                    IOobject::NO_READ,
-                    IOobject::NO_WRITE
-                ),
-                fluidMesh,
-                dimensionedScalar(dimTemperature,0)
-            );
-            solvers.getTemperature(regionName,T);
+            volScalarField& T = solvers.getTemperature(regionName);
             
             T = (fluidMesh.C() & temperature_multiplier) +  temperature_addition;
             T.write();

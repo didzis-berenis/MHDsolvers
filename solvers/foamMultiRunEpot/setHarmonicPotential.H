@@ -12,7 +12,10 @@ scalar maxRelDiff_local = SMALL;
 
 forAll(regionNames, i)
 {
-    solvers.getVelocity(regionNames[i],URegion[i]);
+    if (solvers.isFluid(regionNames[i]))
+    {
+        URegion[i] = solvers.getVelocity(regionNames[i]);
+    }
     volVectorField& U = URegion[i];
     maxRemDiff_local = max(
         magneticReynoldsRegion[i]*max(mag(U_oldRegion[i]-U)).value(),

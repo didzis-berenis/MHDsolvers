@@ -51,8 +51,9 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
     solver::load(name_);
 
     // Instantiate the selected solver
-    Foam::autoPtr<solver> solver_(solver::New(name_, mesh));
-    solverPtr_ = solver_.ptr();
+    Foam::autoPtr<solver> solverAutoPtr(solver::New(name_, mesh));
+    // get pointer to solver
+    solverPtr_ = solverAutoPtr.ptr();
 }
 
 
@@ -132,62 +133,68 @@ void Foam::conductingRegionSolver::setJJsigma(Foam::volScalarField& field)
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolver::getVelocity(Foam::volVectorField& field)
+Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
     Foam::solvers::incompressibleConductingFluid* incompressibleFluidPtr = getIncompressibleFluidPtr_();
     if (fluidPtr)
     {
-        fluidPtr->getVelocity(field);
+        return fluidPtr->getVelocity();
     }
     else if (incompressibleFluidPtr)
     {
-        incompressibleFluidPtr->getVelocity(field);
+        return incompressibleFluidPtr->getVelocity();
     }
     else
     {
-        Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Velocity field!\n"; 
+        FatalIOError
+        << " region " << name_ << " solver is not " << fluidSolverName_
+        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Velocity field!\n"
+        << exit(FatalIOError);
     }
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolver::getPressure(Foam::volScalarField& field)
+Foam::volScalarField& Foam::conductingRegionSolver::getPressure()
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
     Foam::solvers::incompressibleConductingFluid* incompressibleFluidPtr = getIncompressibleFluidPtr_();
     if (fluidPtr)
     {
-        fluidPtr->getPressure(field);
+        return fluidPtr->getPressure();
     }
     else if (incompressibleFluidPtr)
     {
-        incompressibleFluidPtr->getPressure(field);
+        return incompressibleFluidPtr->getPressure();
     }
     else
     {
-        Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Velocity field!\n"; 
+        FatalIOError
+        << " region " << name_ << " solver is not " << fluidSolverName_
+        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Pressure field!\n"
+        << exit(FatalIOError);
     }
 }
 
 // Return region fvMesh
-void Foam::conductingRegionSolver::getTemperature(Foam::volScalarField& field)
+Foam::volScalarField& Foam::conductingRegionSolver::getTemperature()
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
     Foam::solvers::conductingSolid* solidPtr = getSolidPtr_();
     if (fluidPtr)
     {
-        fluidPtr->getTemperature(field);
+        return fluidPtr->getTemperature();
     }
     else if (solidPtr)
     {
-        solidPtr->getTemperature(field);
+        return solidPtr->getTemperature();
     }
     else
     {
-        Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Temperature field!\n"; 
+        FatalIOError
+        << " region " << name_ << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get Temperature field!\n"
+        << exit(FatalIOError);
     }
 }
 
@@ -218,12 +225,10 @@ bool Foam::conductingRegionSolver::isSolid()
     return false;
 }
 
-/*
 Foam::word Foam::conductingRegionSolver::getName()
 {
     return name_;
 }
-*/
 
 // * * * * * * * * * * * * * * * Member Operators  * * * * * * * * * * * * * //
 
@@ -231,10 +236,6 @@ Foam::word Foam::conductingRegionSolver::getName()
 Foam::solver& Foam::conductingRegionSolver::operator()()
 {
     return solver_();
-}
-Foam::solver* Foam::conductingRegionSolver::operator()(const label i)
-{
-    return solvers_(i);
 }*/
 
 

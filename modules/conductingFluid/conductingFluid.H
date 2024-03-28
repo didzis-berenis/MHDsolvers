@@ -116,20 +116,20 @@ public:
 
     // Member Functions
 
-        // Used to update JJsigma_
+        // Assign volume force to the solver
         virtual void setJJsigma(volScalarField&);
 
-        // Used to update JxB_
+        // Assign volume heating to the solver
         virtual void setJxB(volVectorField&);
 
-        // return U
-        virtual void getVelocity(volVectorField&);
+        // Get velocity from solver
+        virtual volVectorField& getVelocity();
 
-        // return p
-        virtual void getPressure(volScalarField&);
+        // Get pressure from solver
+        virtual volScalarField& getPressure();
 
-        // return T
-        virtual void getTemperature(volScalarField&);
+        // Get temperature from solver
+        virtual volScalarField& getTemperature();
 
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();

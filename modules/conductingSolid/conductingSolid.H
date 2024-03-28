@@ -57,10 +57,6 @@ class conductingSolid
 
 protected:
 
-    // Lorentz force
-
-        //volVectorField JxB_;
-
     // Joule heating
 
         volScalarField JJsigma_;
@@ -92,14 +88,11 @@ public:
 
     // Member Functions
 
-        // Used to update JJsigma_
+        // Assign volume heating to the solver
         virtual void setJJsigma(volScalarField&);
 
-        // Not implemented
-        //virtual void setJxB(volVectorField&);
-
-        // return T
-        virtual void getTemperature(volScalarField&);
+        // Get temperature from solver
+        virtual volScalarField& getTemperature();
 
 
     // Member Operators

@@ -2,7 +2,10 @@
 // Save old U field
 forAll(regionNames, i)
 {
-    solvers.getVelocity(regionNames[i],URegion[i]);
+    if (solvers.isFluid(regionNames[i]))
+    {
+        URegion[i] = solvers.getVelocity(regionNames[i]);
+    }
     vectorFieldToGlobal(UGlobal,URegion[i],regionNames[i]);
     U_oldRegion[i] = URegion[i];
 }

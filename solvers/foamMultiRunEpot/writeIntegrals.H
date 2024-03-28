@@ -8,8 +8,7 @@ forAll(regionNames, i)
     const word& regionName = regionNames[i];
     if (solvers.isFluid(regionName))
     {
-        solvers.getVelocity(regionName,URegion[i]);
-        volVectorField& U = URegion[i];
+        volVectorField& U = solvers.getVelocity(regionName);
         volScalarField magU(mag(U));
         scalarField V = solvers.mesh(regionNames[i]).V();
         scalar UmagIntegral = 0;
@@ -17,8 +16,7 @@ forAll(regionNames, i)
         scalar UyIntegral = 0;
         scalar UzIntegral = 0;
 
-        solvers.getTemperature(regionName,TRegion[i]);
-        volScalarField& T = TRegion[i];
+        volScalarField& T = solvers.getTemperature(regionName);
         volScalarField& JJsigma = JJsigmaRegion[i];
         scalar TIntegral = 0;
         scalar JJsigmaIntegral = 0;
@@ -67,8 +65,7 @@ forAll(regionNames, i)
     if (solvers.isSolid(regionName))
     {
         scalarField V = solvers.mesh(regionNames[i]).V();
-        solvers.getTemperature(regionName,TRegion[i]);
-        volScalarField& T = TRegion[i];
+        volScalarField& T = solvers.getTemperature(regionName);
         volScalarField& JJsigma = JJsigmaRegion[i];
         scalar TIntegral = 0;
         scalar JJsigmaIntegral = 0;

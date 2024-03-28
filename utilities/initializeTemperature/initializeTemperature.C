@@ -56,6 +56,7 @@ Description
 #define namespaceFoam
     using namespace Foam;
 #endif
+#include "conductingRegionSolver.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -89,7 +90,7 @@ int main(int argc, char *argv[])
         dimensionSet(0, 0, 0, 1, 0, 0, 0),
         physicalProperties
     );
-	
+	/*
 	Info<< "Reading field T\n" << endl;
 	volScalarField T
 	(
@@ -98,11 +99,14 @@ int main(int argc, char *argv[])
 			"T",
 			runTime.timeName(),
 			mesh,
-			IOobject::MUST_READ,
+			IOobject::NO_READ,
 			IOobject::NO_WRITE
 		),
-		mesh
-	);
+		mesh,
+        dimensionedScalar(dimTemperature,0)
+	);*/
+    conductingRegionSolver regionSolver(runTime, mesh);
+    volScalarField& T = regionSolver.getTemperature();
 	/*
 	forAll (T, cellI)
 	{

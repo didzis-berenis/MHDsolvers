@@ -60,7 +60,24 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
         mesh,
         dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
     ),
-    JxB(JxB_)
+    rho_
+    (
+        "rho",
+        dimDensity,
+        IOdictionary
+        (
+            IOobject
+            (
+                "physicalProperties",
+                runTime.constant(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        )
+    ),
+    JxB(JxB_),
+    rho(rho_)
 {
 }
 
@@ -78,14 +95,14 @@ void Foam::solvers::incompressibleConductingFluid::setJxB(volVectorField& JxB)
     JxB_=JxB;
 }
 
-void Foam::solvers::incompressibleConductingFluid::getVelocity(volVectorField& U_external)
+Foam::volVectorField& Foam::solvers::incompressibleConductingFluid::getVelocity()
 {   
-    U_external = U_;
+    return U_;
 }
 
-void Foam::solvers::incompressibleConductingFluid::getPressure(volScalarField& p_external)
+Foam::volScalarField& Foam::solvers::incompressibleConductingFluid::getPressure()
 {   
-    p_external = p_;
+    return p_;
 }
 
 

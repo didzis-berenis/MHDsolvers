@@ -106,19 +106,19 @@ void Foam::solvers::conductingFluid::setJxB(volVectorField& JxB)
     JxB_=JxB;
 }
 
-void Foam::solvers::conductingFluid::getVelocity(volVectorField& U_external)
+Foam::volVectorField& Foam::solvers::conductingFluid::getVelocity()
 {   
-    U_external = U_;
+    return U_;
 }
 
-void Foam::solvers::conductingFluid::getPressure(volScalarField& p_external)
+Foam::volScalarField& Foam::solvers::conductingFluid::getPressure()
 {   
-    p_external = thermo_.p();
+    return thermo_.p();
 }
 
-void Foam::solvers::conductingFluid::getTemperature(volScalarField& T_external)
+Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
 {   
-    T_external = thermo_.T();
+    return thermo_.T();
 }
 
 void Foam::solvers::conductingFluid::prePredictor()

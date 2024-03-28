@@ -33,6 +33,7 @@ void Foam::solvers::incompressibleConductingFluid::momentumPredictor()
 {
     volVectorField& U(U_);
     volVectorField& JxB(JxB_);
+    dimensionedScalar& rho(rho_);
 
     tUEqn =
     (
@@ -40,7 +41,7 @@ void Foam::solvers::incompressibleConductingFluid::momentumPredictor()
       + MRF.DDt(U)
       + momentumTransport->divDevSigma(U)
      ==
-        fvModels().source(U)+JxB
+        fvModels().source(U)+JxB/rho
     );
     fvVectorMatrix& UEqn = tUEqn.ref();
 

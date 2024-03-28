@@ -5,13 +5,22 @@ if(runTime.writeTime())
     forAll(regionNames, i)
     {
         const word& regionName = regionNames[i];
-        solvers.getVelocity(regionName,URegion[i]);
+        if (solvers.isFluid(regionNames[i]))
+        {
+            URegion[i] = solvers.getVelocity(regionNames[i]);
+        }
         vectorFieldToGlobal(UGlobal,URegion[i],regionName);
         //get pressure fields from fluid domains
-        solvers.getPressure(regionName,pRegion[i]);
+        if (solvers.isFluid(regionNames[i]))
+        {
+            pRegion[i] = solvers.getPressure(regionNames[i]);
+        }
         scalarFieldToGlobal(pGlobal,pRegion[i],regionName);
         //get temperature fields from all domains
-        solvers.getTemperature(regionName,TRegion[i]);
+        if (solvers.isFluid(regionNames[i]) || solvers.isSolid(regionNames[i]))
+        {
+            TRegion[i] = solvers.getTemperature(regionNames[i]);
+        }
         scalarFieldToGlobal(TGlobal,TRegion[i],regionName);
     }
 	UGlobal.correctBoundaryConditions();

@@ -22,40 +22,25 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    foamRun
+    foamRunEpot is a modified foamRun solver, where the modification 
+    is based on EOF-Library solver mhdVxBPimpleFoam. Additional modification 
+	was made to update electrical currents in OpenFOAM, while the change in 
+	magnetic Reynolds number doesn't exceed the provided value. This 
+	modification was based on the epotFoam solver, which can be found
+	in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
 
 Description
-    Loads and executes an OpenFOAM solver module either specified by the
-    optional \c solver entry in the \c controlDict or as a command-line
-    argument.
+    Solver for steady or transient buoyant, turbulent flow of compressible
+    or incompressible fluids for electromagnetically forced and heated flows.
+
+    Compile option ELMER_TIME == HARMONIC_TIME builds foamRunEpot solver,
+    which assumes coupling with harmonic (time-averaged) ElmerFEM solver.
+
+    Compile option ELMER_TIME == TRANSIENT_TIME builds foamRunEpotTransient
+    solver, which assumes coupling with transient ElmerFEM solver.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
-    pseudo-transient and steady simulations.
-
-Usage
-    \b foamRun [OPTION]
-
-      - \par -solver <name>
-        Solver name
-
-      - \par -libs '(\"lib1.so\" ... \"libN.so\")'
-        Specify the additional libraries loaded
-
-    Example usage:
-      - To run a \c rhoPimpleFoam case by specifying the solver on the
-        command line:
-        \verbatim
-            foamRun -solver fluid
-        \endverbatim
-
-      - To update and run a \c rhoPimpleFoam case add the following entries to
-        the controlDict:
-        \verbatim
-            application     foamRun;
-
-            solver          fluid;
-        \endverbatim
-        then execute \c foamRun
+    pseudo-transient simulations.
 
 \*---------------------------------------------------------------------------*/
 
@@ -165,7 +150,8 @@ int main(int argc, char *argv[])
         }
 
         solver.postSolve();
-        #include "getSolverFields.H"
+        //U = regionSolver.getVelocity();
+        //p = regionSolver.getPressure();
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
