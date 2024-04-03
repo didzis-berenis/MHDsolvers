@@ -21,7 +21,7 @@ volVectorField U_oldGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     UGlobal
 );
@@ -99,7 +99,7 @@ volScalarField sigmaGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal,
     dimensionedScalar(dimensionSet(-1, -3, 3, 0, 0, 2, 0), 1)
@@ -112,21 +112,13 @@ volScalarField sigmaGlobalInv
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal,
     dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
 );
-//0=Write fields separately for each region
-//1=Write fields in a merged(global) mesh
-const bool writeMerged( readScalar(runTime.controlDict().lookup("writeMerged")) );
 scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsRegion);
-/*List<scalar> conductivity(regionNames.size());
 
-forAll(regionNames, i)
-{
-    conductivity[regionID[regionNames[i]]] = sigmaRegion[i].value();
-}*/
 forAll(sigmaGlobal, cellI)
 {
     scalar sigma = sigmaRegion[cellToRegion[cellI]].value();
@@ -139,3 +131,9 @@ forAll(sigmaGlobal, cellI)
 #elif (ELMER_TIME == TRANSIENT_TIME)
     #include "createTransientFields.H"
 #endif
+
+List<word> regionPaths(regionNames.size());
+forAll(regionNames, i)
+{
+    regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
+}

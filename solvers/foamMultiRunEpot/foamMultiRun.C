@@ -53,6 +53,7 @@ using namespace Foam;
 #include "Elmer.H"
 #include <fstream>
 #include "globalRegionMapper.H"
+#include "fieldMapper.H"
 #define TRANSIENT_TIME  2
 #define HARMONIC_TIME   3
 #if (ELMER_TIME == HARMONIC_TIME)
@@ -129,7 +130,10 @@ int main(int argc, char *argv[])
 
         // Adjust the time-step according to the solver maxDeltaT
         adjustDeltaT(runTime, solvers);
-
+        forAll(regionNames, i)
+        {
+            regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
+        }
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
@@ -194,14 +198,8 @@ int main(int argc, char *argv[])
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-        if(writeMerged)
-        {
-            #include "writeGlobal.H"
-        }
-        else
-        {
-            runTime.write();
-        }
+        runTime.write();
+        #include "writeGlobal.H"
         #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 

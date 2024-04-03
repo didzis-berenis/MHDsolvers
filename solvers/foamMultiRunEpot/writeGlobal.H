@@ -49,4 +49,11 @@ if(runTime.writeTime())
 	JGlobal.correctBoundaryConditions();
     JGlobal.write();
 #endif
+
+    // Cleanup
+    forAll(regionNames, i)
+    {
+        //Pout << "Deleting folder " << regionPaths[i] << " was " <<
+        fileHandler().rmDir(regionPaths[i]);//<< endl;
+    }
 }

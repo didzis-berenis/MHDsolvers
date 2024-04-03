@@ -53,6 +53,7 @@ Description
 using namespace Foam;
 #include "Elmer.H"
 #include <fstream>
+#include "fieldMapper.H"
 #define TRANSIENT_TIME  2
 #define HARMONIC_TIME   3
 #if (ELMER_TIME == HARMONIC_TIME)
@@ -132,7 +133,7 @@ int main(int argc, char *argv[])
 
         // Adjust the time-step according to the solver maxDeltaT
         adjustDeltaT(runTime, solver);
-
+        fieldPaths = getFieldPaths(mesh);
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
@@ -167,6 +168,15 @@ int main(int argc, char *argv[])
 
         runTime.write();
         #include "writeIntegrals.H"
+        // Cleanup
+        forAll(fieldPaths, i)
+        {
+            if (!keepField[fieldPaths[i].first()])
+            {
+                //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+                fileHandler().rm(fieldPaths[i].second());//<< endl;
+            }
+        }
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"

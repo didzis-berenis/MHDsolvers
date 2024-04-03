@@ -8,7 +8,7 @@ volVectorField JreGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -21,7 +21,7 @@ volVectorField JimGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -34,7 +34,7 @@ volVectorField BreGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -47,7 +47,7 @@ volVectorField BimGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -60,7 +60,7 @@ volScalarField PotEreGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -73,7 +73,7 @@ volScalarField PotEimGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );

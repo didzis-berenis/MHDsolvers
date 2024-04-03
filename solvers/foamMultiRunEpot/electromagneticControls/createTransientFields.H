@@ -7,7 +7,7 @@ volVectorField JGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -20,7 +20,7 @@ volVectorField BGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );
@@ -33,7 +33,7 @@ volScalarField PotEGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal
 );

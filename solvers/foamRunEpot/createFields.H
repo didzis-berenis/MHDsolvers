@@ -1,5 +1,5 @@
 
-volScalarField p = regionSolver.getPressure();
+volScalarField& p = regionSolver.getPressure();
 
 Info<< "Initializing field U\n" << endl;
 volVectorField& U = regionSolver.getVelocity();
@@ -83,3 +83,11 @@ volScalarField JJsigma
 #elif (ELMER_TIME == TRANSIENT_TIME)
     #include "createTransientFields.H"
 #endif
+
+List<Pair<word>> fieldPaths = getFieldPaths(mesh);
+std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T"};
+forAll(fieldPaths, i)
+{
+    word fieldName = fieldPaths[i].first();
+    keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
+}
