@@ -32,6 +32,8 @@ if(runTime.writeTime())
     //joule heating and IDs should be previously assigned to global
 	JJsigmaGlobal.correctBoundaryConditions();
     JJsigmaGlobal.write();
+	JxBGlobal.correctBoundaryConditions();
+    JxBGlobal.write();
     GeometryIdsGlobal.write();
 
 #if (ELMER_TIME == HARMONIC_TIME)
@@ -55,5 +57,13 @@ if(runTime.writeTime())
     {
         //Pout << "Deleting folder " << regionPaths[i] << " was " <<
         fileHandler().rmDir(regionPaths[i]);//<< endl;
+    }
+    forAll(fieldPaths, i)
+    {
+        if (!keepField[fieldPaths[i].first()])
+        {
+            //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+            fileHandler().rm(fieldPaths[i].second());//<< endl;
+        }
     }
 }

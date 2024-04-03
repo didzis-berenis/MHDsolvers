@@ -130,10 +130,12 @@ int main(int argc, char *argv[])
 
         // Adjust the time-step according to the solver maxDeltaT
         adjustDeltaT(runTime, solvers);
+        // Update paths for cleanup
         forAll(regionNames, i)
         {
             regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
         }
+        fieldPaths = getFieldPaths(meshGlobal);
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;

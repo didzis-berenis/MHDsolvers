@@ -137,3 +137,11 @@ forAll(regionNames, i)
 {
     regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
 }
+
+List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
+std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds"};
+forAll(fieldPaths, i)
+{
+    word fieldName = fieldPaths[i].first();
+    keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
+}
