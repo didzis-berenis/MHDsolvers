@@ -117,6 +117,19 @@ volScalarField sigmaGlobalInv
     meshGlobal,
     dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
 );
+surfaceScalarField phi
+(
+    IOobject
+    (
+        "phi",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal,
+    dimensionedScalar(dimensionSet(1, 0, -1, 0, 0, 0, 0), 0)
+);
 scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsRegion);
 
 forAll(sigmaGlobal, cellI)
