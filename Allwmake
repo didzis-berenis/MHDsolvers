@@ -11,6 +11,7 @@ wmake moduleHandlers/conductingRegionSolvers
 
 wmake utilities/initializeTemperature
 wmake utilities/initializeMultiRegionTemperature
+wmake utilities/checkRegionCellZones
 
 wmake solvers/foamRunEpot
 wmake solvers/foamRunEpotTransient
