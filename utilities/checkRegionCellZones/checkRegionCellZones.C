@@ -70,14 +70,23 @@ int main(int argc, char *argv[])
             forAll(meshGlobal.cellZones(), zoneI)
             {
                 const cellZone& cZone = meshGlobal.cellZones()[zoneI];
-                bool masterHasZeroCells = Pstream::master()
-                && cZone.name() == regionName
+
+                bool hasZeroCells = cZone.name() == regionName
                 && fluidNames.find(solverName) != fluidNames.end()
                 && cZone.size() == 0;
 
-                if (masterHasZeroCells)
+                if (hasZeroCells)
                 {
                     std::ofstream outFile("HAS_ZERO_CELLS", std::ofstream::out);
+                    outFile.close();
+                }
+
+                bool masterHasZeroCells = Pstream::master()
+                && hasZeroCells;
+
+                if (masterHasZeroCells)
+                {
+                    std::ofstream outFile("MASTER_HAS_ZERO_CELLS", std::ofstream::out);
                     outFile.close();
                 }
             }
