@@ -127,6 +127,9 @@ int main(int argc, char *argv[])
 
     elmerClock = runTime.clockTimeIncrement();
 
+    // Write initial values
+    #include "writeIntegrals.H"
+
     while (pimple.run(runTime))
     {
         solver.preSolve();
