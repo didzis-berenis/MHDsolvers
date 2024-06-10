@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
+    conductingRegionSolver regionSolver(runTime, mesh);
 	
     IOdictionary physicalProperties
     (
@@ -105,7 +106,6 @@ int main(int argc, char *argv[])
 		mesh,
         dimensionedScalar(dimTemperature,0)
 	);*/
-    conductingRegionSolver regionSolver(runTime, mesh);
     volScalarField& T = regionSolver.getTemperature();
 	/*
 	forAll (T, cellI)
