@@ -160,28 +160,6 @@ forAll(regionNames, i)
 List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds"};
 
-/*forAll(regionNames, i)
-{
-    word regionPath = getRegionPath(solvers.mesh(regionNames[i]));
-    forAll(regionPath, j)
-    {
-        if (regionPath[j].first() == solverSolidificationName)
-        {
-            solidificationEnabled[i] = true;
-            solidificationGlobalEnabled = true;
-            alphaWriteOption[i] = IOobject::AUTO_WRITE;
-        }
-    }
-}
-forAll(fieldPaths, i)
-{
-    if (fieldPaths[i].first() == solverSolidificationName)
-    {
-        solidificationEnabled = true;
-        fieldsToKeep.insert(userSolidificationName);
-        alphaWriteOption = IOobject::AUTO_WRITE;
-    }
-}*/
 auto alphaWriteOptionGlobal = IOobject::NO_WRITE;
 if (solidificationGlobalEnabled)
 {
