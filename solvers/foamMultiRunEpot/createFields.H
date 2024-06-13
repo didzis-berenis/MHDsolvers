@@ -1,3 +1,8 @@
+//Solidification configurations
+word solverSolidificationName = "solidification:alpha1";
+word userSolidificationName = "alpha1";
+bool solidificationGlobalEnabled = false;
+
 #include "createRegionFields.H"
 volVectorField UGlobal
 (
@@ -145,16 +150,68 @@ forAll(sigmaGlobal, cellI)
     #include "createTransientFields.H"
 #endif
 
+//Initialize field names and paths
 List<word> regionPaths(regionNames.size());
+
 forAll(regionNames, i)
 {
     regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
 }
-
 List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds"};
+
+/*forAll(regionNames, i)
+{
+    word regionPath = getRegionPath(solvers.mesh(regionNames[i]));
+    forAll(regionPath, j)
+    {
+        if (regionPath[j].first() == solverSolidificationName)
+        {
+            solidificationEnabled[i] = true;
+            solidificationGlobalEnabled = true;
+            alphaWriteOption[i] = IOobject::AUTO_WRITE;
+        }
+    }
+}
+forAll(fieldPaths, i)
+{
+    if (fieldPaths[i].first() == solverSolidificationName)
+    {
+        solidificationEnabled = true;
+        fieldsToKeep.insert(userSolidificationName);
+        alphaWriteOption = IOobject::AUTO_WRITE;
+    }
+}*/
+auto alphaWriteOptionGlobal = IOobject::NO_WRITE;
+if (solidificationGlobalEnabled)
+{
+    fieldsToKeep.insert(userSolidificationName);
+    alphaWriteOptionGlobal = IOobject::AUTO_WRITE;
+}
+volScalarField alpha1Global
+(
+    IOobject
+    (
+        userSolidificationName,
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::NO_READ,
+        alphaWriteOptionGlobal
+    ),
+    meshGlobal,
+    dimensionedScalar(dimless, 0)
+);
+if (solidificationGlobalEnabled)
+{
+	scalarMultiRegionToGlobal(alpha1Global,alpha1Region);
+}
+
+//Update field paths to include alpha1
+fieldPaths = getFieldPaths(meshGlobal);
+
 forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();
     keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
 }
+

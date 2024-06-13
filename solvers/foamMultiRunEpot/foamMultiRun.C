@@ -191,6 +191,15 @@ int main(int argc, char *argv[])
         }
 
         solvers.setGlobalPrefix();
+        //Update liquid-solid phase fraction
+        forAll(regionNames, i)
+        {
+            if (solidificationEnabled[i])
+            {
+                alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
+                scalarFieldToGlobal(alpha1Global,alpha1Region[i],regionNames[i]);
+            }
+        }
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer

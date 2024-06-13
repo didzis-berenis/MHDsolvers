@@ -154,6 +154,11 @@ int main(int argc, char *argv[])
         }
 
         solver.postSolve();
+        //Update liquid-solid phase fraction
+        if (solidificationEnabled)
+        {
+		    alpha1 = mesh().lookupObject<volScalarField>(solverSolidificationName);
+        }
         //U = regionSolver.getVelocity();
         //p = regionSolver.getPressure();
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

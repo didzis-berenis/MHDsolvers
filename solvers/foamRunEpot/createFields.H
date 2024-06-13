@@ -84,8 +84,45 @@ volScalarField JJsigma
     #include "createTransientFields.H"
 #endif
 
+//Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T"};
+
+//Solidification configurations
+word solverSolidificationName = "solidification:alpha1";
+word userSolidificationName = "alpha1";
+bool solidificationEnabled = false;
+auto alphaWriteOption = IOobject::NO_WRITE;
+forAll(fieldPaths, i)
+{
+    if (fieldPaths[i].first() == solverSolidificationName)
+    {
+        solidificationEnabled = true;
+        fieldsToKeep.insert(userSolidificationName);
+        alphaWriteOption = IOobject::AUTO_WRITE;
+    }
+}
+volScalarField alpha1
+(
+    IOobject
+    (
+        userSolidificationName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        alphaWriteOption
+    ),
+    mesh,
+    dimensionedScalar(dimless, 0)
+);
+if (solidificationEnabled)
+{
+	alpha1 = mesh().lookupObject<volScalarField>(solverSolidificationName);
+}
+
+//Update field paths to include alpha1
+fieldPaths = getFieldPaths(mesh);
+
 forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();

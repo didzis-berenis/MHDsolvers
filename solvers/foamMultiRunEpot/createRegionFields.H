@@ -6,6 +6,9 @@ PtrList<volScalarField> JJsigmaRegion(regionNames.size());
 PtrList<volScalarField> pRegion(regionNames.size());
 PtrList<volScalarField> TRegion(regionNames.size());
 PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
+PtrList<volScalarField> alpha1Region(regionNames.size());
+List<bool> solidificationEnabled(regionNames.size(), false);
+List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WRITE);
 PtrList<dimensionedScalar> sigmaRegion(regionNames.size());
 List<double> magneticReynoldsRegion(regionNames.size());
 forAll(regionNames, i)
@@ -150,6 +153,40 @@ forAll(regionNames, i)
             solvers.mesh(regionNames[i])
         )
     );
+
+    //Solidification configurations
+    List<Pair<word>> regionPath = getFieldPaths(solvers.mesh(regionNames[i]));
+    forAll(regionPath, j)
+    {
+        if (regionPath[j].first() == solverSolidificationName)
+        {
+            solidificationEnabled[i] = true;
+            alphaWriteOption[i] = IOobject::AUTO_WRITE;
+            solidificationGlobalEnabled = true;
+        }
+    }
+
+    alpha1Region.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                userSolidificationName,
+                runTime.constant(),
+                solvers.mesh(regionNames[i]),
+                IOobject::NO_READ,
+                alphaWriteOption[i]
+            ),
+            solvers.mesh(regionNames[i]),
+            dimensionedScalar(dimless, 0)
+        )
+    );
+    if (solidificationEnabled[i])
+    {
+        alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
+    }
 
     IOdictionary physicalProperties
         (
