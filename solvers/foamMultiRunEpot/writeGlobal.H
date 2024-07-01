@@ -25,7 +25,10 @@ if(runTime.writeTime())
     }
 	UGlobal.correctBoundaryConditions();
     UGlobal.write();
-	//TGlobal.correctBoundaryConditions();
+    if (!solidificationGlobalEnabled)
+    {
+	    TGlobal.correctBoundaryConditions();
+    }
     TGlobal.write();
 	pGlobal.correctBoundaryConditions();
     pGlobal.write();
