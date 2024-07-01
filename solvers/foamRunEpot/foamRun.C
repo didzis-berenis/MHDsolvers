@@ -176,13 +176,16 @@ int main(int argc, char *argv[])
 
         runTime.write();
         #include "writeIntegrals.H"
-        // Cleanup
-        forAll(fieldPaths, i)
+        if(runTime.writeTime())
         {
-            if (!keepField[fieldPaths[i].first()])
+            // Cleanup
+            forAll(fieldPaths, i)
             {
-                //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
-                fileHandler().rm(fieldPaths[i].second());//<< endl;
+                if (!keepField[fieldPaths[i].first()])
+                {
+                    //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+                    fileHandler().rm(fieldPaths[i].second());//<< endl;
+                }
             }
         }
         OFClock = runTime.clockTimeIncrement();
