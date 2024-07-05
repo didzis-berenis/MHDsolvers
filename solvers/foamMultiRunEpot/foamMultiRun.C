@@ -212,8 +212,13 @@ int main(int argc, char *argv[])
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-        runTime.write();
-        #include "writeGlobal.H"
+        //write last time step even if not write time
+        if(runTime.writeTime() || !runTime.run())
+        {
+            runTime.writeNow();
+            #include "writeGlobal.H"
+        }
+        //write integral values for all time steps
         #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 

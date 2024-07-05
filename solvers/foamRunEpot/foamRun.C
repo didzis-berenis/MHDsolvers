@@ -173,11 +173,10 @@ int main(int argc, char *argv[])
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        runTime.write();
-        #include "writeIntegrals.H"
-        if(runTime.writeTime())
+        //write last time step even if not write time
+        if(runTime.writeTime() || !runTime.run())
         {
+            runTime.writeNow();
             // Cleanup
             forAll(fieldPaths, i)
             {
@@ -188,6 +187,8 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        //write integral values for all time steps
+        #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"
