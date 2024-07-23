@@ -130,12 +130,22 @@ int main(int argc, char *argv[])
     // Write initial values
     #include "writeIntegrals.H"
 
-    while (pimple.run(runTime))
+    bool lastTimeStep = false;
+    while (pimple.run(runTime) || lastTimeStep)
     {
         solver.preSolve();
 
         // Adjust the time-step according to the solver maxDeltaT
         adjustDeltaT(runTime, solver);
+        // Adjust time step so that last step is at end time.
+        if (runTime.userTimeValue() + runTime.deltaTValue() > runTime.endTime().value())
+        {
+            const scalar lastDeltaT = runTime.endTime().value() - runTime.userTimeValue();
+            runTime.setDeltaT(lastDeltaT);
+            Info<< "Adjusting time step to match end time." << nl << endl;
+            Info<< "deltaT = " << runTime.deltaTValue()  << nl << endl;
+            lastTimeStep = true;
+        }
         fieldPaths = getFieldPaths(mesh);
         runTime++;
 
@@ -173,8 +183,8 @@ int main(int argc, char *argv[])
         #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-        //write last time step even if not write time
-        if(runTime.writeTime() || !runTime.run())
+        // Write last time step even if not write time
+        if(runTime.writeTime() || lastTimeStep)
         {
             runTime.writeNow();
             // Cleanup
@@ -228,6 +238,23 @@ int main(int argc, char *argv[])
 			}
         }
         elmerClock = runTime.clockTimeIncrement();
+        // If run loop exited just before end time, schedule one more iteration.
+        if (
+            // Loop has been stopped.
+            !runTime.run() &&
+            // End time has not been reached.
+            runTime.userTimeValue() < runTime.endTime().value() &&
+            // Next step reaches end time.
+            runTime.userTimeValue() + runTime.deltaTValue() >= runTime.endTime().value()
+            )
+        {
+            lastTimeStep = true;
+        }
+        // Exit after extra iteration.
+        else if (lastTimeStep)
+        {
+            lastTimeStep = false;
+        }
     }
 
     Info << "Final iteration: "
