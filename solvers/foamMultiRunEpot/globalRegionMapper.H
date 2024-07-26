@@ -1,6 +1,6 @@
 #include <map>
 
-std::map<word, label> regionOffset;
+std::map<std::pair<word, label>, label> localToGlobalID;
 //std::map<word, label> regionID;
 List<word> regionNames;
 //Assigns fluid and solid region values from global to each region field
@@ -10,7 +10,7 @@ void vectorGlobalToMultiRegion(volVectorField& global,PtrList<volVectorField>& r
     {
         forAll(regions[i], cellI)
         {
-            regions[i][cellI] = global[cellI+regionOffset[regionNames[i]]];
+            regions[i][cellI] = global[localToGlobalID[std::make_pair(regionNames[i],cellI)]];
         }
     }
 }
@@ -21,7 +21,7 @@ void scalarGlobalToMultiRegion(volScalarField& global,PtrList<volScalarField>& r
     {
         forAll(regions[i], cellI)
         {
-            regions[i][cellI] = global[cellI+regionOffset[regionNames[i]]];
+            regions[i][cellI] = global[localToGlobalID[std::make_pair(regionNames[i],cellI)]];
         }
     }
 }
@@ -32,7 +32,7 @@ void vectorMultiRegionToGlobal(volVectorField& global,PtrList<volVectorField>& r
     {
         forAll(regions[i], cellI)
         {
-            global[cellI+regionOffset[regionNames[i]]] = regions[i][cellI];
+            global[localToGlobalID[std::make_pair(regionNames[i],cellI)]] = regions[i][cellI];
         }
     }
 }
@@ -43,7 +43,7 @@ void scalarMultiRegionToGlobal(volScalarField& global,PtrList<volScalarField>& r
     {
         forAll(regions[i], cellI)
         {
-            global[cellI+regionOffset[regionNames[i]]] = regions[i][cellI];
+            global[localToGlobalID[std::make_pair(regionNames[i],cellI)]] = regions[i][cellI];
         }
     }
 }
@@ -53,7 +53,7 @@ void scalarFieldToGlobal(volScalarField& global,volScalarField& region,const wor
 {
     forAll(region, cellI)
     {
-        global[cellI+regionOffset[regionName]] = region[cellI];
+        global[localToGlobalID[std::make_pair(regionName,cellI)]] = region[cellI];
     }
 }
 
@@ -61,7 +61,7 @@ void vectorFieldToGlobal(volVectorField& global,volVectorField& region,const wor
 {
     forAll(region, cellI)
     {
-        global[cellI+regionOffset[regionName]] = region[cellI];
+        global[localToGlobalID[std::make_pair(regionName,cellI)]] = region[cellI];
     }
 }
 //Assigns single fluid/solid region values from global field to region
@@ -69,7 +69,7 @@ void scalarGlobalToField(volScalarField& global,volScalarField& region,const wor
 {
     forAll(region, cellI)
     {
-        region[cellI] = global[cellI+regionOffset[regionName]];
+        region[cellI] = global[localToGlobalID[std::make_pair(regionName,cellI)]];
     }
 }
 
@@ -77,6 +77,6 @@ void vectorGlobalToField(volVectorField& global,volVectorField& region,const wor
 {
     forAll(region, cellI)
     {
-        region[cellI] = global[cellI+regionOffset[regionName]];
+        region[cellI] = global[localToGlobalID[std::make_pair(regionName,cellI)]];
     }
 }
