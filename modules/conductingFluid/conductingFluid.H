@@ -52,6 +52,7 @@ SourceFiles
 #define conductingFluid_H
 
 #include "isothermalFluid.H"
+#include "electromagneticModel.H"
 #include "fluidThermoThermophysicalTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -84,6 +85,9 @@ protected:
 
         autoPtr<fluidThermoThermophysicalTransportModel>
             thermophysicalTransport;
+
+    //- Pointer to the electromagnetic model
+        autoPtr<electromagneticModel> electromagnetics;
 
 
 public:

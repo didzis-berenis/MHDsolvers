@@ -23,124 +23,66 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "fluidThermo.H"
+#include "transientElectromagneticModel.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    defineTypeNameAndDebug(fluidThermo, 0);
-    defineRunTimeSelectionTable(fluidThermo, fvMesh);
+    defineTypeNameAndDebug(transientElectromagneticModel, 0);
+    defineRunTimeSelectionTable(transientElectromagneticModel, fvMesh);
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::fluidThermo::implementation::implementation
+Foam::transientElectromagneticModel::transientElectromagneticModel
 (
     const fvMesh& mesh,
     const word& phaseName
 )
 :
-    p_(lookupOrConstruct(mesh, "p")),
-
-    psi_
-    (
-        IOobject
-        (
-            phasePropertyName("psi", phaseName),
-            mesh.time().name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh,
-        dimensionSet(0, -2, 2, 0, 0)
-    ),
-
-    mu_
-    (
-        IOobject
-        (
-            phasePropertyName("mu", phaseName),
-            mesh.time().name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh,
-        dimensionSet(1, -1, -1, 0, 0)
-    )
+    PotE_(lookupOrConstruct(mesh, "PotE")),
+    
+    J_(lookupOrConstruct(mesh, "J")),
+    
+    B_(lookupOrConstruct(mesh, "B")),
 {}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
-Foam::autoPtr<Foam::fluidThermo> Foam::fluidThermo::New
+Foam::autoPtr<Foam::transientElectromagneticModel> Foam::transientElectromagneticModel::New
 (
     const fvMesh& mesh,
     const word& phaseName
 )
 {
-    return basicThermo::New<fluidThermo>(mesh, phaseName);
+    return electromagneticModel::New<transientElectromagneticModel>(mesh, phaseName);
 }
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::fluidThermo::~fluidThermo()
-{}
-
-
-Foam::fluidThermo::implementation::~implementation()
+Foam::transientElectromagneticModel::~transientElectromagneticModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField> Foam::fluidThermo::nu() const
+Foam::volScalarField& Foam::transientElectromagneticModel::PotE()
 {
-    return mu()/rho();
+    return PotE_;
 }
 
-
-Foam::tmp<Foam::scalarField>
-Foam::fluidThermo::nu(const label patchi) const
+Foam::volScalarField& Foam::transientElectromagneticModel::J()
 {
-    return mu(patchi)/rho(patchi);
+    return J_;
 }
 
-
-Foam::volScalarField& Foam::fluidThermo::implementation::p()
+Foam::volScalarField& Foam::transientElectromagneticModel::B()
 {
-    return p_;
-}
-
-
-const Foam::volScalarField& Foam::fluidThermo::implementation::p() const
-{
-    return p_;
-}
-
-
-const Foam::volScalarField& Foam::fluidThermo::implementation::psi() const
-{
-    return psi_;
-}
-
-
-Foam::tmp<Foam::volScalarField> Foam::fluidThermo::implementation::mu() const
-{
-    return mu_;
-}
-
-
-Foam::tmp<Foam::scalarField> Foam::fluidThermo::implementation::mu
-(
-    const label patchi
-) const
-{
-    return mu_.boundaryField()[patchi];
+    return B_;
 }
 
 

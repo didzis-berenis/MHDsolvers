@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,33 +23,10 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "fluidThermophysicalTransportModel.H"
+#include "makeElectromagneticModel.H"
 
-// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-Foam::fluidThermophysicalTransportModel::fluidThermophysicalTransportModel
-(
-    const compressibleMomentumTransportModel& momentumTransport
-)
-:
-    thermophysicalTransportModel
-    (
-        momentumTransport.mesh(),
-        momentumTransport.alphaRhoPhi().group()
-    ),
-    momentumTransportModel_(momentumTransport)
-{}
-
-
-// * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-
-Foam::tmp<Foam::scalarField> Foam::fluidThermophysicalTransportModel::qCorr
-(
-    const label patchi
-) const
-{
-    return tmp<scalarField>(nullptr);
-}
-
+makeElectromagneticModels();
 
 // ************************************************************************* //

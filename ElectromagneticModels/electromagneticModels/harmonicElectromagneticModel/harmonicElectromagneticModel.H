@@ -22,25 +22,23 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::fluidThermo
+    Foam::harmonicElectromagneticModel
 
 Description
     Base-class for fluid thermodynamic properties.
 
 See also
-    Foam::basicThermo
+    Foam::electromagneticModel
 
 SourceFiles
-    fluidThermo.C
+    harmonicElectromagneticModel.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef fluidThermo_H
-#define fluidThermo_H
+#ifndef harmonicElectromagneticModel_H
+#define harmonicElectromagneticModel_H
 
-#include "basicThermo.H"
-#include "viscosity.H"
-#include "viscosity.H"
+#include "electromagneticModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -48,31 +46,43 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                         Class fluidThermo Declaration
+                         Class harmonicElectromagneticModel Declaration
 \*---------------------------------------------------------------------------*/
 
-class fluidThermo
+class harmonicElectromagneticModel
 :
-    virtual public basicThermo,
-    public viscosity
+    virtual public electromagneticModel
 {
+
+    //- Pressure [Pa]
+    volScalarField PotEre_;
+
+    //- Pressure [Pa]
+    volScalarField PotEim_;
+
+    //- Compressibility [s^2/m^2]
+    volVectorField Jre_;
+
+    //- Compressibility [s^2/m^2]
+    volVectorField Jim_;
+
+    //- Compressibility [s^2/m^2]
+    volVectorField Bre_;
+
+    //- Compressibility [s^2/m^2]
+    volVectorField Bim_;
 public:
-
-    // Public Classes
-
-        //- Forward declare the implementation class
-        class implementation;
 
 
     //- Runtime type information
-    TypeName("fluidThermo");
+    TypeName("harmonicElectromagneticModel");
 
 
     //- Declare run-time constructor selection table
     declareRunTimeSelectionTable
     (
         autoPtr,
-        fluidThermo,
+        harmonicElectromagneticModel,
         fvMesh,
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
@@ -82,7 +92,7 @@ public:
     // Selectors
 
         //- Standard selection based on fvMesh
-        static autoPtr<fluidThermo> New
+        static autoPtr<harmonicElectromagneticModel> New
         (
             const fvMesh&,
             const word& phaseName=word::null
@@ -90,7 +100,7 @@ public:
 
 
     //- Destructor
-    virtual ~fluidThermo();
+    virtual ~harmonicElectromagneticModel();
 
 
     // Member Functions
@@ -99,21 +109,35 @@ public:
 
             //- Pressure [Pa]
             //  Non-const access allowed for transport equations
-            virtual volScalarField& p() = 0;
+            //virtual volScalarField& p() = 0;
 
             //- Pressure [Pa]
-            virtual const volScalarField& p() const = 0;
+            virtual volScalarField& PotEre() const = 0;
+
+            //- Pressure [Pa]
+            virtual volScalarField& PotEim() const = 0;
+
+            //- Compressibility [s^2/m^2]
+            virtual volVectorField& Jre() const = 0;
+
+            //- Compressibility [s^2/m^2]
+            virtual volVectorField& Jim() const = 0;
+
+            //- Compressibility [s^2/m^2]
+            virtual volVectorField& Bre() const = 0;
+
+            //- Compressibility [s^2/m^2]
+            virtual volVectorField& Bim() const = 0;
 
             //- Add the given density correction to the density field.
             //  Used to update the density field following pressure solution
-            virtual void correctRho(const volScalarField& deltaRho) = 0;
+            virtual volVectorField& correctJre() = 0;
 
-            //- Compressibility [s^2/m^2]
-            virtual const volScalarField& psi() const = 0;
+            virtual volVectorField& correctJim() = 0;
 
 
         // Fields derived from thermodynamic state variables
-
+/*
             //- Rename the thermodynamic density field if stored and return
             //  This is used by solvers which create a separate continuity rho
             //  [kg/m^3]
@@ -149,78 +173,8 @@ public:
 
             //- Kinematic viscosity of mixture for patch [m^2/s]
             virtual tmp<scalarField> nu(const label patchi) const;
+*/
 };
-
-
-/*---------------------------------------------------------------------------*\
-                 Class fluidThermo::implementation Declaration
-\*---------------------------------------------------------------------------*/
-
-class fluidThermo::implementation
-:
-    virtual public fluidThermo
-{
-protected:
-
-    // Protected data
-
-        // Fields
-
-            //- Pressure [Pa]
-            volScalarField& p_;
-
-            //- Compressibility [s^2/m^2]
-            volScalarField psi_;
-
-            //- Dynamic viscosity [kg/m/s]
-            volScalarField mu_;
-
-
-public:
-
-    // Constructors
-
-        //- Construct from mesh and phase name
-        implementation(const fvMesh&, const word& phaseName);
-
-        //- Disallow default bitwise copy construction
-        implementation(const implementation&) = delete;
-
-
-    //- Destructor
-    virtual ~implementation();
-
-
-    // Member Functions
-
-        // Access to thermodynamic state variables
-
-            //- Pressure [Pa]
-            //  Non-const access allowed for transport equations
-            virtual volScalarField& p();
-
-            //- Pressure [Pa]
-            virtual const volScalarField& p() const;
-
-            //- Compressibility [s^2/m^2]
-            virtual const volScalarField& psi() const;
-
-
-        // Access to transport state variables
-
-            //- Dynamic viscosity of mixture [kg/m/s]
-            virtual tmp<volScalarField> mu() const;
-
-            //- Dynamic viscosity of mixture for patch [kg/m/s]
-            virtual tmp<scalarField> mu(const label patchi) const;
-
-
-    // Member Operators
-
-        //- Disallow default bitwise assignment
-        void operator=(const implementation&) = delete;
-};
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

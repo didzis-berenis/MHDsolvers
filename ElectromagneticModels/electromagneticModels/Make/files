@@ -1,0 +1,7 @@
+electromagneticModel.C
+electromagneticModels.C
+
+harmonicElectromagneticModel/harmonicElectromagneticModel.C
+transientElectromagneticModel/transientElectromagneticModel.C
+
+LIB = $(FOAM_LIBBIN)/libelectromagneticModels
