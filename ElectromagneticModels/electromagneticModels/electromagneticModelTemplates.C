@@ -23,61 +23,49 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "electromagneticModel.H"
-#include "wordIOList.H"
-#include "compileTemplate.H"
+//#include "electromagneticModel.H"
+//#include "wordIOList.H"
+//#include "compileTemplate.H"
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
-template<class ElectromagneticModel, class Table>
-typename Table::iterator Foam::electromagneticModel::lookupCstrIter
-(
-    const dictionary& thermoDict,
-    Table* tablePtr
-)
+namespace Foam
 {
-    const word modelType(thermoDict.lookup("electromagneticType"));
-
-    Info<< "Selecting electromagnetics model " << modelType << endl;
-
-    typename Table::iterator cstrIter = tablePtr->find(modelType);
-
-    if (cstrIter == tablePtr->end())
+    namespace incompressible
     {
-        FatalErrorInFunction
-            << "Unknown " << ElectromagneticModel::typeName << " type "
-            << modelType << nl << nl
-            << "Valid " << ElectromagneticModel::typeName << " types are:" << nl
-            << tablePtr->sortedToc() << nl
-            << exit(FatalError);
-    }
 
-    return cstrIter;
-}
-
-
-// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
-
-template<class ElectromagneticModel>
-Foam::autoPtr<ElectromagneticModel> Foam::electromagneticModel::New
-(
-    const fvMesh& mesh,
-    const word& phaseName
-)
-{
-    const IOdictionary electromagneticDict
-    (
-        physicalProperties::findModelDict(mesh, phaseName)
-    );
-
-    typename ElectromagneticModel::fvMeshConstructorTable::iterator cstrIter =
-        lookupCstrIter<ElectromagneticModel, typename ElectromagneticModel::fvMeshConstructorTable>
+        template<class ElectromagneticModel>
+        Foam::autoPtr<ElectromagneticModel> New
         (
-            electromagneticDict,
-            ElectromagneticModel::fvMeshConstructorTablePtr_
-        );
+            const fvMesh& mesh,
+            const word& phaseName
+        )
+        {
+            const IOdictionary electromagneticDict
+            (
+                physicalProperties::findModelDict(mesh, phaseName)
+            );
+            const word modelType(electromagneticDict.lookup("electromagneticType"));
 
-    return autoPtr<ElectromagneticModel>(cstrIter()(mesh, phaseName));
+            Info<< "Selecting electromagnetics model " << modelType << endl;
+
+            typename ElectromagneticModel::dictionaryConstructorTable::iterator
+                cstrIter =
+                ElectromagneticModel::dictionaryConstructorTablePtr_->find(modelType);
+
+            if (cstrIter == ElectromagneticModel::dictionaryConstructorTablePtr_->end())
+            {
+                FatalErrorInFunction
+                    << "Unknown " << ElectromagneticModel::typeName << " type "
+                    << modelType << nl << nl
+                    << "Valid " << ElectromagneticModel::typeName << " types are:" << nl
+                    << ElectromagneticModel::dictionaryConstructorTablePtr_->sortedToc() << nl
+                    << exit(FatalError);
+            }
+
+            return autoPtr<ElectromagneticModel>(cstrIter()(mesh, phaseName));
+        }
+    }
 }
 
 // ************************************************************************* //

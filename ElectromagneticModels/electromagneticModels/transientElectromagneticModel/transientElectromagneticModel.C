@@ -42,11 +42,11 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
     const word& phaseName
 )
 :
-    PotE_(lookupOrConstruct(mesh, "PotE")),
+    PotE_(lookupOrConstructScalar(mesh, "PotE")),
     
-    J_(lookupOrConstruct(mesh, "J")),
+    J_(lookupOrConstructVector(mesh, "J")),
     
-    B_(lookupOrConstruct(mesh, "B")),
+    B_(lookupOrConstructVector(mesh, "B"))
 {}
 
 
@@ -75,12 +75,12 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE()
     return PotE_;
 }
 
-Foam::volScalarField& Foam::transientElectromagneticModel::J()
+Foam::volVectorField& Foam::transientElectromagneticModel::J()
 {
     return J_;
 }
 
-Foam::volScalarField& Foam::transientElectromagneticModel::B()
+Foam::volVectorField& Foam::transientElectromagneticModel::B()
 {
     return B_;
 }

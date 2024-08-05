@@ -65,7 +65,13 @@ SourceFiles
 #include "physicalProperties.H"
 #include "autoPtr.H"
 #include "wordIOList.H"
-
+/*
+#include "primitiveFieldsFwd.H"
+#include "volFields.H"
+#include "surfaceFields.H"
+#include "fvMatricesFwd.H"
+#include "geometricOneField.H"
+*/
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -103,7 +109,15 @@ protected:
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
         //  not found, and return a reference
-        static volScalarField& lookupOrConstruct
+        static volScalarField& lookupOrConstructScalar
+        (
+            const fvMesh& mesh,
+            const char* name
+        );
+
+        //- Lookup and the named field, or construct it as MUST-READ if it is
+        //  not found, and return a reference
+        static volVectorField& lookupOrConstructVector
         (
             const fvMesh& mesh,
             const char* name
@@ -111,43 +125,50 @@ protected:
 
         //- Get the constructor iterator for the given thermo dictionary and
         //  constructor iterator table
+        /*
         template<class ElectromagneticModel, class Table>
         static typename Table::iterator lookupCstrIter
         (
             const dictionary& thermoDict,
             Table* tablePtr
         );
-
+        */
         //- Specialisation of the Generic New for electromagneticModel
-        static autoPtr<electromagneticModel> New
+        /*static autoPtr<electromagneticModel> New
         (
             const fvMesh& mesh,
             const word& phaseName
-        );
+        );*/
+
+    //- Generic New for each of the related electromagnetics model
+    template<class ElectromagneticModel>
+    static autoPtr<ElectromagneticModel> New
+    (
+        const fvMesh& mesh,
+        const word& phaseName
+    );
 
 
 public:
 
-
-
     //- Runtime type information
     TypeName("electromagneticModel");
 
+    // Static Member data
+        //- Name of the thermophysical properties dictionary
+        //using physicalProperties::typeName;
+
 
     //- Declare run-time constructor selection table
-    declareRunTimeSelectionTable
+    /*
+    declareRunTimeNewSelectionTable
     (
         autoPtr,
         electromagneticModel,
-        fvMesh,
+        dictionary,
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
-    );
-
-    // Static Member data
-        //- Name of the thermophysical properties dictionary
-        using physicalProperties::typeName;
-
+    );*/
 
     // Static Member Functions
 
@@ -178,6 +199,9 @@ public:
         //- Properties dictionary
         virtual const IOdictionary& properties() const = 0;
 
+        //- Read model coefficients if they have changed
+        virtual bool read() = 0;
+
         //- Non-const access the properties dictionary
         virtual IOdictionary& properties() = 0;
 
@@ -187,9 +211,9 @@ public:
         //- Phase name
         virtual const word& phaseName() const = 0;
 
-        virtual const volScalarField& sigma() const = 0;
+        virtual volScalarField sigma() const = 0;
 
-        virtual const dimensionedScalar& sigmaConst() const = 0;
+        virtual dimensionedScalar sigmaConst() const = 0;
 
         //- Update properties
         virtual void correct() = 0;

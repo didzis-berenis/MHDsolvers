@@ -70,7 +70,7 @@ public:
 
 
     //- Declare run-time constructor selection table
-    declareRunTimeSelectionTable
+    declareRunTimeNewSelectionTable
     (
         autoPtr,
         transientElectromagneticModel,
@@ -78,6 +78,16 @@ public:
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
     );
+
+
+    // Constructors
+
+        //- Construct from components
+        transientElectromagneticModel
+        (
+            const fvMesh& mesh,
+            const word& phaseName
+        );
 
 
     // Selectors
@@ -88,6 +98,9 @@ public:
             const fvMesh&,
             const word& phaseName=word::null
         );
+
+        //- Disallow default bitwise copy construction
+        transientElectromagneticModel(const transientElectromagneticModel&) = delete;
 
 
     //- Destructor
@@ -103,13 +116,13 @@ public:
             //virtual volScalarField& p() = 0;
 
             //- Pressure [Pa]
-            virtual volScalarField& PotE() const = 0;
+            virtual volScalarField& PotE();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& J() const = 0;
+            virtual volVectorField& J();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& B() const = 0;
+            virtual volVectorField& B();
 
             //- Add the given density correction to the density field.
             //  Used to update the density field following pressure solution

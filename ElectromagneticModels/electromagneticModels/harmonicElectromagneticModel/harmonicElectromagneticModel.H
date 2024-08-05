@@ -79,7 +79,7 @@ public:
 
 
     //- Declare run-time constructor selection table
-    declareRunTimeSelectionTable
+    declareRunTimeNewSelectionTable
     (
         autoPtr,
         harmonicElectromagneticModel,
@@ -87,6 +87,16 @@ public:
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
     );
+
+
+    // Constructors
+
+        //- Construct from components
+        harmonicElectromagneticModel
+        (
+            const fvMesh& mesh,
+            const word& phaseName
+        );
 
 
     // Selectors
@@ -98,6 +108,8 @@ public:
             const word& phaseName=word::null
         );
 
+        //- Disallow default bitwise copy construction
+        harmonicElectromagneticModel(const harmonicElectromagneticModel&) = delete;
 
     //- Destructor
     virtual ~harmonicElectromagneticModel();
@@ -112,22 +124,22 @@ public:
             //virtual volScalarField& p() = 0;
 
             //- Pressure [Pa]
-            virtual volScalarField& PotEre() const = 0;
+            virtual volScalarField& PotEre();
 
             //- Pressure [Pa]
-            virtual volScalarField& PotEim() const = 0;
+            virtual volScalarField& PotEim();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& Jre() const = 0;
+            virtual volVectorField& Jre();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& Jim() const = 0;
+            virtual volVectorField& Jim();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& Bre() const = 0;
+            virtual volVectorField& Bre();
 
             //- Compressibility [s^2/m^2]
-            virtual volVectorField& Bim() const = 0;
+            virtual volVectorField& Bim();
 
             //- Add the given density correction to the density field.
             //  Used to update the density field following pressure solution

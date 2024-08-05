@@ -42,14 +42,14 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
     const word& phaseName
 )
 :
-    PotEre_(lookupOrConstruct(mesh, "PotEre")),
-    PotEim_(lookupOrConstruct(mesh, "PotEim")),
+    PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
+    PotEim_(lookupOrConstructScalar(mesh, "PotEim")),
     
-    Jre_(lookupOrConstruct(mesh, "Jre")),
-    Jim_(lookupOrConstruct(mesh, "Jim")),
+    Jre_(lookupOrConstructVector(mesh, "Jre")),
+    Jim_(lookupOrConstructVector(mesh, "Jim")),
     
-    Bre_(lookupOrConstruct(mesh, "Bre")),
-    Bim_(lookupOrConstruct(mesh, "Bim"))
+    Bre_(lookupOrConstructVector(mesh, "Bre")),
+    Bim_(lookupOrConstructVector(mesh, "Bim"))
 {}
 
 
@@ -83,22 +83,22 @@ Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEim()
     return PotEim_;
 }
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::Jre()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Jre()
 {
     return Jre_;
 }
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::Jim()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Jim()
 {
     return Jim_;
 }
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::Bre()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Bre()
 {
     return Bre_;
 }
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEre()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Bim()
 {
     return Bim_;
 }

@@ -32,13 +32,12 @@ License
 namespace Foam
 {
     defineTypeNameAndDebug(electromagneticModel, 0);
-    defineRunTimeSelectionTable(electromagneticModel, fvMesh);
+    //defineRunTimeSelectionTable(electromagneticModel, dictionary);
 }
-
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::electromagneticModel::lookupOrConstruct
+Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
 (
     const fvMesh& mesh,
     const char* name
@@ -69,6 +68,37 @@ Foam::volScalarField& Foam::electromagneticModel::lookupOrConstruct
     return mesh.objectRegistry::lookupObjectRef<volScalarField>(name);
 }
 
+Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
+(
+    const fvMesh& mesh,
+    const char* name
+)
+{
+    if (!mesh.objectRegistry::foundObject<volVectorField>(name))
+    {
+        volVectorField* fPtr
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh.objectRegistry::lookupObjectRef<volVectorField>(name);
+}
+
 
 const Foam::electromagneticModel& Foam::electromagneticModel::lookupElectromagnetic
 (
@@ -89,25 +119,6 @@ Foam::electromagneticModel::electromagneticModel
     const word& phaseName
 )
 :
-    physicalProperties(mesh, phaseName),
-
-    mesh_(mesh),
-
-    phaseName_(phaseName),
-
-    sigmaConst_
-    (
-        physicalProperties.lookupOrDefault<dimensionedScalar>
-        (
-            "sigma",
-            dimensionedScalar
-            (
-                pow3(dimTime)*dimCurrent*dimCurrent/dimDensity,
-                0
-            )
-        )
-    ),
-
     sigma_
     (
         IOobject
@@ -120,36 +131,37 @@ Foam::electromagneticModel::electromagneticModel
         ),
         mesh,
         sigmaConst_
-    )
-{}
+    ),
 
+    sigmaConst_
+    (
+        physicalProperties::lookupOrDefault<dimensionedScalar>
+        (
+            "sigma",
+            dimensionedScalar
+            (
+                pow3(dimTime)*dimCurrent*dimCurrent/dimDensity,
+                0
+            )
+        )
+    ),
 
-// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
+    physicalProperties(mesh, phaseName),
 
-Foam::autoPtr<Foam::electromagneticModel> Foam::electromagneticModel::New
-(
-    const fvMesh& mesh,
-    const word& phaseName
-)
-{
-    return New<electromagneticModel>(mesh, phaseName);
-}
+    mesh_(mesh),
 
-
-// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-
-Foam::electromagneticModel::~electromagneticModel()
+    phaseName_(phaseName)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::electromagneticModel::sigma()
+Foam::volScalarField Foam::electromagneticModel::sigma() const
 {
     return sigma_;
 }
 
-Foam::volScalarField& Foam::electromagneticModel::sigmaConst()
+Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
 {
     return sigmaConst_;
 }

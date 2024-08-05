@@ -42,25 +42,25 @@ Description
     namespace Foam                                                                      \
     {                                                                                   \
                                                                                         \
-        defineNamedTemplateTypeNameAndDebug(harmonicElectromagneticModel, 0);           \
                                                                                         \
-        defineTemplateRunTimeSelectionTable(harmonicElectromagneticModel, dictionary);  \
+        defineTemplateRunTimeSelectionTable(harmonicElectromagneticModel, fvMesh);  \
                                                                                         \
         addToRunTimeSelectionTable                                                      \
         (                                                                               \
+            electromagneticModel,                                                       \
             harmonicElectromagneticModel,                                               \
-            dictionary                                                                  \
+            fvMesh                                                                  \
         );                                                                              \
                                                                                         \
                                                                                         \
-        defineNamedTemplateTypeNameAndDebug(transientElectromagneticModel, 0);          \
                                                                                         \
-        defineTemplateRunTimeSelectionTable(transientElectromagneticModel, dictionary); \
+        defineTemplateRunTimeSelectionTable(transientElectromagneticModel, fvMesh); \
                                                                                         \
         addToRunTimeSelectionTable                                                      \
         (                                                                               \
+            electromagneticModel,                                                       \
             transientElectromagneticModel,                                              \
-            dictionary                                                                  \
+            fvMesh                                                                  \
         );                                                                              \
     }
 
