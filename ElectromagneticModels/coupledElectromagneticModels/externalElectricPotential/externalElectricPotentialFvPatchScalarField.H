@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::externalTemperatureFvPatchScalarField
+    Foam::externalElectricPotentialFvPatchScalarField
 
 Description
     This boundary condition applies a heat flux condition to temperature
@@ -56,16 +56,13 @@ Description
 Usage
     \table
     Property     | Description                 | Required | Default value
-    Q            | Power [W]                   | no       | 0
-    q            | Heat flux [W/m^2]           | no       | 0
+    I            | Current [A]                   | no       | 0
+    J            | Current density [A/m^2]           | no       | 0
     h            | Heat transfer coefficient [W/m^2/K] | no | 0
-    Ta           | Ambient temperature [K]     | if h is given  |
+    ePotA           | Ambient potential [V]     | if h is given  |
     thicknessLayers | Layer thicknesses [m]    | no |
-    kappaLayers  | Layer thermal conductivities [W/m/K] | no |
+    kappaLayers  | Layer electric conductivities [S/m] | no |
     relaxation   | Relaxation for the wall temperature | no | 1
-    emissivity   | Surface emissivity for radiative flux to ambient | no | 0
-    qr           | Name of the radiative field | no | none
-    qrRelaxation | Relaxation factor for radiative field | no | 1
     \endtable
 
     Example of the boundary condition specification:
@@ -88,12 +85,12 @@ See also
     Foam::mixedFvPatchScalarField
 
 SourceFiles
-    externalTemperatureFvPatchScalarField.C
+    externalElectricPotentialFvPatchScalarField.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef externalTemperatureFvPatchScalarField_H
-#define externalTemperatureFvPatchScalarField_H
+#ifndef externalElectricPotentialFvPatchScalarField_H
+#define externalElectricPotentialFvPatchScalarField_H
 
 #include "mixedFvPatchFields.H"
 #include "Function1.H"
@@ -104,10 +101,10 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-           Class externalTemperatureFvPatchScalarField Declaration
+           Class externalElectricPotentialFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
-class externalTemperatureFvPatchScalarField
+class externalElectricPotentialFvPatchScalarField
 :
     public mixedFvPatchScalarField
 {
@@ -116,68 +113,49 @@ class externalTemperatureFvPatchScalarField
         // Heat power
 
             //- Do we have a heat power?
-            bool haveQ_;
+            bool haveI_;
 
-            //- Heat power [W]
-            scalar Q_;
+            //- Heat power [A]
+            scalar I_;
 
 
         // Heat flux
 
             //- Do we have a heat flux?
-            bool haveq_;
+            bool haveJ_;
 
-            //- Heat flux [W/m^2]
-            scalarField q_;
+            //- Heat flux [A/m^2]
+            scalarField J_;
 
 
         // Heat transfer coefficient
 
             //- Do we have a heat transfer coefficient?
-            bool haveh_;
+            bool havePot_;
 
-            //- Heat transfer coefficient [W/m^2K]
-            scalarField h_;
-
-            //- Ambient temperature [K]
-            autoPtr<Function1<scalar>> Ta_;
-
-            //- Optional surface emissivity for radiative transfer to ambient
-            scalar emissivity_;
+            //- Ambient electric potential [V]
+            autoPtr<Function1<scalar>> ePotExt_;
+/*
+            //- Heat transfer coefficient [S/m^2]
+            scalarField Pot_;
 
             //- Thickness of layers
             scalarList thicknessLayers_;
 
             //- Conductivity of layers
             scalarList kappaLayers_;
-
-
-        //- Relaxation for the wall temperature (thermal inertia)
-        scalar relaxation_;
-
-
-        // Radiation
-
-            //- Name of the radiative heat flux
-            const word qrName_;
-
-            //- Relaxation for qr
-            scalar qrRelaxation_;
-
-            //- Cache qr for relaxation
-            scalarField qrPrevious_;
-
+*/
 
 public:
 
     //- Runtime type information
-    TypeName("externalTemperature");
+    TypeName("externalPotential");
 
 
     // Constructors
 
         //- Construct from patch, internal field and dictionary
-        externalTemperatureFvPatchScalarField
+        externalElectricPotentialFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
@@ -185,26 +163,26 @@ public:
         );
 
         //- Construct by mapping given
-        //  externalTemperatureFvPatchScalarField
+        //  externalElectricPotentialFvPatchScalarField
         //  onto a new patch
-        externalTemperatureFvPatchScalarField
+        externalElectricPotentialFvPatchScalarField
         (
-            const externalTemperatureFvPatchScalarField&,
+            const externalElectricPotentialFvPatchScalarField&,
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Disallow copy without setting internal field reference
-        externalTemperatureFvPatchScalarField
+        externalElectricPotentialFvPatchScalarField
         (
-            const externalTemperatureFvPatchScalarField&
+            const externalElectricPotentialFvPatchScalarField&
         ) = delete;
 
         //- Copy constructor setting internal field reference
-        externalTemperatureFvPatchScalarField
+        externalElectricPotentialFvPatchScalarField
         (
-            const externalTemperatureFvPatchScalarField&,
+            const externalElectricPotentialFvPatchScalarField&,
             const DimensionedField<scalar, volMesh>&
         );
 
@@ -216,7 +194,7 @@ public:
         {
             return tmp<fvPatchScalarField>
             (
-                new externalTemperatureFvPatchScalarField(*this, iF)
+                new externalElectricPotentialFvPatchScalarField(*this, iF)
             );
         }
 

@@ -204,15 +204,27 @@ public:
         //- Phase name
         virtual const word& phaseName() const = 0;
 
+        //- Electric conductivity [S/m]
         virtual volScalarField sigma() const = 0;
 
-        virtual dimensionedScalar sigmaConst() const = 0;
+        //- Electric conductivity for patch [S/m]
+        virtual scalarField sigma(const label patchi) const;
 
-        //- Update properties
-        virtual void correct() = 0;
+        //- Electric conductivity [S/m]
+        virtual dimensionedScalar sigmaConst() const = 0;
 
         //- Name of the thermo physics
         virtual word electromagneticName() const = 0;
+
+        //- Predict the thermophysical transport coefficients if possible
+        //  without solving thermophysical transport model equations
+        virtual void predict() = 0;
+
+        //- Solve the thermophysical transport model equations
+        //  and correct the thermophysical transport coefficients
+
+        //- Update properties
+        virtual void correct() = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

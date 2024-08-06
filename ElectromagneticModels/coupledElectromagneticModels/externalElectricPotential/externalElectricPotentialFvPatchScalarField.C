@@ -23,18 +23,15 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "externalTemperatureFvPatchScalarField.H"
-#include "thermophysicalTransportModel.H"
+#include "externalElectricPotentialFvPatchScalarField.H"
+#include "electromagneticModel.H"
 #include "volFields.H"
-#include "physicoChemicalConstants.H"
 #include "addToRunTimeSelectionTable.H"
-
-using Foam::constant::physicoChemical::sigma;
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::externalTemperatureFvPatchScalarField::
-externalTemperatureFvPatchScalarField
+Foam::externalElectricPotentialFvPatchScalarField::
+externalElectricPotentialFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -42,14 +39,12 @@ externalTemperatureFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(p, iF, dict, false),
-    haveQ_(dict.found("Q")),
-    Q_(haveQ_ ? dict.lookup<scalar>("Q") : NaN),
-    haveq_(dict.found("q")),
-    q_(haveq_ ? scalarField("q", dict, p.size()) : scalarField()),
-    haveh_(dict.found("h")),
-    h_(haveh_ ? scalarField("h", dict, p.size()) : scalarField()),
-    Ta_(haveh_ ? Function1<scalar>::New("Ta", dict).ptr() : nullptr),
-    emissivity_(dict.lookupOrDefault<scalar>("emissivity", 0)),
+    haveI_(dict.found("I")),
+    I_(haveI_ ? dict.lookup<scalar>("I") : NaN),
+    haveJ_(dict.found("J")),
+    J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
+    ePotExt_(havePot_ ? Function1<scalar>::New("ePotExt", dict).ptr() : nullptr)
+    /*,
     thicknessLayers_
     (
         dict.lookupOrDefault<scalarList>("thicknessLayers", scalarList())
@@ -57,29 +52,18 @@ externalTemperatureFvPatchScalarField
     kappaLayers_
     (
         dict.lookupOrDefault<scalarList>("kappaLayers", scalarList())
-    ),
-    relaxation_(dict.lookupOrDefault<scalar>("relaxation", 1)),
-    qrName_(dict.lookupOrDefault<word>("qr", word::null)),
-    qrRelaxation_(dict.lookupOrDefault<scalar>("qrRelaxation", 1)),
-    qrPrevious_
-    (
-        qrName_ != word::null
-      ? dict.found("qrPrevious")
-      ? scalarField("qrPrevious", dict, p.size())
-      : scalarField(0, p.size())
-      : scalarField()
-    )
+    )*/
 {
     fvPatchScalarField::operator=(scalarField("value", dict, p.size()));
 
-    if (!haveQ_ && !haveq_ && !haveh_)
+    if (!haveI_ && !haveJ_ && !havePot_)
     {
         FatalIOErrorInFunction(dict)
             << "One or more of Q (heat power), q (heat flux), and h (heat "
             << "transfer coefficient) must be specified"
             << exit(FatalIOError);
     }
-
+/*
     if (thicknessLayers_.size() != kappaLayers_.size())
     {
         FatalIOErrorInFunction(dict)
@@ -87,7 +71,7 @@ externalTemperatureFvPatchScalarField
             << "both must be specified and be lists of the same length "
             << exit(FatalIOError);
     }
-
+*/
     if (dict.found("refValue"))
     {
         // Full restart
@@ -105,66 +89,49 @@ externalTemperatureFvPatchScalarField
 }
 
 
-Foam::externalTemperatureFvPatchScalarField::
-externalTemperatureFvPatchScalarField
+Foam::externalElectricPotentialFvPatchScalarField::
+externalElectricPotentialFvPatchScalarField
 (
-    const externalTemperatureFvPatchScalarField& ptf,
+    const externalElectricPotentialFvPatchScalarField& ptf,
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     mixedFvPatchScalarField(ptf, p, iF, mapper),
-    haveQ_(ptf.haveQ_),
-    Q_(ptf.Q_),
-    haveq_(ptf.haveq_),
-    q_(haveq_ ? mapper(ptf.q_)() : scalarField()),
-    haveh_(ptf.haveh_),
-    h_(haveh_ ? mapper(ptf.h_)() : scalarField()),
-    Ta_(ptf.Ta_, false),
-    emissivity_(ptf.emissivity_),
-    thicknessLayers_(ptf.thicknessLayers_),
-    kappaLayers_(ptf.kappaLayers_),
-    relaxation_(ptf.relaxation_),
-    qrName_(ptf.qrName_),
-    qrRelaxation_(ptf.qrRelaxation_),
-    qrPrevious_
-    (
-        qrName_ != word::null
-      ? mapper(ptf.qrPrevious_)()
-      : scalarField()
-    )
+    haveI_(ptf.haveI_),
+    I_(ptf.I_),
+    haveJ_(ptf.haveJ_),
+    J_(haveJ_ ? mapper(ptf.J_)() : scalarField()),
+    havePot_(ptf.havePot_),
+    ePotExt_(ptf.ePotExt_, false)
+    //thicknessLayers_(ptf.thicknessLayers_),
+    //kappaLayers_(ptf.kappaLayers_)
 {}
 
 
-Foam::externalTemperatureFvPatchScalarField::
-externalTemperatureFvPatchScalarField
+Foam::externalElectricPotentialFvPatchScalarField::
+externalElectricPotentialFvPatchScalarField
 (
-    const externalTemperatureFvPatchScalarField& tppsf,
+    const externalElectricPotentialFvPatchScalarField& tppsf,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
     mixedFvPatchScalarField(tppsf, iF),
-    haveQ_(tppsf.haveQ_),
-    Q_(tppsf.Q_),
-    haveq_(tppsf.haveq_),
-    q_(tppsf.q_),
-    haveh_(tppsf.haveh_),
-    h_(tppsf.h_),
-    Ta_(tppsf.Ta_, false),
-    emissivity_(tppsf.emissivity_),
-    thicknessLayers_(tppsf.thicknessLayers_),
-    kappaLayers_(tppsf.kappaLayers_),
-    relaxation_(tppsf.relaxation_),
-    qrName_(tppsf.qrName_),
-    qrRelaxation_(tppsf.qrRelaxation_),
-    qrPrevious_(tppsf.qrPrevious_)
+    haveI_(tppsf.haveI_),
+    I_(tppsf.I_),
+    haveJ_(tppsf.haveJ_),
+    J_(tppsf.J_),
+    havePot_(tppsf.havePot_),
+    ePotExt_(tppsf.ePotExt_, false)
+    //thicknessLayers_(tppsf.thicknessLayers_),
+    //kappaLayers_(tppsf.kappaLayers_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::externalTemperatureFvPatchScalarField::map
+void Foam::externalElectricPotentialFvPatchScalarField::map
 (
     const fvPatchScalarField& ptf,
     const fvPatchFieldMapper& mapper
@@ -172,107 +139,84 @@ void Foam::externalTemperatureFvPatchScalarField::map
 {
     mixedFvPatchScalarField::map(ptf, mapper);
 
-    const externalTemperatureFvPatchScalarField& tiptf =
-        refCast<const externalTemperatureFvPatchScalarField>(ptf);
+    const externalElectricPotentialFvPatchScalarField& tiptf =
+        refCast<const externalElectricPotentialFvPatchScalarField>(ptf);
 
-    if (haveq_)
+    if (haveJ_)
     {
-        mapper(q_, tiptf.q_);
+        mapper(J_, tiptf.J_);
     }
-
-    if (haveh_)
+/*
+    if (havePot_)
     {
-        mapper(h_, tiptf.h_);
+        mapper(ePotExt_, tiptf.ePotExt_);
     }
-
-    if (qrName_ != word::null)
-    {
-        mapper(qrPrevious_, tiptf.qrPrevious_);
-    }
+*/
 }
 
 
-void Foam::externalTemperatureFvPatchScalarField::reset
+void Foam::externalElectricPotentialFvPatchScalarField::reset
 (
     const fvPatchScalarField& ptf
 )
 {
     mixedFvPatchScalarField::reset(ptf);
 
-    const externalTemperatureFvPatchScalarField& tiptf =
-        refCast<const externalTemperatureFvPatchScalarField>(ptf);
+    const externalElectricPotentialFvPatchScalarField& tiptf =
+        refCast<const externalElectricPotentialFvPatchScalarField>(ptf);
 
-    if (haveq_)
+    if (haveJ_)
     {
-        q_.reset(tiptf.q_);
+        J_.reset(tiptf.J_);
     }
-
-    if (haveh_)
+/*
+    if (havePot_)
     {
-        h_.reset(tiptf.h_);
+        ePotExt_.reset(tiptf.ePotExt_);
     }
-
-    if (qrName_ != word::null)
-    {
-        qrPrevious_.reset(tiptf.qrPrevious_);
-    }
+*/
 }
 
 
-void Foam::externalTemperatureFvPatchScalarField::updateCoeffs()
+void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
         return;
     }
 
-    const scalarField& Tp(*this);
+    const scalarField& ePotP(*this);
 
-    // Store current valueFraction and refValue for relaxation
-    const scalarField valueFraction0(valueFraction());
-    const scalarField refValue0(refValue());
+    const electromagneticModel& em =
+        patch().boundaryMesh().mesh()
+       .lookupType<electromagneticModel>();
 
-    // Get the radiative heat flux and relax
-    scalarField qr(Tp.size(), 0);
-    if (qrName_ != word::null)
-    {
-        qr =
-            qrRelaxation_
-           *patch().lookupPatchField<volScalarField, scalar>(qrName_)
-          + (1 - qrRelaxation_)*qrPrevious_;
-        qrPrevious_ = qr;
-    }
+    const scalarField sigma(em.sigma(patch().index()));
+    const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
 
     // Compute the total non-convective heat flux
-    scalarField qTot(qr);
-    if (haveQ_)
+    scalarField ePotTot(ePotP.size(), 0);
+    if (haveI_)
     {
-        qTot += Q_/gSum(patch().magSf());
+        ePotTot += sigma*I_/gSum(patch().magSf());
     }
-    if (haveq_)
+    if (haveJ_)
     {
-        qTot += q_;
+        ePotTot += sigma*J_;
     }
-
-    const thermophysicalTransportModel& ttm =
-        patch().boundaryMesh().mesh()
-       .lookupType<thermophysicalTransportModel>();
-
-    const scalarField kappa(ttm.kappaEff(patch().index()));
-    tmp<scalarField> qCorr(ttm.qCorr(patch().index()));
-
-    if (qCorr.valid())
+    if (!havePot_)
     {
-        qTot += qCorr;
+        ePotTot += ePotExt;
     }
 
     // Evaluate
-    if (!haveh_)
-    {
-        refGrad() = qTot/kappa;
-        refValue() = Tp;
+    //if (!haveh_)
+    //{
+        refGrad() = ePotTot/sigma;
+        refValue() = ePotP;
         valueFraction() = 0;
-    }
+    //}
+/*
     else
     {
         scalar totalSolidRes = 0;
@@ -292,19 +236,7 @@ void Foam::externalTemperatureFvPatchScalarField::updateCoeffs()
 
         const scalarField hp
         (
-            1
-           /(
-                1
-               /(
-                    (emissivity_ > 0)
-                  ? (
-                        h_
-                      + emissivity_*sigma.value()
-                       *((pow3(Ta) + pow3(Tp)) + Ta*Tp*(Ta + Tp))
-                    )()
-                  : h_
-                ) + totalSolidRes
-            )
+            h_ + totalSolidRes
         );
 
         const scalarField hpTa(hp*Ta);
@@ -330,18 +262,13 @@ void Foam::externalTemperatureFvPatchScalarField::updateCoeffs()
             }
         }
     }
-
-    // Relax
-    valueFraction() =
-        relaxation_*valueFraction() + (1 - relaxation_)*valueFraction0;
-    refValue() =
-        relaxation_*refValue() + (1 - relaxation_)*refValue0;
+*/
 
     mixedFvPatchScalarField::updateCoeffs();
 
     if (debug)
     {
-        const scalar Q = gSum(kappa*patch().magSf()*snGrad());
+        const scalar Q = gSum(sigma*patch().magSf()*snGrad());
 
         Info<< patch().boundaryMesh().mesh().name() << ':'
             << patch().name() << ':'
@@ -356,28 +283,28 @@ void Foam::externalTemperatureFvPatchScalarField::updateCoeffs()
 }
 
 
-void Foam::externalTemperatureFvPatchScalarField::write
+void Foam::externalElectricPotentialFvPatchScalarField::write
 (
     Ostream& os
 ) const
 {
     fvPatchScalarField::write(os);
 
-    if (haveQ_)
+    if (haveI_)
     {
-        writeEntry(os, "Q", Q_);
+        writeEntry(os, "I", I_);
     }
 
-    if (haveq_)
+    if (haveJ_)
     {
-        writeEntry(os, "q", q_);
+        writeEntry(os, "J", J_);
     }
 
-    if (haveh_)
+    if (havePot_)
     {
+        writeEntry(os, ePotExt_());
+/*
         writeEntry(os, "h", h_);
-        writeEntry(os, Ta_());
-        writeEntryIfDifferent(os, "emissivity", scalar(0), emissivity_);
         writeEntryIfDifferent
         (
             os,
@@ -392,17 +319,8 @@ void Foam::externalTemperatureFvPatchScalarField::write
             scalarList(),
             kappaLayers_
         );
+*/
     }
-
-    writeEntryIfDifferent(os, "relaxation", scalar(1), relaxation_);
-
-    if (qrName_ != word::null)
-    {
-        writeEntry(os, "qr", qrName_);
-        writeEntry(os, "qrRelaxation", qrRelaxation_);
-        writeEntry(os, "qrPrevious", qrPrevious_);
-    }
-
     writeEntry(os, "refValue", refValue());
     writeEntry(os, "refGradient", refGrad());
     writeEntry(os, "valueFraction", valueFraction());
@@ -417,25 +335,7 @@ namespace Foam
     makePatchTypeField
     (
         fvPatchScalarField,
-        externalTemperatureFvPatchScalarField
-    );
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        externalTemperatureFvPatchScalarField,
-        patchMapper,
-        externalWallHeatFluxTemperature,
-        "externalWallHeatFluxTemperature"
-    );
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        externalTemperatureFvPatchScalarField,
-        dictionary,
-        externalWallHeatFluxTemperature,
-        "externalWallHeatFluxTemperature"
+        externalElectricPotentialFvPatchScalarField
     );
 }
 

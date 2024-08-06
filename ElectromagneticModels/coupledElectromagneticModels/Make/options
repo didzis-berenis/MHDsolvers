@@ -1,9 +1,11 @@
 EXE_INC = \
-    -I$(LIB_SRC)/ThermophysicalTransportModels/thermophysicalTransportModel/lnInclude \
+    -I../electromagneticModels/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/physicalProperties/lnInclude
 
 LIB_LIBS = \
-    -lthermophysicalTransportModel \
     -lfiniteVolume \
-    -lmeshTools
+    -lmeshTools \
+    -L$(FOAM_USER_LIBBIN) \
+    -lelectromagneticModels

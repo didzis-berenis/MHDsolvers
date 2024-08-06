@@ -151,7 +151,22 @@ Foam::electromagneticModel::electromagneticModel
     mesh_(mesh),
 
     phaseName_(phaseName)
-{}
+{
+    //Update sigma patch fields
+    if (sigmaConst_.value() > SMALL)
+    {
+        volScalarField::Boundary& sigmaBf =
+            sigma_.boundaryFieldRef();
+        forAll(sigmaBf,patchi)
+        {
+            fvPatchScalarField& psigma = sigmaBf[patchi];
+            forAll(psigma, facei)
+            {
+                psigma[facei] = sigmaConst_.value();
+            }
+        }
+    }
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -165,6 +180,17 @@ Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
 {
     return sigmaConst_;
 }
+
+Foam::scalarField Foam::electromagneticModel::sigma(const label patchi) const
+{
+    return sigma_.boundaryField()[patchi];
+}
+
+void Foam::electromagneticModel::predict()
+{}
+
+void Foam::electromagneticModel::correct()
+{}
 
 bool Foam::electromagneticModel::read()
 {
