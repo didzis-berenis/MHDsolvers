@@ -65,13 +65,7 @@ SourceFiles
 #include "physicalProperties.H"
 #include "autoPtr.H"
 #include "wordIOList.H"
-/*
-#include "primitiveFieldsFwd.H"
-#include "volFields.H"
-#include "surfaceFields.H"
-#include "fvMatricesFwd.H"
-#include "geometricOneField.H"
-*/
+//#include "addToRunTimeSelectionTable.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -154,21 +148,20 @@ public:
     //- Runtime type information
     TypeName("electromagneticModel");
 
-    // Static Member data
-        //- Name of the thermophysical properties dictionary
-        //using physicalProperties::typeName;
-
 
     //- Declare run-time constructor selection table
-    /*
     declareRunTimeNewSelectionTable
     (
         autoPtr,
         electromagneticModel,
-        dictionary,
+        fvMesh,
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
-    );*/
+    );
+
+    // Static Member data
+        //- Name of the thermophysical properties dictionary
+        //using physicalProperties::typeName;
 
     // Static Member Functions
 
@@ -220,32 +213,6 @@ public:
 
         //- Name of the thermo physics
         virtual word electromagneticName() const = 0;
-/*
-        //- Return true if the equation of state is incompressible
-        //  i.e. rho != f(p)
-        virtual bool incompressible() const = 0;
-
-            //- Heat capacity at constant pressure [J/kg/K]
-            virtual const volScalarField& Cp() const = 0;
-
-
-        // Access to transport state variables
-
-            //- Thermal conductivity of mixture [W/m/K]
-            virtual const volScalarField& kappa() const = 0;
-
-
-        // Fields derived from thermodynamic state variables
-
-            //- Temperature [K]
-
-            //- Heat capacity at constant pressure for patch [J/kg/K]
-            virtual tmp<scalarField> Cp
-            (
-                const scalarField& T,
-                const label patchi
-            ) const = 0;
-*/
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

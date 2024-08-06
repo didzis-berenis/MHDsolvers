@@ -29,39 +29,23 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
-#include "transientElectromagneticModel.H"
-#include "harmonicElectromagneticModel.H"
+#include "electromagneticModel.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#define makeElectromagneticModels()                                                     \
-                                                                                        \
-    namespace Foam                                                                      \
-    {                                                                                   \
-                                                                                        \
-                                                                                        \
-        defineTemplateRunTimeSelectionTable(harmonicElectromagneticModel, fvMesh);  \
-                                                                                        \
-        addToRunTimeSelectionTable                                                      \
-        (                                                                               \
-            electromagneticModel,                                                       \
-            harmonicElectromagneticModel,                                               \
-            fvMesh                                                                  \
-        );                                                                              \
-                                                                                        \
-                                                                                        \
-                                                                                        \
-        defineTemplateRunTimeSelectionTable(transientElectromagneticModel, fvMesh); \
-                                                                                        \
-        addToRunTimeSelectionTable                                                      \
-        (                                                                               \
-            electromagneticModel,                                                       \
-            transientElectromagneticModel,                                              \
-            fvMesh                                                                  \
-        );                                                                              \
+#define makeElectromagneticModel(Type)                                          \
+                                                                                \
+    namespace Foam                                                              \
+    {                                                                           \
+    addToRunTimeSelectionTable                                                  \
+    (                                                                           \
+        electromagneticModel,                                                   \
+        Type,                                                                   \
+        fvMesh                                                                  \
+    );                                                                          \
     }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

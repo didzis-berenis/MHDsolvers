@@ -27,6 +27,10 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-makeElectromagneticModels();
+#include "harmonicElectromagneticModel.H"
+makeElectromagneticModel(harmonicElectromagneticModel);
+
+#include "transientElectromagneticModel.H"
+makeElectromagneticModel(transientElectromagneticModel);
 
 // ************************************************************************* //

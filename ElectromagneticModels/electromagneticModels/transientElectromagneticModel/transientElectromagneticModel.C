@@ -30,7 +30,13 @@ License
 namespace Foam
 {
     defineTypeNameAndDebug(transientElectromagneticModel, 0);
-    defineRunTimeSelectionTable(transientElectromagneticModel, fvMesh);
+    // Add to runtime selection Table
+    /*addToRunTimeSelectionTable
+    (
+        electromagneticModel,
+        transientElectromagneticModel,
+        fvMesh
+    );*/
 }
 
 

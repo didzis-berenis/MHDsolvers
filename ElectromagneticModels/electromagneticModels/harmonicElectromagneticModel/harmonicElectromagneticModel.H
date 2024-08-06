@@ -146,51 +146,17 @@ public:
             virtual volVectorField& correctJre() = 0;
 
             virtual volVectorField& correctJim() = 0;
-
-
-        // Fields derived from thermodynamic state variables
-/*
-            //- Rename the thermodynamic density field if stored and return
-            //  This is used by solvers which create a separate continuity rho
-            //  [kg/m^3]
-            virtual tmp<volScalarField> renameRho() = 0;
-
-            //- Gamma = Cp/Cv []
-            virtual tmp<volScalarField> gamma() const = 0;
-
-            //- Gamma = Cp/Cv for patch []
-            virtual tmp<scalarField> gamma
-            (
-                const scalarField& T,
-                const label patchi
-            ) const = 0;
-
-            //- Molecular weight [kg/kmol]
-            virtual tmp<volScalarField> W() const = 0;
-
-            //- Molecular weight for patch [kg/kmol]
-            virtual tmp<scalarField> W(const label patchi) const = 0;
-
-
-        // Access to transport state variables
-
-            //- Dynamic viscosity of mixture [kg/m/s]
-            virtual tmp<volScalarField> mu() const = 0;
-
-            //- Dynamic viscosity of mixture for patch [kg/m/s]
-            virtual tmp<scalarField> mu(const label patchi) const = 0;
-
-            //- Kinematic viscosity of mixture [m^2/s]
-            virtual tmp<volScalarField> nu() const;
-
-            //- Kinematic viscosity of mixture for patch [m^2/s]
-            virtual tmp<scalarField> nu(const label patchi) const;
-*/
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// Complied within electromagneticModels.C
+#ifdef NoRepository
+    #include "harmonicElectromagneticModel.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
