@@ -54,23 +54,28 @@ class harmonicElectromagneticModel
     virtual public electromagneticModel
 {
 
-    //- Pressure [Pa]
-    volScalarField PotEre_;
+    //- Electric potential [V]
+        //- real
+        volScalarField PotEre_;
+        //- imaginary
+        volScalarField PotEim_;
 
-    //- Pressure [Pa]
-    volScalarField PotEim_;
+    //- Current density [A/m^2]
+        //- real
+        volVectorField Jre_;
 
-    //- Compressibility [s^2/m^2]
-    volVectorField Jre_;
+        //- imaginary
+        volVectorField Jim_;
 
-    //- Compressibility [s^2/m^2]
-    volVectorField Jim_;
+    //- Magnetic field [T]
+        //- real
+        volVectorField Bre_;
 
-    //- Compressibility [s^2/m^2]
-    volVectorField Bre_;
+        //- imaginary
+        volVectorField Bim_;
 
-    //- Compressibility [s^2/m^2]
-    volVectorField Bim_;
+    const word imaginaryPartName_ = "imaginary";
+
 public:
 
 
@@ -119,33 +124,17 @@ public:
 
         // Access to thermodynamic state variables
 
-            //- Pressure [Pa]
-            //  Non-const access allowed for transport equations
-            //virtual volScalarField& p() = 0;
+        //- Electric potential [V]
+        virtual volScalarField& PotE(const word& partName);
 
-            //- Pressure [Pa]
-            virtual volScalarField& PotEre();
+        //- Current density [A/m^2]
+        virtual volVectorField& J(const word& partName);
 
-            //- Pressure [Pa]
-            virtual volScalarField& PotEim();
+        //- Magnetic field [T]
+        virtual volVectorField& B(const word& partName);
 
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& Jre();
-
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& Jim();
-
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& Bre();
-
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& Bim();
-
-            //- Add the given density correction to the density field.
-            //  Used to update the density field following pressure solution
-            virtual volVectorField& correctJre() = 0;
-
-            virtual volVectorField& correctJim() = 0;
+        //- Add the given density correction to the current density field.
+        virtual volVectorField& correctJ(const word& partName) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -213,6 +213,30 @@ public:
         //- Electric conductivity [S/m]
         virtual dimensionedScalar sigmaConst() const = 0;
 
+        //- Electric potential [V]
+        virtual volScalarField& PotE
+        (
+            const word& partName=word::null
+        ) = 0;
+
+        //- Current density [A/m^2]
+        virtual volVectorField& J
+        (
+            const word& partName=word::null
+        ) = 0;
+
+        //- Magnetic field [T]
+        virtual volVectorField& B
+        (
+            const word& partName=word::null
+        ) = 0;
+
+        //- Add the given density correction to the current density field.
+        virtual volVectorField& correctJ
+        (
+            const word& partName=word::null
+        ) = 0;
+
         //- Name of the thermo physics
         virtual word electromagneticName() const = 0;
 

@@ -76,17 +76,17 @@ Foam::transientElectromagneticModel::~transientElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::transientElectromagneticModel::PotE()
+Foam::volScalarField& Foam::transientElectromagneticModel::PotE(const word& partName)
 {
     return PotE_;
 }
 
-Foam::volVectorField& Foam::transientElectromagneticModel::J()
+Foam::volVectorField& Foam::transientElectromagneticModel::J(const word& partName)
 {
     return J_;
 }
 
-Foam::volVectorField& Foam::transientElectromagneticModel::B()
+Foam::volVectorField& Foam::transientElectromagneticModel::B(const word& partName)
 {
     return B_;
 }

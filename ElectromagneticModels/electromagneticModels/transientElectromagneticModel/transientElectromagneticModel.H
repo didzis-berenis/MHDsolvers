@@ -54,13 +54,13 @@ class transientElectromagneticModel
     virtual public electromagneticModel
 {
 
-    //- Pressure [Pa]
+    //- Electric potential [V]
     volScalarField PotE_;
 
-    //- Compressibility [s^2/m^2]
+    //- Current density [A/m^2]
     volVectorField J_;
 
-    //- Compressibility [s^2/m^2]
+    //- Magnetic field [T]
     volVectorField B_;
 public:
 
@@ -98,24 +98,19 @@ public:
 
     // Member Functions
 
-        // Access to thermodynamic state variables
+        // Access to electromagnetic state variables
 
-            //- Pressure [Pa]
-            //  Non-const access allowed for transport equations
-            //virtual volScalarField& p() = 0;
+        //- Electric potential [V]
+        virtual volScalarField& PotE(const word& partName=word::null);
 
-            //- Pressure [Pa]
-            virtual volScalarField& PotE();
+        //- Current density [A/m^2]
+        virtual volVectorField& J(const word& partName=word::null);
 
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& J();
+        //- Magnetic field [T]
+        virtual volVectorField& B(const word& partName=word::null);
 
-            //- Compressibility [s^2/m^2]
-            virtual volVectorField& B();
-
-            //- Add the given density correction to the density field.
-            //  Used to update the density field following pressure solution
-            virtual volVectorField& correctJ() = 0;
+        //- Add the given density correction to the current density field.
+        virtual volVectorField& correctJ(const word& partName=word::null) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

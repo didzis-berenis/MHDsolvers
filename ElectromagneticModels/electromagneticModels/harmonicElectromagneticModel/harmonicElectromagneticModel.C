@@ -79,34 +79,31 @@ Foam::harmonicElectromagneticModel::~harmonicElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEre()
+Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(const word& partName)
 {
+    if (partName == imaginaryPartName_)
+    {
+        return PotEim_;
+    }
     return PotEre_;
 }
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEim()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::J(const word& partName)
 {
-    return PotEim_;
-}
-
-Foam::volVectorField& Foam::harmonicElectromagneticModel::Jre()
-{
+    if (partName == imaginaryPartName_)
+    {
+        return Jim_;
+    }
     return Jre_;
 }
 
-Foam::volVectorField& Foam::harmonicElectromagneticModel::Jim()
+Foam::volVectorField& Foam::harmonicElectromagneticModel::B(const word& partName)
 {
-    return Jim_;
-}
-
-Foam::volVectorField& Foam::harmonicElectromagneticModel::Bre()
-{
+    if (partName == imaginaryPartName_)
+    {
+        return Bim_;
+    }
     return Bre_;
-}
-
-Foam::volVectorField& Foam::harmonicElectromagneticModel::Bim()
-{
-    return Bim_;
 }
 
 
