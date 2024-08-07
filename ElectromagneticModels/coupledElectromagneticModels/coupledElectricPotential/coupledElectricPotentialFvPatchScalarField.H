@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::coupledTemperatureFvPatchScalarField
+    Foam::coupledElectricPotentialFvPatchScalarField
 
 Description
     Mixed boundary condition for temperature, to be used for heat-transfer
@@ -32,23 +32,17 @@ Description
 
     Specifies gradient and temperature such that the equations are the same
     on both sides:
-      - refGradient = qs_/kappa
+      - refGradient = ePotByDeltaNbr*sigmaNbr/sigma
       - refValue = neighbour value
-      - valueFraction = kappaByDeltaNbr/(kappaByDeltaNbr + kappaByDelta)
+      - valueFraction = 0, but switches to 1 for small sigma
 
-    where kappaByDelta is heat-transfer coefficient kappa*deltaCoeffs
-    and qs is the optional source heat flux.
+    where ePotByDeltaNbr is the gradient
+    and sigmaNbr is the conductivity of neighbour patch.
 
 Usage
     \table
         Property     | Description             | Required    | Default value
-        Tnbr         | name of the field       | no          | T
-        thicknessLayers | list of thicknesses per layer [m] | no |
-        kappaLayers  | list of thermal conductivities per layer [W/m/K] | no |
-        qs           | Optional source heat flux [W/m^2] | no | 0
-        Qs           | Optional heat source [W]          | no | 0
-        qrNbr        | name of the radiative flux in the nbr region | no | none
-        qr           | name of the radiative flux in this region | no | none
+        ePot         | name of the field       | no          | ePot
     \endtable
 
     Example of the boundary condition specification:
@@ -56,10 +50,6 @@ Usage
     <patchName>
     {
         type            coupledTemperature;
-        thicknessLayers (0.1 0.2 0.3 0.4); // Optional wall layer thicknesses
-        kappaLayers     (1 2 3 4); // Optional wall layer conductivities
-        qs              uniform 100;    // Optional source heat flux [W/m^2]
-        value           uniform 300;
     }
     \endverbatim
 
@@ -73,12 +63,12 @@ Usage
     should be specified, not both.
 
 SourceFiles
-    coupledTemperatureFvPatchScalarField.C
+    coupledElectricPotentialFvPatchScalarField.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef coupledTemperatureFvPatchScalarField_H
-#define coupledTemperatureFvPatchScalarField_H
+#ifndef coupledElectricPotentialFvPatchScalarField_H
+#define coupledElectricPotentialFvPatchScalarField_H
 
 #include "mixedFvPatchFields.H"
 #include "scalarField.H"
@@ -89,38 +79,20 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-            Class coupledTemperatureFvPatchScalarField Declaration
+            Class coupledElectricPotentialFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
-class coupledTemperatureFvPatchScalarField
+class coupledElectricPotentialFvPatchScalarField
 :
     public mixedFvPatchScalarField
 {
     // Private Data
 
+        //- Name of the current density field
+        //word JName_;
+
         //- Name of field on the neighbour region
-        const word TnbrName_;
-
-        //- Name of the radiative heat flux in the neighbor region
-        const word qrNbrName_;
-
-        //- Name of the radiative heat flux in local region
-        const word qrName_;
-
-        //- Thickness of wall layers
-        scalarList thicknessLayers_;
-
-        //- Conductivity of wall layers
-        scalarList kappaLayers_;
-
-        //- Optional source heat flux [W/m^2]
-        autoPtr<scalarField> qs_;
-
-        //- Optional heat source [W]
-        scalar Qs_;
-
-        //- Optional wall material conductivity/thickness
-        scalar wallKappaByDelta_;
+        const word ePotnbrName_;
 
 
 protected:
@@ -129,28 +101,16 @@ protected:
     //  heat-flux obtained from the sum heat-flux provided
     virtual void getThis
     (
-        tmp<scalarField>& kappa,
-        tmp<scalarField>& sumKappaTByDelta,
-        tmp<scalarField>& sumKappaByDelta,
-        scalarField& qTot,
-        tmp<scalarField>& qByKappa
+        tmp<scalarField>& sigma,
+        tmp<scalarField>& ePotByDelta
     ) const;
 
     //- Get the neighbour patch kappa*Tc/delta and kappa/delta
     //  and the heat-flux correction
     virtual void getNbr
     (
-        tmp<scalarField>& sumKappaTByDeltaNbr,
-        tmp<scalarField>& sumKappaByDeltaNbr,
-        tmp<scalarField>& qNbr
-    ) const;
-
-    //- Get the neighbour patch wall temperature and heat-flux
-    //  when wall thermal resistance is specified
-    virtual void getNbr
-    (
-        tmp<scalarField>& TwNbr,
-        tmp<scalarField>& qNbr
+        tmp<scalarField>& sigmaByDeltaNbr,
+        tmp<scalarField>& sigmaEPotByDeltaNbr
     ) const;
 
     //- Add field to result which may have not been previously set
@@ -170,7 +130,7 @@ public:
     // Constructors
 
         //- Construct from patch, internal field and dictionary
-        coupledTemperatureFvPatchScalarField
+        coupledElectricPotentialFvPatchScalarField
         (
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
@@ -178,20 +138,20 @@ public:
         );
 
         //- Construct by mapping given
-        //  coupledTemperatureFvPatchScalarField onto a
+        //  coupledElectricPotentialFvPatchScalarField onto a
         //  new patch
-        coupledTemperatureFvPatchScalarField
+        coupledElectricPotentialFvPatchScalarField
         (
-            const coupledTemperatureFvPatchScalarField&,
+            const coupledElectricPotentialFvPatchScalarField&,
             const fvPatch&,
             const DimensionedField<scalar, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy setting internal field reference
-        coupledTemperatureFvPatchScalarField
+        coupledElectricPotentialFvPatchScalarField
         (
-            const coupledTemperatureFvPatchScalarField&,
+            const coupledElectricPotentialFvPatchScalarField&,
             const DimensionedField<scalar, volMesh>&
         );
 
@@ -203,7 +163,7 @@ public:
         {
             return tmp<fvPatchScalarField>
             (
-                new coupledTemperatureFvPatchScalarField
+                new coupledElectricPotentialFvPatchScalarField
                 (
                     *this,
                     iF

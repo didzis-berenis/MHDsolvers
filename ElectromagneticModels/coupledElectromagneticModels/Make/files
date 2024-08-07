@@ -1,4 +1,4 @@
 externalElectricPotential/externalElectricPotentialFvPatchScalarField.C
-coupledTemperature/coupledTemperatureFvPatchScalarField.C
+coupledElectricPotential/coupledElectricPotentialFvPatchScalarField.C
 
 LIB = $(FOAM_USER_LIBBIN)/libcoupledElectromagneticModels

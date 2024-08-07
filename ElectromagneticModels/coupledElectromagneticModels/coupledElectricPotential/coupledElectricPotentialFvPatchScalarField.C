@@ -23,8 +23,8 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "coupledTemperatureFvPatchScalarField.H"
-#include "thermophysicalTransportModel.H"
+#include "coupledElectricPotentialFvPatchScalarField.H"
+#include "electromagneticModel.H"
 #include "volFields.H"
 #include "fvPatchFieldMapper.H"
 #include "mappedPatchBase.H"
@@ -32,76 +32,39 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-void Foam::coupledTemperatureFvPatchScalarField::getThis
+void Foam::coupledElectricPotentialFvPatchScalarField::getThis
 (
-    tmp<scalarField>& kappa,
-    tmp<scalarField>& sumKappaTByDelta,
-    tmp<scalarField>& sumKappaByDeltaNbr,
-    scalarField& sumq,
-    tmp<scalarField>& qByKappa
+    tmp<scalarField>& sigma,
+    tmp<scalarField>& ePotByDelta
 ) const
 {
-    const thermophysicalTransportModel& ttm =
+    const electromagneticModel& em =
         patch().boundaryMesh().mesh()
-       .lookupType<thermophysicalTransportModel>();
+       .lookupType<electromagneticModel>();
 
-    kappa = ttm.kappaEff(patch().index());
+    sigma = em.sigma(patch().index());
 
-    qByKappa = sumq/kappa();
-
-    sumq = 0;
-
-    tmp<scalarField> qCorr(ttm.qCorr(patch().index()));
-
-    if (qCorr.valid())
-    {
-        sumq += qCorr;
-    }
+    ePotByDelta = patchInternalField()*patch().deltaCoeffs();
 }
 
 
-void Foam::coupledTemperatureFvPatchScalarField::getNbr
+void Foam::coupledElectricPotentialFvPatchScalarField::getNbr
 (
-    tmp<scalarField>& sumKappaTByDeltaNbr,
-    tmp<scalarField>& sumKappaByDeltaNbr,
-    tmp<scalarField>& qNbr
+    tmp<scalarField>& sigmaByDeltaNbr,
+    tmp<scalarField>& sigmaEPotByDeltaNbr
 ) const
 {
-    const thermophysicalTransportModel& ttm =
+    const electromagneticModel& em =
         patch().boundaryMesh().mesh()
-       .lookupType<thermophysicalTransportModel>();
+       .lookupType<electromagneticModel>();
 
-    sumKappaByDeltaNbr = ttm.kappaEff(patch().index())*patch().deltaCoeffs();
+    sigmaByDeltaNbr = em.sigma(patch().index())*patch().deltaCoeffs();
 
-    sumKappaTByDeltaNbr = sumKappaByDeltaNbr()*patchInternalField();
-
-    qNbr = ttm.qCorr(patch().index());
+    sigmaEPotByDeltaNbr = sigmaByDeltaNbr()*patchInternalField();
 }
 
 
-void Foam::coupledTemperatureFvPatchScalarField::getNbr
-(
-    tmp<scalarField>& TrefNbr,
-    tmp<scalarField>& qNbr
-) const
-{
-    const thermophysicalTransportModel& ttm =
-        patch().boundaryMesh().mesh()
-       .lookupType<thermophysicalTransportModel>();
-
-    const fvPatchScalarField& Tp =
-        patch().lookupPatchField<volScalarField, scalar>
-        (
-            internalField().name()
-        );
-
-    TrefNbr = Tp;
-
-    qNbr = ttm.qCorr(patch().index());
-}
-
-
-void Foam::coupledTemperatureFvPatchScalarField::add
+void Foam::coupledElectricPotentialFvPatchScalarField::add
 (
     tmp<scalarField>& result,
     const tmp<scalarField>& field
@@ -127,8 +90,8 @@ void Foam::coupledTemperatureFvPatchScalarField::add
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::coupledTemperatureFvPatchScalarField::
-coupledTemperatureFvPatchScalarField
+Foam::coupledElectricPotentialFvPatchScalarField::
+coupledElectricPotentialFvPatchScalarField
 (
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
@@ -136,14 +99,8 @@ coupledTemperatureFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(p, iF, dict, false),
-    TnbrName_(dict.lookupOrDefault<word>("Tnbr", "T")),
-    qrNbrName_(dict.lookupOrDefault<word>("qrNbr", "none")),
-    qrName_(dict.lookupOrDefault<word>("qr", "none")),
-    thicknessLayers_(0),
-    kappaLayers_(0),
-    qs_(),
-    Qs_(0),
-    wallKappaByDelta_(0)
+    //JName_(dict.lookupOrDefault<word>("J", "J")),
+    ePotnbrName_(dict.lookupOrDefault<word>("ePot", "ePot"))
 {
     mappedPatchBase::validateMapForField
     (
@@ -152,41 +109,6 @@ coupledTemperatureFvPatchScalarField
         dict,
         mappedPatchBase::from::differentPatch
     );
-
-    if (dict.found("thicknessLayers"))
-    {
-        dict.lookup("thicknessLayers") >> thicknessLayers_;
-        dict.lookup("kappaLayers") >> kappaLayers_;
-
-        if (thicknessLayers_.size() > 0)
-        {
-            // Calculate effective thermal resistance by harmonic averaging
-            forAll(thicknessLayers_, i)
-            {
-                wallKappaByDelta_ += thicknessLayers_[i]/kappaLayers_[i];
-            }
-            wallKappaByDelta_ = 1/wallKappaByDelta_;
-        }
-    }
-
-    if (dict.found("qs"))
-    {
-        if (dict.found("Qs"))
-        {
-            FatalIOErrorInFunction(dict)
-                << "Either qs or Qs should be specified, not both"
-                << exit(FatalIOError);
-        }
-
-        qs_ = new scalarField("qs", dict, p.size());
-    }
-    else if (dict.found("Qs"))
-    {
-        Qs_ = dict.lookup<scalar>("Qs");
-        qs_ = new scalarField(p.size(), Qs_/gSum(patch().magSf()));
-    }
-
-    fvPatchScalarField::operator=(scalarField("value", dict, p.size()));
 
     if (dict.found("refValue"))
     {
@@ -205,54 +127,37 @@ coupledTemperatureFvPatchScalarField
 }
 
 
-Foam::coupledTemperatureFvPatchScalarField::
-coupledTemperatureFvPatchScalarField
+Foam::coupledElectricPotentialFvPatchScalarField::
+coupledElectricPotentialFvPatchScalarField
 (
-    const coupledTemperatureFvPatchScalarField& psf,
+    const coupledElectricPotentialFvPatchScalarField& psf,
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     mixedFvPatchScalarField(psf, p, iF, mapper),
-    TnbrName_(psf.TnbrName_),
-    qrNbrName_(psf.qrNbrName_),
-    qrName_(psf.qrName_),
-    thicknessLayers_(psf.thicknessLayers_),
-    kappaLayers_(psf.kappaLayers_),
-    qs_
-    (
-        psf.qs_.valid()
-      ? mapper(psf.qs_()).ptr()
-      : nullptr
-    ),
-    Qs_(psf.Qs_),
-    wallKappaByDelta_(psf.wallKappaByDelta_)
+   //JName_(psf.JName_),
+    ePotnbrName_(psf.ePotnbrName_)
 {}
 
 
-Foam::coupledTemperatureFvPatchScalarField::
-coupledTemperatureFvPatchScalarField
+Foam::coupledElectricPotentialFvPatchScalarField::
+coupledElectricPotentialFvPatchScalarField
 (
-    const coupledTemperatureFvPatchScalarField& psf,
+    const coupledElectricPotentialFvPatchScalarField& psf,
     const DimensionedField<scalar, volMesh>& iF
 )
 :
     mixedFvPatchScalarField(psf, iF),
-    TnbrName_(psf.TnbrName_),
-    qrNbrName_(psf.qrNbrName_),
-    qrName_(psf.qrName_),
-    thicknessLayers_(psf.thicknessLayers_),
-    kappaLayers_(psf.kappaLayers_),
-    qs_(psf.qs_, false),
-    Qs_(psf.Qs_),
-    wallKappaByDelta_(psf.wallKappaByDelta_)
+    //JName_(psf.JName_),
+    ePotnbrName_(psf.ePotnbrName_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::coupledTemperatureFvPatchScalarField::updateCoeffs()
+void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 {
     if (updated())
     {
@@ -270,143 +175,78 @@ void Foam::coupledTemperatureFvPatchScalarField::updateCoeffs()
     const fvPatch& patchNbr =
         refCast<const fvMesh>(mpp.nbrMesh()).boundary()[patchiNbr];
 
-    const fvPatchScalarField& TpNbr =
-        patchNbr.lookupPatchField<volScalarField, scalar>(TnbrName_);
+    const fvPatchScalarField& ePotpNbr =
+        patchNbr.lookupPatchField<volScalarField, scalar>(ePotnbrName_);
 
-    if (!isA<coupledTemperatureFvPatchScalarField>(TpNbr))
+    if (!isA<coupledElectricPotentialFvPatchScalarField>(ePotpNbr))
     {
         FatalErrorInFunction
             << "Patch field for " << internalField().name() << " on "
             << this->patch().name() << " is of type "
-            << coupledTemperatureFvPatchScalarField::typeName
+            << coupledElectricPotentialFvPatchScalarField::typeName
             << endl << "The neighbouring patch field "
             << internalField().name() << " on "
             << patchNbr.name() << " is required to be the same, but is "
-            << "currently of type " << TpNbr.type() << exit(FatalError);
+            << "currently of type " << ePotpNbr.type() << exit(FatalError);
     }
 
-    const coupledTemperatureFvPatchScalarField& coupledTemperatureNbr =
-        refCast<const coupledTemperatureFvPatchScalarField>(TpNbr);
+    const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
+        refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
-    scalarField sumq(size(), 0);
+    //if (Js_.valid())
+    //{
+    //    sumJ += Js_();
+    //}
+    //const Field<vector>& Jp =
+    //    patch().template lookupPatchField<volVectorField, vector>(JName_);
+    //const Field<vector> nf(patch().nf());
+    //const scalarField nJp(Jp & nf);
 
-    if (qs_.valid())
-    {
-        sumq += qs_();
-    }
+    tmp<scalarField> sigma;
+    tmp<scalarField> ePotByDelta;
+    // Get patch values
+    getThis(sigma, ePotByDelta);
 
-    if (qrName_ != "none")
-    {
-        sumq += patch().lookupPatchField<volScalarField, scalar>(qrName_);
-    }
-
-    if (qrNbrName_ != "none")
-    {
-        sumq += mpp.fromNeighbour
-        (
-            patchNbr.lookupPatchField<volScalarField, scalar>(qrNbrName_)
-        );
-    }
-
-    tmp<scalarField> kappa;
-    tmp<scalarField> sumKappaTByDelta;
-    tmp<scalarField> sumKappaByDelta;
-    tmp<scalarField> qByKappa;
-
-    // q = alpha.this*sumq
-    getThis(kappa, sumKappaTByDelta, sumKappaByDelta, sumq, qByKappa);
-
+    tmp<scalarField> sigmaByDelta;
+    tmp<scalarField> sigmaEPotByDelta;
     // Add neighbour contributions
     {
-        tmp<scalarField> sumKappaTByDeltaNbr;
-        tmp<scalarField> sumKappaByDeltaNbr;
-        tmp<scalarField> qNbr;
-
-        if (wallKappaByDelta_ == 0)
-        {
-            coupledTemperatureNbr.getNbr
-            (
-                sumKappaTByDeltaNbr,
-                sumKappaByDeltaNbr,
-                qNbr
-            );
-
-            add(sumKappaTByDelta, mpp.fromNeighbour(sumKappaTByDeltaNbr));
-            add(sumKappaByDelta, mpp.fromNeighbour(sumKappaByDeltaNbr));
-        }
-        else
-        {
-            // Get the neighbour wall temperature and flux correction
-            tmp<scalarField> TwNbr;
-            coupledTemperatureNbr.getNbr(TwNbr, qNbr);
-
-            add(sumKappaByDelta, scalarField(size(), wallKappaByDelta_));
-            add(sumKappaTByDelta, wallKappaByDelta_*mpp.fromNeighbour(TwNbr));
-        }
-
-        if (qNbr.valid())
-        {
-            sumq += mpp.fromNeighbour(qNbr);
-        }
+        tmp<scalarField> sigmaByDeltaNbr;
+        tmp<scalarField> sigmaEPotByDeltaNbr;
+        coupledPotentialNbr.getNbr(sigmaByDeltaNbr, sigmaEPotByDeltaNbr);
+        //
+        add(sigmaEPotByDelta, mpp.fromNeighbour(sigmaEPotByDeltaNbr));
+        add(sigmaByDelta, mpp.fromNeighbour(sigmaByDeltaNbr));
     }
 
-    this->valueFraction() =
-        sumKappaByDelta()/(kappa()*patch().deltaCoeffs() + sumKappaByDelta());
+    //const Field<vector>& JpNbr =
+    //    patchNbr.lookupPatchField<volVectorField, vector>(JName_);
+    //const Field<vector> nfNbr(mpp.nbrPolyPatch().nf());
+    //const scalarField nJpNbr(JpNbr & nfNbr);
 
-    this->refValue() = (sumKappaTByDelta() + sumq)/sumKappaByDelta();
-
-    this->refGrad() = qByKappa;
+    // default: 0; if sigma->0 => valueFraction=1
+    this->valueFraction() = 1 - sigma()/(sigma() + SMALL);
+    // if sigma->: ePot = ePotNbr; if sigmaNbr-> => ePot = 0
+    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+SMALL);
+    // default: using gradient grad(ePot) = grad(ePotNbr)*sigmaNbr/sigma
+    // if sigmaNbr-> => grad(ePot) = 0
+    this->refGrad() = sigmaEPotByDelta()/(sigma()+SMALL);
 
     mixedFvPatchScalarField::updateCoeffs();
-
-    if (debug)
-    {
-        const scalar Q = gSum(kappa()*patch().magSf()*snGrad());
-
-        Info<< patch().boundaryMesh().mesh().name() << ':'
-            << patch().name() << ':'
-            << this->internalField().name() << " <- "
-            << mpp.nbrMesh().name() << ':'
-            << patchNbr.name() << ':'
-            << this->internalField().name() << " :"
-            << " heat transfer rate:" << Q
-            << " walltemperature "
-            << " min:" << gMin(*this)
-            << " max:" << gMax(*this)
-            << " avg:" << gAverage(*this)
-            << endl;
-    }
 
     // Restore tag
     UPstream::msgType() = oldTag;
 }
 
 
-void Foam::coupledTemperatureFvPatchScalarField::write
+void Foam::coupledElectricPotentialFvPatchScalarField::write
 (
     Ostream& os
 ) const
 {
     mixedFvPatchScalarField::write(os);
 
-    writeEntryIfDifferent<word>(os, "Tnbr", "T", TnbrName_);
-    writeEntryIfDifferent<word>(os, "qrNbr", "none", qrNbrName_);
-    writeEntryIfDifferent<word>(os, "qr", "none", qrName_);
-
-    if (Qs_ != 0)
-    {
-        writeEntry(os, "Qs", Qs_);
-    }
-    else if (qs_.valid())
-    {
-        writeEntry(os, "qs", qs_());
-    }
-
-    if (thicknessLayers_.size())
-    {
-        writeEntry(os, "thicknessLayers", thicknessLayers_);
-        writeEntry(os, "kappaLayers", kappaLayers_);
-    }
+    writeEntryIfDifferent<word>(os, "ePot", "ePot", ePotnbrName_);
 }
 
 
@@ -417,44 +257,7 @@ namespace Foam
     makePatchTypeField
     (
         fvPatchScalarField,
-        coupledTemperatureFvPatchScalarField
-    );
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        coupledTemperatureFvPatchScalarField,
-        patchMapper,
-        turbulentTemperatureCoupledBaffleMixed,
-        "compressible::turbulentTemperatureCoupledBaffleMixed"
-    );
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        coupledTemperatureFvPatchScalarField,
-        dictionary,
-        turbulentTemperatureCoupledBaffleMixed,
-        "compressible::turbulentTemperatureCoupledBaffleMixed"
-    );
-
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        coupledTemperatureFvPatchScalarField,
-        patchMapper,
-        turbulentTemperatureRadCoupledMixed,
-        "compressible::turbulentTemperatureRadCoupledMixed"
-    );
-
-    addBackwardCompatibleToRunTimeSelectionTable
-    (
-        fvPatchScalarField,
-        coupledTemperatureFvPatchScalarField,
-        dictionary,
-        turbulentTemperatureRadCoupledMixed,
-        "compressible::turbulentTemperatureRadCoupledMixed"
+        coupledElectricPotentialFvPatchScalarField
     );
 }
 
