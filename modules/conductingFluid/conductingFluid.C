@@ -53,6 +53,14 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         )
     ),
 
+    electromagnetics
+    (
+        electromagneticModel::New
+        (
+            mesh
+        )
+    ),
+
     JxB_
     (
         IOobject

@@ -62,19 +62,17 @@ class harmonicElectromagneticModel
 
     //- Current density [A/m^2]
         //- real
-        volVectorField Jre_;
+        const char* JreName_ = "Jre";
 
         //- imaginary
-        volVectorField Jim_;
+        const char* JimName_ = "Jim";
 
     //- Magnetic field [T]
         //- real
-        volVectorField Bre_;
+        const char* BreName_ = "Bre";
 
         //- imaginary
-        volVectorField Bim_;
-
-    const word imaginaryPartName_ = "imaginary";
+        const char* BimName_ = "Bim";
 
 public:
 
@@ -84,6 +82,7 @@ public:
 
 
     //- Declare run-time constructor selection table
+/*
     declareRunTimeNewSelectionTable
     (
         autoPtr,
@@ -92,7 +91,7 @@ public:
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
     );
-
+*/
 
     // Constructors
 
@@ -125,16 +124,16 @@ public:
         // Access to thermodynamic state variables
 
         //- Electric potential [V]
-        virtual volScalarField& PotE(const word& partName);
+        virtual const volScalarField& PotE(bool imaginary=false);
 
         //- Current density [A/m^2]
-        virtual volVectorField& J(const word& partName);
+        virtual volVectorField& J(bool imaginary=false);
 
         //- Magnetic field [T]
-        virtual volVectorField& B(const word& partName);
+        virtual volVectorField& B(bool imaginary=false);
 
         //- Add the given density correction to the current density field.
-        virtual volVectorField& correctJ(const word& partName) = 0;
+        //virtual volVectorField& correctJ(bool imaginary=false) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

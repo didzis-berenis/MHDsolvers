@@ -58,10 +58,10 @@ class transientElectromagneticModel
     volScalarField PotE_;
 
     //- Current density [A/m^2]
-    volVectorField J_;
+    const char* JName_ = "J";
 
     //- Magnetic field [T]
-    volVectorField B_;
+    const char* BName_ = "B";
 public:
 
 
@@ -101,16 +101,16 @@ public:
         // Access to electromagnetic state variables
 
         //- Electric potential [V]
-        virtual volScalarField& PotE(const word& partName=word::null);
+        virtual const volScalarField& PotE(bool imaginary=false);
 
         //- Current density [A/m^2]
-        virtual volVectorField& J(const word& partName=word::null);
+        virtual volVectorField& J(bool imaginary=false);
 
         //- Magnetic field [T]
-        virtual volVectorField& B(const word& partName=word::null);
+        virtual volVectorField& B(bool imaginary=false);
 
         //- Add the given density correction to the current density field.
-        virtual volVectorField& correctJ(const word& partName=word::null) = 0;
+        //virtual volVectorField& correctJ(bool imaginary=false) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

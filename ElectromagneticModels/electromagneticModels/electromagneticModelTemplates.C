@@ -31,40 +31,37 @@ License
 
 namespace Foam
 {
-    namespace incompressible
+
+    template<class ElectromagneticModel>
+    Foam::autoPtr<ElectromagneticModel> New
+    (
+        const fvMesh& mesh,
+        const word& phaseName
+    )
     {
-
-        template<class ElectromagneticModel>
-        Foam::autoPtr<ElectromagneticModel> New
+        const IOdictionary electromagneticDict
         (
-            const fvMesh& mesh,
-            const word& phaseName
-        )
+            physicalProperties::findModelDict(mesh, phaseName)
+        );
+        const word modelType(electromagneticDict.lookup("electromagneticType"));
+
+        Info<< "Selecting electromagnetics model " << modelType << endl;
+
+        typename ElectromagneticModel::fvMeshConstructorTable::iterator
+            cstrIter =
+            ElectromagneticModel::fvMeshConstructorTablePtr_->find(modelType);
+
+        if (cstrIter == ElectromagneticModel::fvMeshConstructorTablePtr_->end())
         {
-            const IOdictionary electromagneticDict
-            (
-                physicalProperties::findModelDict(mesh, phaseName)
-            );
-            const word modelType(electromagneticDict.lookup("electromagneticType"));
-
-            Info<< "Selecting electromagnetics model " << modelType << endl;
-
-            typename ElectromagneticModel::dictionaryConstructorTable::iterator
-                cstrIter =
-                ElectromagneticModel::dictionaryConstructorTablePtr_->find(modelType);
-
-            if (cstrIter == ElectromagneticModel::dictionaryConstructorTablePtr_->end())
-            {
-                FatalErrorInFunction
-                    << "Unknown " << ElectromagneticModel::typeName << " type "
-                    << modelType << nl << nl
-                    << "Valid " << ElectromagneticModel::typeName << " types are:" << nl
-                    << ElectromagneticModel::dictionaryConstructorTablePtr_->sortedToc() << nl
-                    << exit(FatalError);
-            }
-
-            return autoPtr<ElectromagneticModel>(cstrIter()(mesh, phaseName));
+            FatalErrorInFunction
+                << "Unknown " << ElectromagneticModel::typeName << " type "
+                << modelType << nl << nl
+                << "Valid " << ElectromagneticModel::typeName << " types are:" << nl
+                << ElectromagneticModel::fvMeshConstructorTablePtr_->sortedToc() << nl
+                << exit(FatalError);
         }
+
+        return autoPtr<ElectromagneticModel>(cstrIter()(mesh, phaseName));
     }
 }
 

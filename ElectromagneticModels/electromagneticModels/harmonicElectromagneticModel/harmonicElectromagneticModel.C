@@ -49,14 +49,13 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
 )
 :
     PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
-    PotEim_(lookupOrConstructScalar(mesh, "PotEim")),
-    
-    Jre_(lookupOrConstructVector(mesh, "Jre")),
-    Jim_(lookupOrConstructVector(mesh, "Jim")),
-    
-    Bre_(lookupOrConstructVector(mesh, "Bre")),
-    Bim_(lookupOrConstructVector(mesh, "Bim"))
-{}
+    PotEim_(lookupOrConstructScalar(mesh, "PotEim"))
+{
+    constructVector(mesh, JreName_);
+    constructVector(mesh, JimName_);
+    constructVector(mesh, BreName_);
+    constructVector(mesh, BimName_);
+}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -79,31 +78,31 @@ Foam::harmonicElectromagneticModel::~harmonicElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(const word& partName)
+const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
 {
-    if (partName == imaginaryPartName_)
+    if (imaginary)
     {
         return PotEim_;
     }
     return PotEre_;
 }
 
-Foam::volVectorField& Foam::harmonicElectromagneticModel::J(const word& partName)
+Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
-    if (partName == imaginaryPartName_)
+    if (imaginary)
     {
-        return Jim_;
+        return getVectorFromRegistry(JimName_);
     }
-    return Jre_;
+    return getVectorFromRegistry(JreName_);
 }
 
-Foam::volVectorField& Foam::harmonicElectromagneticModel::B(const word& partName)
+Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
 {
-    if (partName == imaginaryPartName_)
+    if (imaginary)
     {
-        return Bim_;
+        return getVectorFromRegistry(BimName_);
     }
-    return Bre_;
+    return getVectorFromRegistry(BreName_);
 }
 
 

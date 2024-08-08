@@ -48,12 +48,11 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
     const word& phaseName
 )
 :
-    PotE_(lookupOrConstructScalar(mesh, "PotE")),
-    
-    J_(lookupOrConstructVector(mesh, "J")),
-    
-    B_(lookupOrConstructVector(mesh, "B"))
-{}
+    PotE_(lookupOrConstructScalar(mesh, "PotE"))
+{
+    constructVector(mesh, JName_);
+    constructVector(mesh, BName_);
+}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -76,20 +75,19 @@ Foam::transientElectromagneticModel::~transientElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField& Foam::transientElectromagneticModel::PotE(const word& partName)
+const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
 {
     return PotE_;
 }
 
-Foam::volVectorField& Foam::transientElectromagneticModel::J(const word& partName)
+Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
 {
-    return J_;
+    return getVectorFromRegistry(JName_);
 }
 
-Foam::volVectorField& Foam::transientElectromagneticModel::B(const word& partName)
+Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
 {
-    return B_;
+    return getVectorFromRegistry(BName_);
 }
-
 
 // ************************************************************************* //

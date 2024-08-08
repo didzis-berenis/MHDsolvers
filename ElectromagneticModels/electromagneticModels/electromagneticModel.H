@@ -117,6 +117,20 @@ protected:
             const char* name
         );
 
+        //- Construct named field as MUST-READ if it is not found
+        static void constructScalar
+        (
+            const fvMesh& mesh,
+            const char* name
+        );
+
+        //- Construct named field as MUST-READ if it is not found
+        static void constructVector
+        (
+            const fvMesh& mesh,
+            const char* name
+        );
+
         //- Get the constructor iterator for the given thermo dictionary and
         //  constructor iterator table
         /*
@@ -139,7 +153,7 @@ protected:
     static autoPtr<ElectromagneticModel> New
     (
         const fvMesh& mesh,
-        const word& phaseName
+        const word& phaseName=word::null
     );
 
 
@@ -214,28 +228,19 @@ public:
         virtual dimensionedScalar sigmaConst() const = 0;
 
         //- Electric potential [V]
-        virtual volScalarField& PotE
-        (
-            const word& partName=word::null
-        ) = 0;
+        virtual const volScalarField& PotE(bool imaginary=false) = 0;
 
         //- Current density [A/m^2]
-        virtual volVectorField& J
-        (
-            const word& partName=word::null
-        ) = 0;
+        virtual volVectorField& J(bool imaginary=false) = 0;
 
         //- Magnetic field [T]
-        virtual volVectorField& B
-        (
-            const word& partName=word::null
-        ) = 0;
+        virtual volVectorField& B(bool imaginary=false) = 0;
 
         //- Add the given density correction to the current density field.
-        virtual volVectorField& correctJ
-        (
-            const word& partName=word::null
-        ) = 0;
+        //virtual volVectorField& correctJ(bool imaginary=false) = 0;
+
+        //- return field from object registry
+        virtual volVectorField& getVectorFromRegistry(const char* name);
 
         //- Name of the thermo physics
         virtual word electromagneticName() const = 0;

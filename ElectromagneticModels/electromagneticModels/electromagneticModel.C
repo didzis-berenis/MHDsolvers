@@ -99,6 +99,64 @@ Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
     return mesh.objectRegistry::lookupObjectRef<volVectorField>(name);
 }
 
+void Foam::electromagneticModel::constructScalar
+(
+    const fvMesh& mesh,
+    const char* name
+)
+{
+    if (!mesh.objectRegistry::foundObject<volScalarField>(name))
+    {
+        volScalarField* fPtr
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+}
+
+void Foam::electromagneticModel::constructVector
+(
+    const fvMesh& mesh,
+    const char* name
+)
+{
+    if (!mesh.objectRegistry::foundObject<volVectorField>(name))
+    {
+        volVectorField* fPtr
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+}
+
 
 const Foam::electromagneticModel& Foam::electromagneticModel::lookupElectromagnetic
 (
@@ -195,6 +253,11 @@ void Foam::electromagneticModel::correct()
 bool Foam::electromagneticModel::read()
 {
     return regIOobject::read();
+}
+
+Foam::volVectorField& Foam::electromagneticModel::getVectorFromRegistry(const char* name)
+{
+    return mesh_.objectRegistry::lookupObjectRef<volVectorField>(name);
 }
 
 
