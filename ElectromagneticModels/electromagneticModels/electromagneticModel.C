@@ -290,5 +290,20 @@ Foam::volVectorField& Foam::electromagneticModel::getVectorFromRegistry(const ch
     return mesh_.objectRegistry::lookupObjectRef<volVectorField>(name);
 }
 
+void Foam::electromagneticModel::setCorrectElectromagnetics()
+{
+    correctElectromagnetics_ = true;
+}
+
+void Foam::electromagneticModel::setCorrected()
+{
+    correctElectromagnetics_ = false;
+}
+
+bool Foam::electromagneticModel::correctElectromagnetics() const
+{
+    return correctElectromagnetics_;
+}
+
 
 // ************************************************************************* //

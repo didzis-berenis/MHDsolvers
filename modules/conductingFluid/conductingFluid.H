@@ -87,7 +87,7 @@ protected:
             thermophysicalTransport;
 
     //- Pointer to the electromagnetic model
-        autoPtr<electromagneticModel> electromagnetics;
+        autoPtr<electromagneticModel> electro_;
 
 
 public:
@@ -135,6 +135,12 @@ public:
         // Get temperature from solver
         virtual volScalarField& getTemperature();
 
+        //- Access function to the fluid electromagnetic properties
+        virtual const electromagneticModel& electro() const
+        {
+            return electro_();
+        }
+
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
 
@@ -146,6 +152,10 @@ public:
 
         //- Correct the momentum and thermophysical transport modelling
         virtual void postCorrector();
+
+        //- Solve electromagnetic modelling
+        virtual void postSolve();
+        virtual void electromagneticPredictor();
 
 
     // Member Operators

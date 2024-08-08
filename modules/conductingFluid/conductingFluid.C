@@ -53,12 +53,9 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         )
     ),
 
-    electromagnetics
+    electro_
     (
-        electromagneticModel::New
-        (
-            mesh
-        )
+        electromagneticModel::New(mesh)
     ),
 
     JxB_
@@ -150,5 +147,15 @@ void Foam::solvers::conductingFluid::postCorrector()
     }
 }
 
+
+void Foam::solvers::conductingFluid::postSolve()
+{
+    isothermalFluid::postSolve();
+
+    if (electro_->correctElectromagnetics())
+    {
+        electromagneticPredictor();
+    }
+}
 
 // ************************************************************************* //

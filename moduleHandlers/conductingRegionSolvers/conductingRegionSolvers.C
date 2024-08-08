@@ -282,5 +282,10 @@ Foam::solver* Foam::conductingRegionSolvers::operator()(const label i)
     return solvers_(i);
 }*/
 
+void Foam::solvers::conductingFluid::electromagneticPredictor()
+{
+    
+}
+
 
 // ************************************************************************* //

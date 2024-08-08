@@ -75,7 +75,7 @@ Foam::transientElectromagneticModel::~transientElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
+Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
 {
     return PotE_;
 }

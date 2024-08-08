@@ -78,7 +78,7 @@ Foam::harmonicElectromagneticModel::~harmonicElectromagneticModel()
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
+Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
 {
     if (imaginary)
     {

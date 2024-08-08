@@ -101,16 +101,13 @@ public:
         // Access to electromagnetic state variables
 
         //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary=false);
+        virtual volScalarField& PotE(bool imaginary=false);
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false);
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false);
-
-        //- Add the given density correction to the current density field.
-        //virtual volVectorField& correctJ(bool imaginary=false) = 0;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

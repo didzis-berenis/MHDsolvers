@@ -84,6 +84,7 @@ class electromagneticModel
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        bool correctElectromagnetics_ = false;
 
 protected:
 
@@ -228,7 +229,7 @@ public:
         virtual dimensionedScalar sigmaConst() const = 0;
 
         //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary=false) = 0;
+        virtual volScalarField& PotE(bool imaginary=false) = 0;
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) = 0;
@@ -236,8 +237,14 @@ public:
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) = 0;
 
-        //- Add the given density correction to the current density field.
-        //virtual volVectorField& correctJ(bool imaginary=false) = 0;
+        //- Update the velocity difference.
+        virtual void setCorrectElectromagnetics();
+
+        //- Update the velocity difference.
+        virtual void setCorrected();
+
+        //- Calculate and return current magnetic Reynolds number difference.
+        virtual bool correctElectromagnetics() const;
 
         //- return field from object registry
         virtual volVectorField& getVectorFromRegistry(const char* name);
@@ -245,13 +252,11 @@ public:
         //- Name of the thermo physics
         virtual word electromagneticName() const = 0;
 
-        //- Predict the thermophysical transport coefficients if possible
-        //  without solving thermophysical transport model equations
+        //- Predict the electromagnetic model coefficients if possible
+        //  without solving electromagnetic model equations
         virtual void predict() = 0;
 
-        //- Solve the thermophysical transport model equations
-        //  and correct the thermophysical transport coefficients
-
+        //- Solve the electromagnetic model equations
         //- Update properties
         virtual void correct() = 0;
 };
