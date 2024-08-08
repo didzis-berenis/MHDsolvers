@@ -56,7 +56,7 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
-
+/*
 Foam::autoPtr<Foam::transientElectromagneticModel> Foam::transientElectromagneticModel::New
 (
     const fvMesh& mesh,
@@ -65,7 +65,7 @@ Foam::autoPtr<Foam::transientElectromagneticModel> Foam::transientElectromagneti
 {
     return electromagneticModel::New<transientElectromagneticModel>(mesh, phaseName);
 }
-
+*/
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 

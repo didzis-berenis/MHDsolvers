@@ -59,7 +59,7 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
-
+/*
 Foam::autoPtr<Foam::harmonicElectromagneticModel> Foam::harmonicElectromagneticModel::New
 (
     const fvMesh& mesh,
@@ -68,7 +68,7 @@ Foam::autoPtr<Foam::harmonicElectromagneticModel> Foam::harmonicElectromagneticM
 {
     return electromagneticModel::New<harmonicElectromagneticModel>(mesh, phaseName);
 }
-
+*/
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 

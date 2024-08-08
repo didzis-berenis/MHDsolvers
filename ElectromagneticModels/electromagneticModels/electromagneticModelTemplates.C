@@ -32,8 +32,8 @@ License
 namespace Foam
 {
 
-    template<class ElectromagneticModel>
-    Foam::autoPtr<ElectromagneticModel> New
+    //template<class electromagneticModel>
+    Foam::autoPtr<electromagneticModel> electromagneticModel::New
     (
         const fvMesh& mesh,
         const word& phaseName
@@ -47,21 +47,21 @@ namespace Foam
 
         Info<< "Selecting electromagnetics model " << modelType << endl;
 
-        typename ElectromagneticModel::fvMeshConstructorTable::iterator
+        typename electromagneticModel::fvMeshConstructorTable::iterator
             cstrIter =
-            ElectromagneticModel::fvMeshConstructorTablePtr_->find(modelType);
+            electromagneticModel::fvMeshConstructorTablePtr_->find(modelType);
 
-        if (cstrIter == ElectromagneticModel::fvMeshConstructorTablePtr_->end())
+        if (cstrIter == electromagneticModel::fvMeshConstructorTablePtr_->end())
         {
             FatalErrorInFunction
-                << "Unknown " << ElectromagneticModel::typeName << " type "
+                << "Unknown " << electromagneticModel::typeName << " type "
                 << modelType << nl << nl
-                << "Valid " << ElectromagneticModel::typeName << " types are:" << nl
-                << ElectromagneticModel::fvMeshConstructorTablePtr_->sortedToc() << nl
+                << "Valid " << electromagneticModel::typeName << " types are:" << nl
+                << electromagneticModel::fvMeshConstructorTablePtr_->sortedToc() << nl
                 << exit(FatalError);
         }
 
-        return autoPtr<ElectromagneticModel>(cstrIter()(mesh, phaseName));
+        return autoPtr<electromagneticModel>(cstrIter()(mesh, phaseName));
     }
 }
 

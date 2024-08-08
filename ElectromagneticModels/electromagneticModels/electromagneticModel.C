@@ -33,6 +33,37 @@ namespace Foam
 {
     defineTypeNameAndDebug(electromagneticModel, 0);
     //defineRunTimeSelectionTable(electromagneticModel, dictionary);
+
+    Foam::autoPtr<electromagneticModel> electromagneticModel::New
+    (
+        const fvMesh& mesh,
+        const word& phaseName
+    )
+    {
+        const IOdictionary electromagneticDict
+        (
+            physicalProperties::findModelDict(mesh, phaseName)
+        );
+        const word modelType(electromagneticDict.lookup("electromagneticType"));
+
+        Info<< "Selecting electromagnetics model " << modelType << endl;
+
+        typename electromagneticModel::fvMeshConstructorTable::iterator
+            cstrIter =
+            electromagneticModel::fvMeshConstructorTablePtr_->find(modelType);
+
+        if (cstrIter == electromagneticModel::fvMeshConstructorTablePtr_->end())
+        {
+            FatalErrorInFunction
+                << "Unknown " << electromagneticModel::typeName << " type "
+                << modelType << nl << nl
+                << "Valid " << electromagneticModel::typeName << " types are:" << nl
+                << electromagneticModel::fvMeshConstructorTablePtr_->sortedToc() << nl
+                << exit(FatalError);
+        }
+
+        return autoPtr<electromagneticModel>(cstrIter()(mesh, phaseName));
+    }
 }
 
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
@@ -165,7 +196,6 @@ const Foam::electromagneticModel& Foam::electromagneticModel::lookupElectromagne
 {
     return pf.db().lookupObject<electromagneticModel>(physicalProperties::typeName);
 }
-
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 

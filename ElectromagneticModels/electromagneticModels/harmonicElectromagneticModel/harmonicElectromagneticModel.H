@@ -104,14 +104,14 @@ public:
 
 
     // Selectors
-
+/*
         //- Standard selection based on fvMesh
         static autoPtr<harmonicElectromagneticModel> New
         (
             const fvMesh&,
             const word& phaseName=word::null
         );
-
+*/
         //- Disallow default bitwise copy construction
         harmonicElectromagneticModel(const harmonicElectromagneticModel&) = delete;
 

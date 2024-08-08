@@ -148,14 +148,6 @@ protected:
             const word& phaseName
         );*/
 
-    //- Generic New for each of the related electromagnetics model
-    template<class ElectromagneticModel>
-    static autoPtr<ElectromagneticModel> New
-    (
-        const fvMesh& mesh,
-        const word& phaseName=word::null
-    );
-
 
 public:
 
@@ -171,6 +163,14 @@ public:
         fvMesh,
         (const fvMesh& mesh, const word& phaseName),
         (mesh, phaseName)
+    );
+
+    //- Generic New for each of the related electromagnetics model
+    //template<class ElectromagneticModel>
+    static autoPtr<electromagneticModel> New
+    (
+        const fvMesh& mesh,
+        const word& phaseName=word::null
     );
 
     // Static Member data
@@ -262,9 +262,9 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#ifdef NoRepository
-    #include "electromagneticModelTemplates.C"
-#endif
+//#ifdef NoRepository
+//    #include "electromagneticModelTemplates.C"
+//#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

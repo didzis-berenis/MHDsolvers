@@ -80,14 +80,14 @@ public:
 
 
     // Selectors
-
+/*
         //- Standard selection based on fvMesh
         static autoPtr<transientElectromagneticModel> New
         (
             const fvMesh&,
             const word& phaseName=word::null
         );
-
+*/
         //- Disallow default bitwise copy construction
         transientElectromagneticModel(const transientElectromagneticModel&) = delete;
 
