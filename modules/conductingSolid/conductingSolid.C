@@ -47,20 +47,12 @@ Foam::solvers::conductingSolid::conductingSolid
 :
     solid(mesh),
 
-    JJsigma_
+    electro_
     (
-        IOobject
-        (
-            "JJsigma",
-            runTime.name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
+        electromagneticModel::New(mesh)
     ),
-    JJsigma(JJsigma_)
+
+    electro(electro_)
 {
 }
 
@@ -74,15 +66,28 @@ Foam::solvers::conductingSolid::~conductingSolid()
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
 
+/*
 void Foam::solvers::conductingSolid::setJJsigma(volScalarField& JJsigma)
 {
     JJsigma_=JJsigma;
 }
-
 Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScalarField& T_external)
 {   
     return thermo_.T();
 }
+*/
 
+void Foam::solvers::conductingSolid::electromagneticPredictor()
+{
+    //Lorentz force term
+    electro_->JxB =  electro.J() ^ electro.B();
+    //Joule heating
+	electro_->JJsigma = (electro.J() & electro.J())*electro.sigmaInv();//multiply by inverse of sigma
+}
+
+void Foam::solvers::conductingSolid::setCorrectElectromagnetics()
+{
+    electro_->setCorrectElectromagnetics();
+}
 
 // ************************************************************************* //

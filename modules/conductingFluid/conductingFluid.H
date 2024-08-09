@@ -73,14 +73,6 @@ class conductingFluid
 
 protected:
 
-    // Lorentz force
-
-        volVectorField JxB_;
-
-    // Joule heating
-
-        volScalarField JJsigma_;
-
     // Thermophysical transport
 
         autoPtr<fluidThermoThermophysicalTransportModel>
@@ -89,16 +81,10 @@ protected:
     //- Pointer to the electromagnetic model
         autoPtr<electromagneticModel> electro_;
 
+    //- Store old velocity field
+        volVectorField U_old_;
 
 public:
-
-    // Lorentz force
-
-        const volVectorField& JxB;
-
-    // Joule heating
-
-        const volScalarField& JJsigma;
         
 
     //- Runtime type information
@@ -121,25 +107,22 @@ public:
     // Member Functions
 
         // Assign volume force to the solver
-        virtual void setJJsigma(volScalarField&);
+        //virtual void setJJsigma(volScalarField&);
 
         // Assign volume heating to the solver
-        virtual void setJxB(volVectorField&);
+        //virtual void setJxB(volVectorField&);
 
         // Get velocity from solver
-        virtual volVectorField& getVelocity();
+        //virtual volVectorField& getVelocity();
 
         // Get pressure from solver
-        virtual volScalarField& getPressure();
+        //virtual volScalarField& getPressure();
 
         // Get temperature from solver
-        virtual volScalarField& getTemperature();
+        //virtual volScalarField& getTemperature();
 
-        //- Access function to the fluid electromagnetic properties
-        virtual const electromagneticModel& electro() const
-        {
-            return electro_();
-        }
+        //- Reference to the fluid fluid electromagnetic properties
+        const electromagneticModel& electro;
 
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
@@ -156,6 +139,9 @@ public:
         //- Solve electromagnetic modelling
         virtual void postSolve();
         virtual void electromagneticPredictor();
+
+        //- Set correctElectromagnetics switch to true
+        virtual void setCorrectElectromagnetics();
 
 
     // Member Operators

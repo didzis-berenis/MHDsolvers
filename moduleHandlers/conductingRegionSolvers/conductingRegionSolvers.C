@@ -187,7 +187,7 @@ void Foam::conductingRegionSolvers::setJJsigma(const word regionName, Foam::volS
         << " or " << solidSolverName_ << "!\n" << "Cannot set JJsigma field!\n"; 
     }
 }
-
+/*
 // Return region fvMesh
 Foam::volVectorField& Foam::conductingRegionSolvers::getVelocity(const word regionName)
 {
@@ -243,7 +243,7 @@ Foam::volScalarField& Foam::conductingRegionSolvers::getTemperature(const word r
         << exit(FatalIOError);
     }
 }
-
+*/
 bool Foam::conductingRegionSolvers::isFluid(const word regionName)
 {
     if (names_[regionIdx_[regionName]].second() == fluidSolverName_)
@@ -262,6 +262,23 @@ bool Foam::conductingRegionSolvers::isSolid(const word regionName)
     return false;
 }
 
+void Foam::conductingRegionSolvers::setCorrectElectromagnetics()
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
+        Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
+        if (fluidPtr)
+        {
+            fluidPtr->setCorrectElectromagnetics();
+        }
+        else if (solidPtr)
+        {
+            solidPtr->setCorrectElectromagnetics();
+        }
+    }
+}
 
 Foam::List<Foam::Pair<Foam::word>> Foam::conductingRegionSolvers::getNames()
 {

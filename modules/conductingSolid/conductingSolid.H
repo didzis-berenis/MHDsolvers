@@ -38,6 +38,7 @@ SourceFiles
 #define conductingSolid_H
 
 #include "solid.H"
+#include "electromagneticModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,16 +58,12 @@ class conductingSolid
 
 protected:
 
-    // Joule heating
-
-        volScalarField JJsigma_;
+    //- Pointer to the electromagnetic model
+        autoPtr<electromagneticModel> electro_;
 
 public:
 
     // Public Data
-
-        // Joule heating
-        const volScalarField& JJsigma;
 
 
     //- Runtime type information
@@ -89,10 +86,17 @@ public:
     // Member Functions
 
         // Assign volume heating to the solver
-        virtual void setJJsigma(volScalarField&);
+        //virtual void setJJsigma(volScalarField&);
 
         // Get temperature from solver
-        virtual volScalarField& getTemperature();
+        //virtual volScalarField& getTemperature();
+
+        //- Reference to the fluid fluid electromagnetic properties
+        const electromagneticModel& electro;
+        virtual void electromagneticPredictor();
+
+        //- Set correctElectromagnetics switch to true
+        virtual void setCorrectElectromagnetics();
 
 
     // Member Operators

@@ -87,6 +87,11 @@ Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
     return PotEre_;
 }
 
+const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary) const
+{
+    return PotE(imaginary);
+}
+
 Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
     if (imaginary)
@@ -103,6 +108,16 @@ Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
         return getVectorFromRegistry(BimName_);
     }
     return getVectorFromRegistry(BreName_);
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
+{
+    return J(imaginary);
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const
+{
+    return B(imaginary);
 }
 
 

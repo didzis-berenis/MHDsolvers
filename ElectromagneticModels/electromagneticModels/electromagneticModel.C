@@ -207,6 +207,20 @@ Foam::electromagneticModel::electromagneticModel
     const word& phaseName
 )
 :
+    mesh_(mesh),
+
+    phaseName_(phaseName),
+
+    physicalProperties(mesh, phaseName),
+
+    JxB_(lookupOrConstructVector(mesh, "JxB")),
+
+    JxB(JxB_),
+
+    JJsigma_(lookupOrConstructScalar(mesh, "JJsigma")),
+
+    JJsigma(JJsigma_),
+
     sigma_
     (
         IOobject
@@ -234,11 +248,19 @@ Foam::electromagneticModel::electromagneticModel
         )
     ),
 
-    physicalProperties(mesh, phaseName),
-
-    mesh_(mesh),
-
-    phaseName_(phaseName)
+    sigmaInv_
+    (
+        IOobject
+        (
+            "sigmaInv",
+            mesh.time().name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar(dimDensity/pow3(dimTime)/dimCurrent/dimCurrent,0)
+    )
 {
     //Update sigma patch fields
     if (sigmaConst_.value() > SMALL)
@@ -254,17 +276,34 @@ Foam::electromagneticModel::electromagneticModel
             }
         }
     }
+
+    forAll(sigma_, cellI)
+    {
+        sigmaInv_[cellI] = 
+        sigma_[cellI] == 0 ? 
+        0 : 1/sigma_[cellI];
+    }
 }
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::volScalarField Foam::electromagneticModel::sigma() const
+const Foam::volScalarField Foam::electromagneticModel::sigmaInv() const
+{
+    return sigmaInv_;
+}
+
+Foam::volScalarField Foam::electromagneticModel::sigma()
 {
     return sigma_;
 }
 
-Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
+const Foam::volScalarField Foam::electromagneticModel::sigma() const
+{
+    return sigma_;
+}
+
+const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
 {
     return sigmaConst_;
 }

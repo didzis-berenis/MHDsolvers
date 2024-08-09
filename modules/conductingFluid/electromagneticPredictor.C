@@ -29,7 +29,42 @@ License
 
 void Foam::solvers::conductingFluid::electromagneticPredictor()
 {
+    //Interpolating cross product u x B over mesh faces
+    surfaceScalarField psiUB = fvc::interpolate((U_-U_old_) ^ electro.B()) & mesh.Sf();
+    volScalarField& PotE = electro_->PotE();
+    volScalarField sigma = electro.sigma();
+    //Poisson equation for electric potential
+    fvScalarMatrix PotEEqn
+    (
+    fvm::laplacian(sigma,PotE)
+    ==
+    sigma*fvc::div(psiUB)
+    );
+    //Reference potential
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    PotEEqn.setReference(PotERefCell, PotERefValue);
+    //Solving Poisson equation
+    PotEEqn.solve();
+
+    //Computation of current density at cell faces
+    surfaceScalarField En = -(fvc::snGrad(PotE) * mesh.magSf()) + psiUB;
+    //Current density at face center
+    surfaceVectorField Env = En * mesh.Cf();
     
+    //Get boundary conditions from J
+    volVectorField JUB = electro.J();
+    //Interpolation of current density at cell center
+    JUB = sigma*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh.C()) );
+    //Update current density distribution and boundary condition
+    JUB.correctBoundaryConditions();
+
+    //Lorentz force term
+    electro_->JxB =  ((electro.J()+JUB) ^ electro.B() );
+    //Joule heating
+	electro_->JJsigma = ((electro.J()+JUB) & (electro.J()+JUB))*electro.sigmaInv();//multiply by inverse of sigma
+
+    U_old_ = U_;
 }
 
 

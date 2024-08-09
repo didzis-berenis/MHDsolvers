@@ -194,6 +194,16 @@ int main(int argc, char *argv[])
                 solvers[i].postCorrector();
             }
         }
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+        // Check whether we need to update electromagnetic stuff with Elmer
+        bool doElmer = false;
+
+        #if (ELMER_TIME == HARMONIC_TIME)
+            #include "setHarmonicPotential.H"
+        #elif (ELMER_TIME == TRANSIENT_TIME)
+            #include "setTransientPotential.H"
+        #endif
 
         forAll(solvers, i)
         {
@@ -210,16 +220,6 @@ int main(int argc, char *argv[])
                 scalarFieldToGlobal(alpha1Global,alpha1Region[i],regionNames[i]);
             }
         }
-        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        bool doElmer = false;
-
-        #if (ELMER_TIME == HARMONIC_TIME)
-            #include "setHarmonicPotential.H"
-        #elif (ELMER_TIME == TRANSIENT_TIME)
-            #include "setTransientPotential.H"
-        #endif
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
         // Write last time step even if not write time

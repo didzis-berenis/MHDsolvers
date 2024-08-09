@@ -150,19 +150,22 @@ public:
         void setJJsigma(const word regionName, volScalarField& field);
 
         // Get velocity from solver
-        volVectorField& getVelocity(const word regionName);
+        //volVectorField& getVelocity(const word regionName);
 
         // Get pressure from solver
-        volScalarField& getPressure(const word regionName);
+        //volScalarField& getPressure(const word regionName);
 
         // Get temperature from solver
-        volScalarField& getTemperature(const word regionName);
+        //volScalarField& getTemperature(const word regionName);
 
         // Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);
 
         // Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
+
+        //- Set correctElectromagnetics switch to true for all conducting regions
+        void setCorrectElectromagnetics();
 
         // Get names
         List<Pair<word>> getNames();

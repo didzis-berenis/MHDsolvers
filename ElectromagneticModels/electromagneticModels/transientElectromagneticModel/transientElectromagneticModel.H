@@ -94,20 +94,6 @@ public:
 
     //- Destructor
     virtual ~transientElectromagneticModel();
-
-
-    // Member Functions
-
-        // Access to electromagnetic state variables
-
-        //- Electric potential [V]
-        virtual volScalarField& PotE(bool imaginary=false);
-
-        //- Current density [A/m^2]
-        virtual volVectorField& J(bool imaginary=false);
-
-        //- Magnetic field [T]
-        virtual volVectorField& B(bool imaginary=false);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

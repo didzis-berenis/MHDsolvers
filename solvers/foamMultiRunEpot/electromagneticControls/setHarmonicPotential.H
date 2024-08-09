@@ -36,6 +36,8 @@ else if(maxRemDiff_local>maxRemDiff && maxRelDiff-SMALL<=1.0) {
 // Calculate electric potential if current density will not be updated
 if (!doElmer)
 {
+    solvers.setCorrectElectromagnetics();
+/*
     fvMesh& mesh = meshGlobal;
     volVectorField& U = UGlobal;
     volVectorField& U_old = U_oldGlobal;
@@ -58,4 +60,5 @@ if (!doElmer)
     JxBGlobal =  0.5*(((Jre+JUBre) ^ Bre) + ((Jim+JUBim) ^ Bim) );
 	JJsigmaGlobal = 0.5*(((Jre+JUBre) & (Jre+JUBre)) + ((Jim+JUBim) & (Jim+JUBim)) )*sigmaGlobalInv;
     #include "updateRegionFieldsEM.H"
+*/
 }

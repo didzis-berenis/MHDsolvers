@@ -117,20 +117,6 @@ public:
 
     //- Destructor
     virtual ~harmonicElectromagneticModel();
-
-
-    // Member Functions
-
-        // Access to thermodynamic state variables
-
-        //- Electric potential [V]
-        virtual volScalarField& PotE(bool imaginary=false);
-
-        //- Current density [A/m^2]
-        virtual volVectorField& J(bool imaginary=false);
-
-        //- Magnetic field [T]
-        virtual volVectorField& B(bool imaginary=false);
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

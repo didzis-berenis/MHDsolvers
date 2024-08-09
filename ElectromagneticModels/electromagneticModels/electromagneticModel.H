@@ -84,6 +84,8 @@ class electromagneticModel
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        // Switch for updating electromagnetics
+
         bool correctElectromagnetics_ = false;
 
 protected:
@@ -96,9 +98,20 @@ protected:
 
         // Fields
 
-            //- Temperature [K]
-            volScalarField sigma_;
-            dimensionedScalar sigmaConst_;
+        //- Electrical conductivity [S/m]
+        volScalarField sigma_;
+        dimensionedScalar sigmaConst_;
+
+        // Lorentz force
+
+        volVectorField JxB_;
+
+        // Joule heating
+
+        volScalarField JJsigma_;
+
+        //- Inverse Electric conductivity [m/S]
+        volScalarField sigmaInv_;
 
     // Protected Static Member Functions
 
@@ -204,6 +217,12 @@ public:
 
     // Member Functions
 
+        // Lorentz force
+        volVectorField& JxB;
+
+        // Joule heating
+        volScalarField& JJsigma;
+
         //- Properties dictionary
         virtual const IOdictionary& properties() const = 0;
 
@@ -219,31 +238,46 @@ public:
         //- Phase name
         virtual const word& phaseName() const = 0;
 
+        //- Inverse Electric conductivity [m/S]
+        virtual const volScalarField sigmaInv() const = 0;
+
         //- Electric conductivity [S/m]
-        virtual volScalarField sigma() const = 0;
+        virtual volScalarField sigma() = 0;
+
+        //- Electric conductivity [S/m]
+        virtual const volScalarField sigma() const = 0;
 
         //- Electric conductivity for patch [S/m]
         virtual scalarField sigma(const label patchi) const;
 
         //- Electric conductivity [S/m]
-        virtual dimensionedScalar sigmaConst() const = 0;
+        virtual const dimensionedScalar sigmaConst() const = 0;
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) = 0;
 
+        //- Electric potential [V]
+        virtual const volScalarField& PotE(bool imaginary=false) const = 0;
+
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) = 0;
+
+        //- Current density [A/m^2]
+        virtual const volVectorField& J(bool imaginary=false) const = 0;
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) = 0;
 
-        //- Update the velocity difference.
+        //- Magnetic field [T]
+        virtual const volVectorField& B(bool imaginary=false) const = 0;
+
+        //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();
 
-        //- Update the velocity difference.
+        //- Set correctElectromagnetics switch to false
         virtual void setCorrected();
 
-        //- Calculate and return current magnetic Reynolds number difference.
+        //- Get correctElectromagnetics switch value
         virtual bool correctElectromagnetics() const;
 
         //- return field from object registry
