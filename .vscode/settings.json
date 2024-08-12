@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "electromagneticModels.C": "cpp",
+        "externalElectricPotentialFvPatchScalarField.C": "cpp",
+        "electromagneticModelTemplates.C": "cpp",
+        "harmonicElectromagneticModel.C": "cpp",
+        "transientElectromagneticModel.C": "cpp",
+        "conductingFluid.C": "cpp",
+        "electromagneticModel.C": "cpp",
+        "coupledElectricPotentialFvPatchScalarField.C": "cpp"
+    }
+}

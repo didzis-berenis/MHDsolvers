@@ -95,7 +95,6 @@ protected:
         //- Phase-name
         const word& phaseName_;
 
-
         // Fields
 
         //- Electrical conductivity [S/m]
@@ -224,34 +223,34 @@ public:
         volScalarField& JJsigma;
 
         //- Properties dictionary
-        virtual const IOdictionary& properties() const = 0;
+        //virtual const IOdictionary& properties() const = 0;
 
         //- Read model coefficients if they have changed
-        virtual bool read() = 0;
+        virtual bool read();// = 0;
 
         //- Non-const access the properties dictionary
-        virtual IOdictionary& properties() = 0;
+        //virtual IOdictionary& properties() = 0;
 
         //- Return const access to the mesh
-        virtual const fvMesh& mesh() const = 0;
+        //virtual const fvMesh& mesh() const = 0;
 
         //- Phase name
-        virtual const word& phaseName() const = 0;
+        virtual const word& phaseName() const;// = 0;
 
         //- Inverse Electric conductivity [m/S]
-        virtual const volScalarField sigmaInv() const = 0;
+        virtual const volScalarField sigmaInv() const;// = 0;
 
         //- Electric conductivity [S/m]
         virtual volScalarField sigma() = 0;
 
         //- Electric conductivity [S/m]
-        virtual const volScalarField sigma() const = 0;
+        virtual const volScalarField sigma() const;// = 0;
 
         //- Electric conductivity for patch [S/m]
         virtual scalarField sigma(const label patchi) const;
 
         //- Electric conductivity [S/m]
-        virtual const dimensionedScalar sigmaConst() const = 0;
+        virtual const dimensionedScalar sigmaConst() const;// = 0;
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) = 0;
@@ -283,8 +282,8 @@ public:
         //- return field from object registry
         virtual volVectorField& getVectorFromRegistry(const char* name);
 
-        //- Name of the thermo physics
-        virtual word electromagneticName() const = 0;
+        //- For determining if model fields has imaginary parts
+        virtual bool isComplex() const = 0;
 
         //- Predict the electromagnetic model coefficients if possible
         //  without solving electromagnetic model equations

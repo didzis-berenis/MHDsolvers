@@ -80,7 +80,7 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
     return PotE_;
 }
 
-const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
+const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary) const
 {
     return PotE_;
 }
@@ -97,12 +97,17 @@ Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
 {
-    return getVectorFromRegistry(JName_);
+    return J();
 }
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
 {
-    return getVectorFromRegistry(BName_);
+    return B();
+}
+
+bool Foam::transientElectromagneticModel::isComplex() const
+{
+    return isComplex_;
 }
 
 // ************************************************************************* //

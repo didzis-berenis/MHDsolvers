@@ -111,6 +111,14 @@ Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
     return thermo_.T();
 }
 */
+Foam::tmp<Foam::volVectorField>& Foam::solvers::conductingFluid::JUB(bool imaginary)
+{
+    if (imaginary)
+    {
+        return JUBim_;
+    }
+    return JUBre_;
+}
 void Foam::solvers::conductingFluid::prePredictor()
 {
     isothermalFluid::prePredictor();

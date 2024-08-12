@@ -62,6 +62,10 @@ class transientElectromagneticModel
 
     //- Magnetic field [T]
     const char* BName_ = "B";
+
+    //- isComplex_ switch for solvers
+    // false for transient models
+    const bool isComplex_ = false;
 public:
 
 
@@ -94,6 +98,31 @@ public:
 
     //- Destructor
     virtual ~transientElectromagneticModel();
+
+
+    // Member Functions
+
+        //- Electric potential [V]
+        virtual volScalarField& PotE(bool imaginary=false);
+
+        //- Electric potential [V]
+        virtual const volScalarField& PotE(bool imaginary=false) const;
+
+        //- Current density [A/m^2]
+        virtual volVectorField& J(bool imaginary=false);
+
+        //- Current density [A/m^2]
+        virtual const volVectorField& J(bool imaginary=false) const;
+
+        //- Magnetic field [T]
+        virtual volVectorField& B(bool imaginary=false);
+
+        //- Magnetic field [T]
+        virtual const volVectorField& B(bool imaginary=false) const;
+
+        //- For determining if model fields has imaginary parts
+        virtual bool isComplex() const;
+
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

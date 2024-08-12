@@ -74,6 +74,11 @@ class harmonicElectromagneticModel
         //- imaginary
         const char* BimName_ = "Bim";
 
+    //- isComplex_ switch for solvers
+        // true for harmonic models
+        // fields have imaginary components
+        const bool isComplex_ = true;
+
 public:
 
 
@@ -117,6 +122,30 @@ public:
 
     //- Destructor
     virtual ~harmonicElectromagneticModel();
+
+
+    // Member Functions
+
+        //- Electric potential [V]
+        virtual volScalarField& PotE(bool imaginary);
+
+        //- Electric potential [V]
+        virtual const volScalarField& PotE(bool imaginary) const;
+
+        //- Current density [A/m^2]
+        virtual volVectorField& J(bool imaginary);
+
+        //- Current density [A/m^2]
+        virtual const volVectorField& J(bool imaginary) const;
+
+        //- Magnetic field [T]
+        virtual volVectorField& B(bool imaginary);
+
+        //- Magnetic field [T]
+        virtual const volVectorField& B(bool imaginary) const;
+
+        //- For determining if model fields has imaginary parts
+        virtual bool isComplex() const;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

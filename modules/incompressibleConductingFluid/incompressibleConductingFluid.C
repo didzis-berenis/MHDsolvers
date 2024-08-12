@@ -47,19 +47,26 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
 :
     incompressibleFluid(mesh),
 
-    JxB_
+    electro_
+    (
+        electromagneticModel::New(mesh)
+    ),
+
+    electro(electro_),
+
+    U_old_
     (
         IOobject
         (
-            "JxB",
-            runTime.name(),
+            "U_old",
+            mesh.time().name(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        mesh,
-        dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
+        U_
     ),
+
     rho_
     (
         "rho",
@@ -76,7 +83,7 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
             )
         )
     ),
-    JxB(JxB_),
+
     rho(rho_)
 {
 }
@@ -89,7 +96,7 @@ Foam::solvers::incompressibleConductingFluid::~incompressibleConductingFluid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-
+/*
 void Foam::solvers::incompressibleConductingFluid::setJxB(volVectorField& JxB)
 {   
     JxB_=JxB;
@@ -104,6 +111,30 @@ Foam::volScalarField& Foam::solvers::incompressibleConductingFluid::getPressure(
 {   
     return p_;
 }
+*/
+Foam::tmp<Foam::volVectorField>& Foam::solvers::incompressibleConductingFluid::JUB(bool imaginary)
+{
+    if (imaginary)
+    {
+        return JUBim_;
+    }
+    return JUBre_;
+}
 
+
+void Foam::solvers::incompressibleConductingFluid::postSolve()
+{
+    incompressibleFluid::postSolve();
+
+    if (electro.correctElectromagnetics())
+    {
+        electromagneticPredictor();
+    }
+}
+
+void Foam::solvers::incompressibleConductingFluid::setCorrectElectromagnetics()
+{
+    electro_->setCorrectElectromagnetics();
+}
 
 // ************************************************************************* //

@@ -77,12 +77,35 @@ Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScala
 }
 */
 
+void Foam::solvers::conductingSolid::postSolve()
+{
+    solid::postSolve();
+
+    if (electro.correctElectromagnetics())
+    {
+        electromagneticPredictor();
+    }
+}
+
 void Foam::solvers::conductingSolid::electromagneticPredictor()
 {
+    bool imaginary = electro.isComplex();
+    //Get references for modification
     //Lorentz force term
-    electro_->JxB =  electro.J() ^ electro.B();
+    electro_->JxB =
+    0.5*(
+        (electro.J() ^ electro.B() )
+        +(electro.J(imaginary) ^ electro.B(imaginary) )
+    );
     //Joule heating
-	electro_->JJsigma = (electro.J() & electro.J())*electro.sigmaInv();//multiply by inverse of sigma
+    //multiply by inverse of sigma to avoid division by zero
+    electro_->JJsigma =
+    0.5*(
+        (electro.J() & electro.J())
+        +(electro.J(imaginary) & electro.J(imaginary))
+    )*electro.sigmaInv();
+
+    electro_->setCorrected();
 }
 
 void Foam::solvers::conductingSolid::setCorrectElectromagnetics()

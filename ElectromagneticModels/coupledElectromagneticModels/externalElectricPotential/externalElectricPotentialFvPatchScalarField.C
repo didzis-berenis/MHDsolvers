@@ -43,7 +43,7 @@ externalElectricPotentialFvPatchScalarField
     I_(haveI_ ? dict.lookup<scalar>("I") : NaN),
     haveJ_(dict.found("J")),
     J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
-    ePotExt_(havePot_ ? Function1<scalar>::New("ePotExt", dict).ptr() : nullptr)
+    ePotExt_(havePot_ ? Function1<scalar>::New("PotEa", dict).ptr() : nullptr)
     /*,
     thicknessLayers_
     (

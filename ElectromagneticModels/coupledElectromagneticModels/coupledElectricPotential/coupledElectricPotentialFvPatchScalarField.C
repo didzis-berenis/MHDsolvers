@@ -100,7 +100,7 @@ coupledElectricPotentialFvPatchScalarField
 :
     mixedFvPatchScalarField(p, iF, dict, false),
     //JName_(dict.lookupOrDefault<word>("J", "J")),
-    ePotnbrName_(dict.lookupOrDefault<word>("ePot", "ePot"))
+    ePotnbrName_(dict.lookupOrDefault<word>("PotE", "PotE"))
 {
     mappedPatchBase::validateMapForField
     (

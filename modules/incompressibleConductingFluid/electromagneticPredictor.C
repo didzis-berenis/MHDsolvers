@@ -23,10 +23,13 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "conductingFluid.H"
+#include "incompressibleConductingFluid.H"
+#include "fvmDiv.H"
+#include "fvmLaplacian.H"
+#include "fvcSnGrad.H"
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-void Foam::solvers::conductingFluid::correctJ(bool imaginary)
+void Foam::solvers::incompressibleConductingFluid::correctJ(bool imaginary)
 {
     //Interpolating cross product u x B over mesh faces
     surfaceScalarField psiUB = fvc::interpolate((U_-U_old_) ^ electro.B(imaginary)) & mesh.Sf();
@@ -65,7 +68,7 @@ void Foam::solvers::conductingFluid::correctJ(bool imaginary)
     JUBRef.correctBoundaryConditions();
 }
 
-void Foam::solvers::conductingFluid::electromagneticPredictor()
+void Foam::solvers::incompressibleConductingFluid::electromagneticPredictor()
 {
         correctJ();
         bool imaginary = electro.isComplex();

@@ -120,5 +120,10 @@ const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary
     return B(imaginary);
 }
 
+bool Foam::harmonicElectromagneticModel::isComplex() const
+{
+    return isComplex_;
+}
+
 
 // ************************************************************************* //
