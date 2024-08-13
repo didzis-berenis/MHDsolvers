@@ -11,12 +11,11 @@ volVectorField UGlobal
         "U",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
+    meshGlobal,
+    dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
 volVectorField U_oldGlobal
 (
@@ -37,12 +36,11 @@ volScalarField pGlobal
         "p",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
+    meshGlobal,
+    dimensionedScalar(dimPressure, 0)
 );
 volScalarField TGlobal
 (
@@ -51,12 +49,11 @@ volScalarField TGlobal
         "T",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
+    meshGlobal,
+    dimensionedScalar(dimTemperature, 0)
 );
 volScalarField JJsigmaGlobal
 (
@@ -65,10 +62,11 @@ volScalarField JJsigmaGlobal
         "JJsigma",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
 );
 
 volVectorField JxBGlobal
@@ -78,10 +76,11 @@ volVectorField JxBGlobal
         "JxB",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
 volScalarField GeometryIdsGlobal
 (
@@ -91,7 +90,7 @@ volScalarField GeometryIdsGlobal
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal,
     dimensionedScalar(dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
@@ -130,7 +129,7 @@ surfaceScalarField phi
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal,
     dimensionedScalar(dimensionSet(1, 0, -1, 0, 0, 0, 0), 0)
@@ -157,7 +156,7 @@ forAll(regionNames, i)
 {
     regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
 }
-List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
+//List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds"};
 
 auto alphaWriteOptionGlobal = IOobject::NO_WRITE;
@@ -185,11 +184,11 @@ if (solidificationGlobalEnabled)
 }
 
 //Update field paths to include alpha1
-fieldPaths = getFieldPaths(meshGlobal);
-
+//fieldPaths = getFieldPaths(meshGlobal);
+/*
 forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();
     keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
-}
+}*/
 

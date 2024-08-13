@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         {
             regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
         }
-        fieldPaths = getFieldPaths(meshGlobal);
+        //fieldPaths = getFieldPaths(meshGlobal);
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
@@ -194,6 +194,11 @@ int main(int argc, char *argv[])
                 solvers[i].postCorrector();
             }
         }
+
+        forAll(solvers, i)
+        {
+            solvers[i].postSolve();
+        }
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
@@ -205,10 +210,17 @@ int main(int argc, char *argv[])
             #include "setTransientPotential.H"
         #endif
 
-        forAll(solvers, i)
+        // Calculate electric potential if current density will not be updated
+        if (!doElmer)
         {
-            solvers[i].postSolve();
+            solvers.setCorrectElectromagnetics();
         }
+        forAll(regionNames, i)
+        {
+            solvers.solveElectromagnetics(regionNames[i]);
+        }
+        JxBGlobal = solvers.getGlobalJxB();
+        JJsigmaGlobal = solvers.getGlobalJJsigma();
 
         solvers.setGlobalPrefix();
         //Update liquid-solid phase fraction

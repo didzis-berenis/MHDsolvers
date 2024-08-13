@@ -109,6 +109,8 @@ class conductingRegionSolvers
         solvers::conductingFluid* getFluidPtr_(const word regionName);
 
         solvers::conductingSolid* getSolidPtr_(const word regionName);
+        //- Region solvers
+        autoPtr<fvMesh> globalMesh_;
 
 
 public:
@@ -143,6 +145,10 @@ public:
         // Return region fvMesh
         fvMesh& mesh(const word regionName);
 
+        const fvMesh& globalMesh();
+
+        std::map<std::pair<word, label>, label> localToGlobalID;
+
         // Assign volume force to the solver
         //void setJxB(const word regionName, volVectorField& field);
 
@@ -166,6 +172,9 @@ public:
 
         //- Set correctElectromagnetics switch to true for all conducting regions
         void setCorrectElectromagnetics();
+
+        //- solve electromagnetics for region
+        void solveElectromagnetics(const word regionName);
 
         // Get names
         List<Pair<word>> getNames();

@@ -1,5 +1,6 @@
 // Read global mesh of all regions
-fvMesh meshGlobal
+const fvMesh& meshGlobal = solvers.globalMesh();
+/*
 (
     IOobject
     (
@@ -9,7 +10,6 @@ fvMesh meshGlobal
         IOobject::MUST_READ
     )
 );
-
 IOList<label> cellToRegion
 (
     IOobject
@@ -22,8 +22,14 @@ IOList<label> cellToRegion
     )
 
 );
-
+*/
+localToGlobalID = solvers.localToGlobalID;
+forAll(solvers.getNames(), i)
+{
+    regionNames.append(solvers.getNames()[i].first());
+}
 //int offset = 0;
+/*
 forAll(meshGlobal.cellZones(), zoneI)
 {
     const cellZone& cZone = meshGlobal.cellZones()[zoneI];
@@ -35,4 +41,4 @@ forAll(meshGlobal.cellZones(), zoneI)
     {
         localToGlobalID[std::make_pair(cZone.name(),cellI)] = cZone[cellI];
     }
-}
+}*/

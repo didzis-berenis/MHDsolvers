@@ -10,10 +10,9 @@ else
 }
 
 // Calculate electric potential if current density will not be updated
-if (!doElmer)
+
+/*if (!doElmer)
 {
-    solvers.setCorrectElectromagnetics();
-/*
     fvMesh& mesh = meshGlobal;
     volVectorField& U = UGlobal;
     volVectorField& U_old = U_oldGlobal;
@@ -30,5 +29,5 @@ if (!doElmer)
 	JJsigmaGlobal = ((J+JUB) & (J+JUB))*sigmaGlobalInv;//multiply by inverse of sigmaGlobal
     #include "updateRegionFieldsEM.H"
     
-*/
 }
+*/

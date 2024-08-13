@@ -122,10 +122,8 @@ Foam::tmp<Foam::volVectorField>& Foam::solvers::incompressibleConductingFluid::J
 */
 
 
-void Foam::solvers::incompressibleConductingFluid::postSolve()
+void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics();
 {
-    incompressibleFluid::postSolve();
-
     if (electro.correctElectromagnetics())
     {
         // Update deltaU

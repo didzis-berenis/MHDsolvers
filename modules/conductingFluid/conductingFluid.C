@@ -141,10 +141,8 @@ void Foam::solvers::conductingFluid::postCorrector()
 }
 
 
-void Foam::solvers::conductingFluid::postSolve()
+void Foam::solvers::conductingFluid::solveElectromagnetics();
 {
-    isothermalFluid::postSolve();
-
     if (electro.correctElectromagnetics())
     {
         // Update deltaU

@@ -97,6 +97,68 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     {
         prefixes_[i].append(nRegionNameChars - prefixes_[i].size(), ' ');
     }
+
+    int points_size = 0;
+    int face_size = 0;
+    int cell_size = 0;
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        fvMesh& regionMesh = regions_[i];
+        points_size += regionMesh.points().size();
+        face_size += regionMesh.faces().size();
+        cell_size += regionMesh.cells().size();
+    }
+	const label size_p = points_size;	
+	const label size_f = face_size;	
+	const label size_c = cell_size;	
+    //- list for keeping vector values of field
+	List<vector> list_p;
+	list_p.setSize(size_p);
+	faceList list_f;
+	list_f.setSize(size_f);
+	cellList list_c;
+	list_c.setSize(size_c);
+    int globalId = 0;
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        fvMesh& regionMesh = regions_[i];
+        const pointField points = regionMesh.points();
+        forAll(points, cellI)
+        {
+            list_p[cellI] = points[cellI];
+        }
+        const faceList faces = regionMesh.faces();
+        forAll(faces, cellI)
+        {
+            list_f[cellI] = faces[cellI];
+        }
+        const cellList cells = regionMesh.cells();
+        forAll(cells, cellI)
+        {
+            list_c[cellI] = cells[cellI];
+            localToGlobalID[std::make_pair(regionName,cellI)] = globalId++;
+        }
+    }
+    //- reference list used for setting values to field  
+	//const vectorUList& Ulist_v(list_v);
+    //field.internalField() = vectorField(Ulist_v);
+
+    globalMesh_ = new fvMesh
+        (
+            IOobject
+            (
+                fvMesh::defaultRegion,
+                runTime.timeName(),
+                runTime,
+                IOobject::NO_READ
+            ),
+            pointField(list_p),
+            faceList(list_f),
+            cellList(list_c),
+            false
+        );
 }
 
 
@@ -153,8 +215,37 @@ Foam::solvers::conductingSolid* Foam::conductingRegionSolvers::getSolidPtr_(cons
     return nullptr;
 }
 
-// Return region fvMesh
+void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)
+{
+    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
+    Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
+    if (fluidPtr)
+    {
+        fluidPtr->solveElectromagnetics();
+    }
+    else if (solidPtr)
+    {
+        solidPtr->solveElectromagnetics();
+    }
+    else
+    {
+        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot solve electromagnetics!\n"; 
+    }
+}
+
+const Foam::fvMesh& Foam::conductingRegionSolvers::globalMesh()
+{
+    return globalMesh_;
+}
+
 /*
+volVectorField getGlobalJxB()
+{
+
+}
+
+// Return region fvMesh
 void Foam::conductingRegionSolvers::setJxB(const word regionName, Foam::volVectorField& field)
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);

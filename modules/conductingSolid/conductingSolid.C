@@ -77,10 +77,8 @@ Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScala
 }
 */
 
-void Foam::solvers::conductingSolid::postSolve()
+void Foam::solvers::conductingSolid::solveElectromagnetics();
 {
-    solid::postSolve();
-
     if (electro.correctElectromagnetics())
     {
         electroPtr->predict();

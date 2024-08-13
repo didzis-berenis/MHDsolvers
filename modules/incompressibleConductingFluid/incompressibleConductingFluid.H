@@ -110,6 +110,7 @@ public:
 
         //- Solve electromagnetic modelling
         virtual void postSolve();
+        virtual void solveElectromagnetics();
         //virtual void correctJ(bool imaginary=false);
         //virtual void electromagneticPredictor();
 

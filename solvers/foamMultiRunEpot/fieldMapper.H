@@ -2,7 +2,7 @@
 #include <set>
 std::map<word, bool> keepField;
 
-List<Pair<word>> getFieldPaths(fvMesh& regionMesh)
+List<Pair<word>> getFieldPaths(const fvMesh& regionMesh)
 {
     List<Pair<word>> fieldPaths;
     // get volScalarFields

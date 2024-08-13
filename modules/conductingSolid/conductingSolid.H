@@ -94,6 +94,7 @@ public:
         //- Reference to the fluid fluid electromagnetic properties
         const electromagneticModel& electro;
         virtual void postSolve();
+        virtual void solveElectromagnetics();
 
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();

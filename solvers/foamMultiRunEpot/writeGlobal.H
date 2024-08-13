@@ -59,6 +59,7 @@ forAll(regionNames, i)
     //Pout << "Deleting folder " << regionPaths[i] << " was " <<
     fileHandler().rmDir(regionPaths[i]);//<< endl;
 }
+/*
 forAll(fieldPaths, i)
 {
     if (!keepField[fieldPaths[i].first()])
@@ -66,4 +67,4 @@ forAll(fieldPaths, i)
         //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
         fileHandler().rm(fieldPaths[i].second());//<< endl;
     }
-}
+}*/
