@@ -60,6 +60,12 @@ class harmonicElectromagneticModel
         //- imaginary
         volScalarField PotEim_;
 
+    //- Current density correction [A/m^2]
+        //real
+        tmp<volVectorField> deltaJre_;
+        //imaginary
+        tmp<volVectorField> deltaJim_;
+
     //- Current density [A/m^2]
         //- real
         const char* JreName_ = "Jre";
@@ -127,22 +133,16 @@ public:
     // Member Functions
 
         //- Electric potential [V]
-        virtual volScalarField& PotE(bool imaginary);
-
-        //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary) const;
+        virtual volScalarField& PotE(bool imaginary=false);
 
         //- Current density [A/m^2]
-        virtual volVectorField& J(bool imaginary);
-
-        //- Current density [A/m^2]
-        virtual const volVectorField& J(bool imaginary) const;
+        virtual volVectorField& J(bool imaginary=false);
 
         //- Magnetic field [T]
-        virtual volVectorField& B(bool imaginary);
+        virtual volVectorField& B(bool imaginary=false);
 
-        //- Magnetic field [T]
-        virtual const volVectorField& B(bool imaginary) const;
+        //- Current density correction [A/m^2]
+        virtual tmp<volVectorField>& deltaJ(bool imaginary=false);
 
         //- For determining if model fields has imaginary parts
         virtual bool isComplex() const;

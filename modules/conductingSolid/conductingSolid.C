@@ -47,12 +47,12 @@ Foam::solvers::conductingSolid::conductingSolid
 :
     solid(mesh),
 
-    electro_
+    electroPtr
     (
         electromagneticModel::New(mesh)
     ),
 
-    electro(electro_)
+    electro(electroPtr)
 {
 }
 
@@ -83,34 +83,13 @@ void Foam::solvers::conductingSolid::postSolve()
 
     if (electro.correctElectromagnetics())
     {
-        electromagneticPredictor();
+        electroPtr->predict();
     }
-}
-
-void Foam::solvers::conductingSolid::electromagneticPredictor()
-{
-    bool imaginary = electro.isComplex();
-    //Get references for modification
-    //Lorentz force term
-    electro_->JxB =
-    0.5*(
-        (electro.J() ^ electro.B() )
-        +(electro.J(imaginary) ^ electro.B(imaginary) )
-    );
-    //Joule heating
-    //multiply by inverse of sigma to avoid division by zero
-    electro_->JJsigma =
-    0.5*(
-        (electro.J() & electro.J())
-        +(electro.J(imaginary) & electro.J(imaginary))
-    )*electro.sigmaInv();
-
-    electro_->setCorrected();
 }
 
 void Foam::solvers::conductingSolid::setCorrectElectromagnetics()
 {
-    electro_->setCorrectElectromagnetics();
+    electroPtr->setCorrectElectromagnetics();
 }
 
 // ************************************************************************* //

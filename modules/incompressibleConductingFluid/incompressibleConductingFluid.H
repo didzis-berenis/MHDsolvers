@@ -59,19 +59,19 @@ class incompressibleConductingFluid
 protected:
 
     //- Pointer to the electromagnetic model
-        autoPtr<electromagneticModel> electro_;
+        autoPtr<electromagneticModel> electroPtr;
 
     //- Store old velocity field
         volVectorField U_old_;
 
     //- Current correction
         //real
-        tmp<volVectorField> JUBre_;
+        //tmp<volVectorField> JUBre_;
         //imaginary
-        tmp<volVectorField> JUBim_;
+        //tmp<volVectorField> JUBim_;
 
         // Get velocity from solver
-        virtual tmp<volVectorField>& JUB(bool imaginary=false);
+        //virtual tmp<volVectorField>& JUB(bool imaginary=false);
 
     // density
 
@@ -110,8 +110,8 @@ public:
 
         //- Solve electromagnetic modelling
         virtual void postSolve();
-        virtual void correctJ(bool imaginary=false);
-        virtual void electromagneticPredictor();
+        //virtual void correctJ(bool imaginary=false);
+        //virtual void electromagneticPredictor();
 
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();

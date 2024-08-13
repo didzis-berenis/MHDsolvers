@@ -29,12 +29,12 @@ License
 #include "fvcSnGrad.H"
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-void Foam::solvers::incompressibleConductingFluid::correctJ(bool imaginary)
+void Foam::solvers::incompressibleConductingFluid::deltaJ(volVectorField& deltaU, bool imaginary)
 {
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate((U_-U_old_) ^ electro.B(imaginary)) & mesh.Sf();
+    surfaceScalarField psiUB = fvc::interpolate(deltaU ^ electro.B(imaginary)) & mesh.Sf();
     //Get reference for modification
-    volScalarField& PotE = electro_->PotE(imaginary);
+    volScalarField& PotE = electroPtr->PotE(imaginary);
     //Const access
     volScalarField sigma = electro.sigma();
     //Poisson equation for electric potential
@@ -70,30 +70,30 @@ void Foam::solvers::incompressibleConductingFluid::correctJ(bool imaginary)
 
 void Foam::solvers::incompressibleConductingFluid::electromagneticPredictor()
 {
-        correctJ();
+        volVectorField deltaU = U_-U_old_;
         bool imaginary = electro.isComplex();
+        //Get J difference by incorporating deltaU x B term
+        volVectorField deltaJre = electro.deltaJ(deltaU);
+        volVectorField deltaJim = deltaJre;
         if (imaginary)
         {
-            correctJ(imaginary);
+            deltaJim = electro.deltaJ(deltaU, imaginary);
         }
 
         //Get references for modification
         //Lorentz force term
-        electro_->JxB =
+        electroPtr->JxB =
         0.5*(
-            ((electro.J()+JUB()) ^ electro.B() )
-            +((electro.J(imaginary)+JUB(imaginary)) ^ electro.B(imaginary) )
+            ((electro.J()+deltaJre) ^ electro.B() )
+            +((electro.J(imaginary)+deltaJim) ^ electro.B(imaginary) )
         );
         //Joule heating
         //multiply by inverse of sigma to avoid division by zero
-        electro_->JJsigma =
+        electroPtr->JJsigma =
         0.5*(
-            ((electro.J()+JUB()) & (electro.J()+JUB()))
-            +((electro.J(imaginary)+JUB(imaginary)) & (electro.J(imaginary)+JUB(imaginary)))
+            ((electro.J()+deltaJre) & (electro.J()+deltaJre))
+            +((electro.J(imaginary)+deltaJim) & (electro.J(imaginary)+deltaJim))
         )*electro.sigmaInv();
-        //Store old velocity for next update
-        U_old_ = U_;
-        electro_->setCorrected();
 }
 
 

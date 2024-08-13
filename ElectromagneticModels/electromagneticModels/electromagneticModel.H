@@ -112,6 +112,7 @@ protected:
         //- Inverse Electric conductivity [m/S]
         volScalarField sigmaInv_;
 
+
     // Protected Static Member Functions
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -216,59 +217,11 @@ public:
 
     // Member Functions
 
-        // Lorentz force
-        volVectorField& JxB;
-
-        // Joule heating
-        volScalarField& JJsigma;
-
-        //- Properties dictionary
-        //virtual const IOdictionary& properties() const = 0;
+        //- Velocity difference
+        tmp<volVectorField> deltaU;
 
         //- Read model coefficients if they have changed
-        virtual bool read();// = 0;
-
-        //- Non-const access the properties dictionary
-        //virtual IOdictionary& properties() = 0;
-
-        //- Return const access to the mesh
-        //virtual const fvMesh& mesh() const = 0;
-
-        //- Phase name
-        virtual const word& phaseName() const;// = 0;
-
-        //- Inverse Electric conductivity [m/S]
-        virtual const volScalarField sigmaInv() const;// = 0;
-
-        //- Electric conductivity [S/m]
-        virtual volScalarField sigma() = 0;
-
-        //- Electric conductivity [S/m]
-        virtual const volScalarField sigma() const;// = 0;
-
-        //- Electric conductivity for patch [S/m]
-        virtual scalarField sigma(const label patchi) const;
-
-        //- Electric conductivity [S/m]
-        virtual const dimensionedScalar sigmaConst() const;// = 0;
-
-        //- Electric potential [V]
-        virtual volScalarField& PotE(bool imaginary=false) = 0;
-
-        //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary=false) const = 0;
-
-        //- Current density [A/m^2]
-        virtual volVectorField& J(bool imaginary=false) = 0;
-
-        //- Current density [A/m^2]
-        virtual const volVectorField& J(bool imaginary=false) const = 0;
-
-        //- Magnetic field [T]
-        virtual volVectorField& B(bool imaginary=false) = 0;
-
-        //- Magnetic field [T]
-        virtual const volVectorField& B(bool imaginary=false) const = 0;
+        virtual bool read();
 
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();
@@ -279,19 +232,109 @@ public:
         //- Get correctElectromagnetics switch value
         virtual bool correctElectromagnetics() const;
 
+        //- calculate and return J correction difference
+        virtual volVectorField findDeltaJ(bool imaginary=false);
+
+        //- Lorentz force [N/m^3]
+        //virtual volVectorField& JxB();
+
+        // Joule heating [W/m^3]
+        //virtual volScalarField& JJsigma();
+
+        //- Inverse Electric conductivity [m/S]
+        virtual volScalarField& sigmaInv();
+
+        //- Electric conductivity [S/m]
+        virtual volScalarField& sigma();
+
+        //- Electric conductivity for patch [S/m]
+        //virtual scalarField sigma(const label patchi) const;
+
+        //- Electric conductivity [S/m]
+        //virtual dimensionedScalar sigmaConst();
+
+        //- return field from object registry
+        virtual volScalarField& getScalarFromRegistry(const char* name);
+
         //- return field from object registry
         virtual volVectorField& getVectorFromRegistry(const char* name);
 
-        //- For determining if model fields has imaginary parts
-        virtual bool isComplex() const = 0;
-
         //- Predict the electromagnetic model coefficients if possible
         //  without solving electromagnetic model equations
-        virtual void predict() = 0;
+        virtual void predict();
 
         //- Solve the electromagnetic model equations
         //- Update properties
-        virtual void correct() = 0;
+        virtual void correct();
+
+        virtual void updateDeltaU(const volVectorField& Udiff);
+
+        //Template functions for derived classes
+
+        //- Electric potential [V]
+        virtual volScalarField& PotE(bool imaginary=false) = 0;
+
+        //- Current density [A/m^2]
+        virtual volVectorField& J(bool imaginary=false) = 0;
+
+        //- Magnetic field [T]
+        virtual volVectorField& B(bool imaginary=false) = 0;
+
+        //- Current density correction [A/m^2]
+        virtual tmp<volVectorField>& deltaJ(bool imaginary=false) = 0;
+
+        //- For determining if model fields has imaginary parts
+        virtual bool isComplex() const = 0;
+        
+        //- Non-const access the properties dictionary
+        virtual IOdictionary& properties() = 0;
+
+        //- Return const access to the mesh
+        virtual const fvMesh& mesh() const = 0;
+
+        //Read-only access
+
+        //- Phase name
+        virtual const word& phaseName() const = 0;
+
+        //- Properties dictionary
+        virtual const IOdictionary& properties() const = 0;
+
+        //- Electric conductivity [S/m]
+        virtual const volScalarField& sigma() const;
+
+        //- Electric conductivity for patch [S/m]
+        virtual scalarField sigma(const label patchi) const;
+
+        //- Inverse Electric conductivity [m/S]
+        virtual const volScalarField& sigmaInv() const;
+
+        //- Electric conductivity [S/m]
+        virtual const dimensionedScalar sigmaConst() const;
+
+        //- Electric potential [V]
+        virtual const volScalarField& PotE(bool imaginary=false) const;
+
+        //- Current density [A/m^2]
+        virtual const volVectorField& J(bool imaginary=false) const;
+
+        //- Magnetic field [T]
+        virtual const volVectorField& B(bool imaginary=false) const;
+
+        //- Current density correction [A/m^2]
+        virtual const tmp<volVectorField>& deltaJ(bool imaginary=false) const;
+
+        //- Lorentz force [N/m^3]
+        //virtual const volVectorField& JxB() const;
+
+        // Joule heating [W/m^3]
+        //virtual const volScalarField& JJsigma() const;
+
+        // Lorentz force
+        const volVectorField& JxB;
+
+        // Joule heating
+        const volScalarField& JJsigma;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

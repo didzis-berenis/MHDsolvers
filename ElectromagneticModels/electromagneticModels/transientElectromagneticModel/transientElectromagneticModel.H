@@ -57,6 +57,9 @@ class transientElectromagneticModel
     //- Electric potential [V]
     volScalarField PotE_;
 
+    //- Current density correction [A/m^2]
+    tmp<volVectorField> deltaJ_;
+
     //- Current density [A/m^2]
     const char* JName_ = "J";
 
@@ -66,6 +69,7 @@ class transientElectromagneticModel
     //- isComplex_ switch for solvers
     // false for transient models
     const bool isComplex_ = false;
+
 public:
 
 
@@ -105,20 +109,14 @@ public:
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false);
 
-        //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary=false) const;
-
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false);
-
-        //- Current density [A/m^2]
-        virtual const volVectorField& J(bool imaginary=false) const;
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false);
 
-        //- Magnetic field [T]
-        virtual const volVectorField& B(bool imaginary=false) const;
+        //- Current density correction [A/m^2]
+        virtual tmp<volVectorField>& deltaJ(bool imaginary=false);
 
         //- For determining if model fields has imaginary parts
         virtual bool isComplex() const;

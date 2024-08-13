@@ -52,6 +52,8 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
 {
     constructVector(mesh, JName_);
     constructVector(mesh, BName_);
+    //Get boundary conditions from J
+    deltaJ_ = tmp<volVectorField>(J());
 }
 
 
@@ -80,11 +82,6 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
     return PotE_;
 }
 
-const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary) const
-{
-    return PotE_;
-}
-
 Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
 {
     return getVectorFromRegistry(JName_);
@@ -95,14 +92,9 @@ Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
     return getVectorFromRegistry(BName_);
 }
 
-const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
+Foam::tmp<Foam::volVectorField>& Foam::transientElectromagneticModel::deltaJ(bool imaginary)
 {
-    return J();
-}
-
-const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
-{
-    return B();
+    return deltaJ_;
 }
 
 bool Foam::transientElectromagneticModel::isComplex() const

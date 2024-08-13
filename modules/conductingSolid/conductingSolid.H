@@ -59,7 +59,7 @@ class conductingSolid
 protected:
 
     //- Pointer to the electromagnetic model
-        autoPtr<electromagneticModel> electro_;
+        autoPtr<electromagneticModel> electroPtr;
 
 public:
 
@@ -94,7 +94,6 @@ public:
         //- Reference to the fluid fluid electromagnetic properties
         const electromagneticModel& electro;
         virtual void postSolve();
-        virtual void electromagneticPredictor();
 
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();

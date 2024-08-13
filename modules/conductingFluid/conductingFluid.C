@@ -53,12 +53,12 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         )
     ),
 
-    electro_
+    electroPtr
     (
         electromagneticModel::New(mesh)
     ),
 
-    electro(electro_),
+    electro(electroPtr),
 
     U_old_
     (
@@ -110,7 +110,6 @@ Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
 {   
     return thermo_.T();
 }
-*/
 Foam::tmp<Foam::volVectorField>& Foam::solvers::conductingFluid::JUB(bool imaginary)
 {
     if (imaginary)
@@ -119,6 +118,7 @@ Foam::tmp<Foam::volVectorField>& Foam::solvers::conductingFluid::JUB(bool imagin
     }
     return JUBre_;
 }
+*/
 void Foam::solvers::conductingFluid::prePredictor()
 {
     isothermalFluid::prePredictor();
@@ -147,13 +147,18 @@ void Foam::solvers::conductingFluid::postSolve()
 
     if (electro.correctElectromagnetics())
     {
-        electromagneticPredictor();
+        // Update deltaU
+        electroPtr->updateDeltaU(U_ - U_old_);
+        //Correct current density
+        electroPtr->correct();
+        //Store old velocity for next update
+        U_old_ = U_;
     }
 }
 
 void Foam::solvers::conductingFluid::setCorrectElectromagnetics()
 {
-    electro_->setCorrectElectromagnetics();
+    electroPtr->setCorrectElectromagnetics();
 }
 
 // ************************************************************************* //

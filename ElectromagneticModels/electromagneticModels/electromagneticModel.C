@@ -25,6 +25,9 @@ License
 
 #include "electromagneticModel.H"
 #include "zeroGradientFvPatchFields.H"
+#include "fvmDiv.H"
+#include "fvmLaplacian.H"
+#include "fvcSnGrad.H"
 
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -288,36 +291,107 @@ Foam::electromagneticModel::electromagneticModel
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-const Foam::volScalarField Foam::electromagneticModel::sigmaInv() const
+void Foam::electromagneticModel::updateDeltaU(const volVectorField& Udiff)
 {
-    return sigmaInv_;
+    deltaU.clear();
+    deltaU = tmp<volVectorField>(Udiff);
 }
 
-Foam::volScalarField Foam::electromagneticModel::sigma()
+Foam::volVectorField Foam::electromagneticModel::findDeltaJ(bool imaginary)
 {
-    return sigma_;
-}
+    //Interpolating cross product u x B over mesh faces
+    surfaceScalarField psiUB = fvc::interpolate(deltaU ^ B(imaginary)) & mesh_.Sf();
+    //Get reference for modification
+    volScalarField& PotE = this->PotE(imaginary);
+    //Const access
+    volScalarField sigma(sigma_);
+    //Poisson equation for electric potential
+    fvScalarMatrix PotEEqn
+    (
+    fvm::laplacian(sigma,PotE)
+    ==
+    sigma*fvc::div(psiUB)
+    );
+    //Reference potential
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    PotEEqn.setReference(PotERefCell, PotERefValue);
+    //Solving Poisson equation
+    PotEEqn.solve();
 
-const Foam::volScalarField Foam::electromagneticModel::sigma() const
-{
-    return sigma_;
-}
+    //Computation of current density at cell faces
+    surfaceScalarField En = -(fvc::snGrad(PotE) * mesh_.magSf()) + psiUB;
+    //Current density at face center
+    surfaceVectorField Env = En * mesh_.Cf();
+    
+    volVectorField JUB = deltaJ(imaginary).ref();
+    //Interpolation of current density at cell center
+    JUB = sigma*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    //Update current density distribution and boundary condition
+    JUB.correctBoundaryConditions();
 
-const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
-{
-    return sigmaConst_;
-}
-
-Foam::scalarField Foam::electromagneticModel::sigma(const label patchi) const
-{
-    return sigma_.boundaryField()[patchi];
+    return JUB;
 }
 
 void Foam::electromagneticModel::predict()
-{}
+{
+    bool imaginary = isComplex();
+    //Lorentz force term
+    JxB_ =
+    0.5*(
+        (J() ^ B() )
+        +(J(imaginary) ^ B(imaginary) )
+    );
+    //Joule heating
+    //multiply by inverse of sigma to avoid division by zero
+    JJsigma_ =
+    0.5*(
+        (J() & J())
+        +(J(imaginary) & J(imaginary))
+    )*sigmaInv();
+    setCorrected();
+}
 
 void Foam::electromagneticModel::correct()
-{}
+{
+    //volVectorField deltaU = U_-U_old_;
+    //tmp<volVectorField> deltaU = deltaU()
+    bool imaginary = isComplex();
+    if (deltaU.valid())
+    {
+        volVectorField deltaJre = deltaJ();
+        volVectorField deltaJim = deltaJ(imaginary);
+        //Get J difference by incorporating deltaU x B term
+        //volVectorField deltaJre = findDeltaJ(deltaU);
+        deltaJre = findDeltaJ();
+        //volVectorField deltaJim = deltaJre;
+        deltaJim = deltaJre;
+        if (imaginary)
+        {
+            deltaJim = findDeltaJ(imaginary);
+        }
+
+        //Get references for modification
+        //Lorentz force term
+        JxB_ =
+        0.5*(
+            ((J()+deltaJre) ^ B() )
+            +((J(imaginary)+deltaJim) ^ B(imaginary) )
+        );
+        //Joule heating
+        //multiply by inverse of sigma to avoid division by zero
+        JJsigma_ =
+        0.5*(
+            ((J()+deltaJre) & (J()+deltaJre))
+            +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
+        )*sigmaInv();
+        setCorrected();
+    }
+    else
+    {
+        predict();
+    }
+}
 
 bool Foam::electromagneticModel::read()
 {
@@ -327,6 +401,11 @@ bool Foam::electromagneticModel::read()
 Foam::volVectorField& Foam::electromagneticModel::getVectorFromRegistry(const char* name)
 {
     return mesh_.objectRegistry::lookupObjectRef<volVectorField>(name);
+}
+
+Foam::volScalarField& Foam::electromagneticModel::getScalarFromRegistry(const char* name)
+{
+    return mesh_.objectRegistry::lookupObjectRef<volScalarField>(name);
 }
 
 void Foam::electromagneticModel::setCorrectElectromagnetics()
@@ -344,5 +423,77 @@ bool Foam::electromagneticModel::correctElectromagnetics() const
     return correctElectromagnetics_;
 }
 
+Foam::volScalarField& Foam::electromagneticModel::sigma()
+{
+    return sigma_;
+}
+
+Foam::scalarField Foam::electromagneticModel::sigma(const label patchi) const
+{
+    return sigma_.boundaryField()[patchi];
+}
+
+Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
+{
+    return sigmaInv_;
+}
+/*
+Foam::volVectorField& Foam::electromagneticModel::JxB()
+{
+    return JxB_;
+}
+
+Foam::volScalarField& Foam::electromagneticModel::JJsigma()
+{
+    return JJsigma_;
+}
+*/
+// Read only access functions
+
+const Foam::tmp<Foam::volVectorField>& Foam::electromagneticModel::deltaJ(bool imaginary) const
+{
+    return deltaJ(imaginary);
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::sigmaInv() const
+{
+    return sigmaInv();
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::sigma() const
+{
+    return sigma();
+}
+
+const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
+{
+    return sigmaConst_;
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::PotE(bool imaginary) const
+{
+    return PotE(imaginary);
+}
+
+const Foam::volVectorField& Foam::electromagneticModel::J(bool imaginary) const
+{
+    return J(imaginary);
+}
+
+const Foam::volVectorField& Foam::electromagneticModel::B(bool imaginary) const
+{
+    return B(imaginary);
+}
+/*
+const Foam::volVectorField& Foam::electromagneticModel::JxB() const
+{
+    return JxB();
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::JJsigma() const
+{
+    return JJsigma();
+}
+*/
 
 // ************************************************************************* //

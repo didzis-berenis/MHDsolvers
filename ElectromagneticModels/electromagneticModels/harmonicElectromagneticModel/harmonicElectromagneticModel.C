@@ -55,6 +55,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
     constructVector(mesh, JimName_);
     constructVector(mesh, BreName_);
     constructVector(mesh, BimName_);
+    //Get boundary conditions from J
+    deltaJ() = tmp<volVectorField>(J());
+    deltaJ(true) = tmp<volVectorField>(J(true));
 }
 
 
@@ -87,11 +90,6 @@ Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
     return PotEre_;
 }
 
-const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary) const
-{
-    return PotE(imaginary);
-}
-
 Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
     if (imaginary)
@@ -110,14 +108,13 @@ Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
     return getVectorFromRegistry(BreName_);
 }
 
-const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
+Foam::tmp<Foam::volVectorField>& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary)
 {
-    return J(imaginary);
-}
-
-const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const
-{
-    return B(imaginary);
+    if (imaginary)
+    {
+        return deltaJim_;
+    }
+    return deltaJre_;
 }
 
 bool Foam::harmonicElectromagneticModel::isComplex() const

@@ -1,6 +1,5 @@
 conductingFluid.C
 momentumPredictor.C
 thermophysicalPredictor.C
-electromagneticPredictor.C
 
 LIB = $(FOAM_USER_LIBBIN)/libconductingFluid
