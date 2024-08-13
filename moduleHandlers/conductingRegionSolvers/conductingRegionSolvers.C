@@ -154,6 +154,7 @@ Foam::solvers::conductingSolid* Foam::conductingRegionSolvers::getSolidPtr_(cons
 }
 
 // Return region fvMesh
+/*
 void Foam::conductingRegionSolvers::setJxB(const word regionName, Foam::volVectorField& field)
 {
     Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
@@ -187,6 +188,7 @@ void Foam::conductingRegionSolvers::setJJsigma(const word regionName, Foam::volS
         << " or " << solidSolverName_ << "!\n" << "Cannot set JJsigma field!\n"; 
     }
 }
+*/
 /*
 // Return region fvMesh
 Foam::volVectorField& Foam::conductingRegionSolvers::getVelocity(const word regionName)

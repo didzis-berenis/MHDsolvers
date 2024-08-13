@@ -144,10 +144,10 @@ public:
         fvMesh& mesh(const word regionName);
 
         // Assign volume force to the solver
-        void setJxB(const word regionName, volVectorField& field);
+        //void setJxB(const word regionName, volVectorField& field);
 
         // Assign volume heating to the solver
-        void setJJsigma(const word regionName, volScalarField& field);
+        //void setJJsigma(const word regionName, volScalarField& field);
 
         // Get velocity from solver
         //volVectorField& getVelocity(const word regionName);
