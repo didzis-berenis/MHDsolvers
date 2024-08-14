@@ -17,34 +17,36 @@ Elmer<fvMesh> receiving(
         1 // 1=multiregion, 0=exports O2E files
     );
 
-// Get control parameters
 //#if (ELMER_TIME == HARMONIC_TIME)
+//initialize
+scalar maxRemDiff = 0;
+scalar maxRelDiff = 1;
+int writeMultiplier = 1;
+long long int writeCounter = 0;
+word writeControlDict = word::null;
+bool adjustableRunTime = false;
+// Get control parameters
 if (solvers.isElectroHarmonic())
 {
     // Maximum allowable magnetic Reynolds number difference comparing
     // to last Elmer update. This option controls frequency Elmer is called.
     //     (0,inf) - when relative difference in any cell exceeds given value
     //     0     - every iteration
+    maxRemDiff = readScalar(runTime.controlDict().lookup("maxRemDiff"));
 
-    scalar maxRemDiff(readScalar(runTime.controlDict().lookup("maxRemDiff")));
-
-    //
     // Maximum allowable relative field difference in any cell comparing
     // to last Elmer update. This option controls frequency Elmer is called.
     //     >1  - once
     //     1 - magnetic Reynolds number is used instead
     //     (0,1) - when relative difference in any cell exceeds given value
     //     0     - every iteration
-
-    scalar maxRelDiff(readScalar(runTime.controlDict().lookup("maxRelDiff")));
+    maxRelDiff = readScalar(runTime.controlDict().lookup("maxRelDiff"));
 }
 else
 //#elif (ELMER_TIME == TRANSIENT_TIME)
 {
-    int writeMultiplier( readScalar(runTime.controlDict().lookup("writeMultiplier")) );
-    long long int writeCounter = 0;
-    word writeControlDict(runTime.controlDict().lookup("writeControl"));
-    const bool adjustableRunTime = (writeControlDict=="adjustableRunTime");
-
+    writeMultiplier = readScalar(runTime.controlDict().lookup("writeMultiplier"));
+    writeControlDict = word(runTime.controlDict().lookup("writeControl"));
+    adjustableRunTime = (writeControlDict=="adjustableRunTime");
 }
 //#endif

@@ -40,7 +40,6 @@ EXE_LIBS = \
     -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
     -lconductingRegionSolvers \
-    -lelectromagneticModels \
     -lelectroBase \
     $(EOF_LIBS) \
     -lElmer

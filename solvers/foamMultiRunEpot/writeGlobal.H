@@ -1,5 +1,6 @@
 //write selected global fields
 //get velocity fields from fluid domains
+/*
 forAll(regionNames, i)
 {
     const word& regionName = regionNames[i];
@@ -52,19 +53,22 @@ PotEGlobal.write();
 JGlobal.correctBoundaryConditions();
 JGlobal.write();
 #endif
-
+*/
 // Cleanup
+/*
 forAll(regionNames, i)
 {
     //Pout << "Deleting folder " << regionPaths[i] << " was " <<
     fileHandler().rmDir(regionPaths[i]);//<< endl;
-}
-/*
-forAll(fieldPaths, i)
-{
-    if (!keepField[fieldPaths[i].first()])
-    {
-        //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
-        fileHandler().rm(fieldPaths[i].second());//<< endl;
-    }
 }*/
+forAll(regionNames, i)
+{
+    forAll(regionPaths[i], j)
+    {
+        if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
+        {
+            //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+            fileHandler().rm(regionPaths[i][j].second());//<< endl;
+        }
+    }
+}

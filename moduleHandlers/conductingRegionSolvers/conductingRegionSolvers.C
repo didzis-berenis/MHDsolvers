@@ -421,7 +421,7 @@ const Foam::solvers::conductingSolid& Foam::conductingRegionSolvers::getSolid(co
 }
 
 //Assigns single fluid/solid region values from region to global field
-void Foam::conductingRegionSolvers::scalarFieldToGlobal(volScalarField& global,volScalarField& region,const word& regionName)
+void Foam::conductingRegionSolvers::scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName)
 {
     forAll(region, cellI)
     {
@@ -429,7 +429,7 @@ void Foam::conductingRegionSolvers::scalarFieldToGlobal(volScalarField& global,v
     }
 }
 
-void Foam::conductingRegionSolvers::vectorFieldToGlobal(volVectorField& global,volVectorField& region,const word& regionName)
+void Foam::conductingRegionSolvers::vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName)
 {
     forAll(region, cellI)
     {
@@ -465,6 +465,19 @@ void Foam::conductingRegionSolvers::setCorrectElectromagnetics()
             electroBasePtr->setCorrectElectromagnetics();
         }
     }
+}
+
+bool Foam::conductingRegionSolvers::isElectroHarmonic()
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (isFluid(regionName) || isSolid(regionName))
+        {
+            return getElectro(regionName).isComplex();
+        }
+    }
+    return false;
 }
 
 Foam::List<Foam::Pair<Foam::word>> Foam::conductingRegionSolvers::getNames()

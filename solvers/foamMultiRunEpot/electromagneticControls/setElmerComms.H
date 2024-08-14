@@ -41,8 +41,8 @@ if (solvers.isElectroHarmonic())
 }
 else
 {
-    JxBGlobal = (JGlobal ^ BGlobal);
-    JJsigmaGlobal = (JGlobal & JGlobal)*sigmaGlobalInv;
+    JxBGlobal = (JreGlobal ^ BreGlobal);
+    JJsigmaGlobal = (JreGlobal & JreGlobal)*sigmaGlobalInv;
 }
 //convert global field to regions
 solvers.setJ(JreGlobal);

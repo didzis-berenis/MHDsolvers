@@ -1,16 +1,4 @@
-// Initialise field pointer lists
-PtrList<volVectorField> URegion(regionNames.size());
-PtrList<volVectorField> U_oldRegion(regionNames.size());
-PtrList<volVectorField> JxBRegion(regionNames.size());
-PtrList<volScalarField> JJsigmaRegion(regionNames.size());
-PtrList<volScalarField> pRegion(regionNames.size());
-PtrList<volScalarField> TRegion(regionNames.size());
-PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
-PtrList<volScalarField> alpha1Region(regionNames.size());
-List<bool> solidificationEnabled(regionNames.size(), false);
-List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WRITE);
-PtrList<dimensionedScalar> sigmaRegion(regionNames.size());
-List<double> magneticReynoldsRegion(regionNames.size());
+
 forAll(regionNames, i)
 {
 // Populate field pointer lists
@@ -57,7 +45,7 @@ forAll(regionNames, i)
             URegion[i]
         )
     );
-
+/*
     Info<< "    Adding to JxBRegion\n" << endl;
     JxBRegion.set
     (
@@ -98,6 +86,7 @@ forAll(regionNames, i)
         )
     );
 
+*/
     Info<< "    Adding to pRegion\n" << endl;
     pRegion.set
     (
@@ -154,15 +143,17 @@ forAll(regionNames, i)
         )
     );
 
-    //Solidification configurations
-    List<Pair<word>> regionPath = getFieldPaths(solvers.mesh(regionNames[i]));
-    forAll(regionPath, j)
+    regionPaths[i] = getFieldPaths(solvers.mesh(regionNames[i]));
+    forAll(regionPaths[i], j)
     {
-        if (regionPath[j].first() == solverSolidificationName)
+        word fieldName = regionPaths[i][j].first();
+        keepField[Pair<word>(fieldName,regionNames[i])] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
+        if (fieldName == solverSolidificationName)
         {
+            keepField[Pair<word>(fieldName,regionNames[i])] = true;
             solidificationEnabled[i] = true;
             alphaWriteOption[i] = IOobject::AUTO_WRITE;
-            solidificationGlobalEnabled = true;
+            //solidificationGlobalEnabled = true;
         }
     }
 
@@ -183,6 +174,7 @@ forAll(regionNames, i)
             dimensionedScalar(dimless, 0)
         )
     );
+    //Get alpha1 field from registry
     if (solidificationEnabled[i])
     {
         alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
@@ -201,7 +193,7 @@ forAll(regionNames, i)
         );
 
     //Electrical conductivity
-    sigmaRegion.set
+    /*sigmaRegionConst.set
     (
         i,
         new dimensionedScalar
@@ -210,10 +202,17 @@ forAll(regionNames, i)
             dimensionSet(-1, -3, 3, 0, 0, 2, 0),
             physicalProperties
         )
+    );*/
+    dimensionedScalar sigmaRegionConst
+    (
+        "sigma",
+        dimensionSet(-1, -3, 3, 0, 0, 2, 0),
+        physicalProperties
     );
 
-
-    #if (ELMER_TIME == HARMONIC_TIME)
+    if (solvers.isElectroHarmonic())
+    {
+    //#if (ELMER_TIME == HARMONIC_TIME)
         //Characteristic length
         dimensionedScalar characteristicSize
         (
@@ -233,7 +232,7 @@ forAll(regionNames, i)
         }
 
         magneticReynoldsRegion[i] = 
-            4*3.14159*(std::pow(10,-7))*sigmaRegion[i].value()*characteristicSize.value();
+            4*3.14159*(std::pow(10,-7))*sigmaRegionConst.value()*characteristicSize.value();
         Info<< "Rem0 = " << magneticReynoldsRegion[i] << endl;
-    #endif
+    }//#endif
 }

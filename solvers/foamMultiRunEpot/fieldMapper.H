@@ -1,6 +1,6 @@
 #include <map>
 #include <set>
-std::map<word, bool> keepField;
+std::map<Pair<word>, bool> keepField;
 
 std::map<std::pair<word, label>, label> localToGlobalID;
 //std::map<word, label> regionID;

@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
         // Update paths for cleanup
         forAll(regionNames, i)
         {
-            regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
+            regionPaths[i] = getFieldPaths(solvers.mesh(regionNames[i]));
         }
         //fieldPaths = getFieldPaths(meshGlobal);
         runTime++;
@@ -226,12 +226,23 @@ int main(int argc, char *argv[])
         forAll(regionNames, i)
         {
             solvers.solveElectromagnetics(regionNames[i]);
+            const volVectorField& JxBRegion = solvers.getElectro(regionNames[i]).JxB;
+            solvers.vectorFieldToGlobal(
+                JxBGlobal,
+                JxBRegion,
+                regionNames[i]
+            );
+            const volScalarField& JJsigmaRegion = solvers.getElectro(regionNames[i]).JJsigma;
+            solvers.scalarFieldToGlobal(
+                JJsigmaGlobal,
+                JJsigmaRegion,
+                regionNames[i]
+            );
         }
-        JxBGlobal = solvers.getGlobalJxB();
-        JJsigmaGlobal = solvers.getGlobalJJsigma();
 
         solvers.setGlobalPrefix();
         //Update liquid-solid phase fraction
+        /*
         forAll(regionNames, i)
         {
             if (solidificationEnabled[i])
@@ -239,7 +250,7 @@ int main(int argc, char *argv[])
                 alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
                 scalarFieldToGlobal(alpha1Global,alpha1Region[i],regionNames[i]);
             }
-        }
+        }*/
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
         // Write last time step even if not write time

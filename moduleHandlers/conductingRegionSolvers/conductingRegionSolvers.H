@@ -156,8 +156,8 @@ public:
 
         std::map<std::pair<word, label>, label> localToGlobalID;
 
-        void scalarFieldToGlobal(volScalarField& global,volScalarField& region,const word& regionName);
-        void vectorFieldToGlobal(volVectorField& global,volVectorField& region,const word& regionName);
+        void scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName);
+        void vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName);
         const Foam::electromagneticModel& getElectro(const word regionName);
 
         // Assign current density to solvers
@@ -171,6 +171,9 @@ public:
 
         // Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
+
+        // Check if electromagnetic solver time type is harmonic
+        bool isElectroHarmonic();
 
         //- Set correctElectromagnetics switch to true for all conducting regions
         void setCorrectElectromagnetics();
