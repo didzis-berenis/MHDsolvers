@@ -38,7 +38,7 @@ SourceFiles
 #define incompressibleConductingFluid_H
 
 #include "incompressibleFluid.H"
-#include "electromagneticModel.H"
+#include "electroBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -53,25 +53,14 @@ namespace solvers
 
 class incompressibleConductingFluid
 :
-    public incompressibleFluid
+    public incompressibleFluid,
+    public electroBase
 {
 
 protected:
 
-    //- Pointer to the electromagnetic model
-        autoPtr<electromagneticModel> electroPtr;
-
     //- Store old velocity field
         volVectorField U_old_;
-
-    //- Current correction
-        //real
-        //tmp<volVectorField> JUBre_;
-        //imaginary
-        //tmp<volVectorField> JUBim_;
-
-        // Get velocity from solver
-        //virtual tmp<volVectorField>& JUB(bool imaginary=false);
 
     // density
 
@@ -103,16 +92,11 @@ public:
 
     // Member Functions
 
-        //- Reference to the fluid fluid electromagnetic properties
-        const electromagneticModel& electro;
         // update transport properties
         virtual void momentumPredictor();
 
         //- Solve electromagnetic modelling
-        virtual void postSolve();
         virtual void solveElectromagnetics();
-        //virtual void correctJ(bool imaginary=false);
-        //virtual void electromagneticPredictor();
 
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();

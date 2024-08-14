@@ -71,6 +71,7 @@ SourceFiles
 #include "solver.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
+
 #include <map>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -105,10 +106,16 @@ class conductingRegionSolvers
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
+        //Perhaps better to construct set, if more solvers are implemented.
+        //std::set<word> conductingFluidNames_;
+        //std::set<word> conductingSolidNames_;
 
-        solvers::conductingFluid* getFluidPtr_(const word regionName);
+        electroBase* getElectroBasePtr_(const word regionName);
+        //solvers::conductingFluid* getFluidPtr_(const word regionName);
+        //solvers::conductingSolid* getSolidPtr_(const word regionName);
+        void scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName);
+        void vectorGlobalToField_(volVectorField& global,volVectorField& region,const word& regionName);
 
-        solvers::conductingSolid* getSolidPtr_(const word regionName);
         //- Region solvers
         autoPtr<fvMesh> globalMesh_;
 
@@ -149,20 +156,15 @@ public:
 
         std::map<std::pair<word, label>, label> localToGlobalID;
 
-        // Assign volume force to the solver
-        //void setJxB(const word regionName, volVectorField& field);
+        void scalarFieldToGlobal(volScalarField& global,volScalarField& region,const word& regionName);
+        void vectorFieldToGlobal(volVectorField& global,volVectorField& region,const word& regionName);
+        const Foam::electromagneticModel& getElectro(const word regionName);
 
-        // Assign volume heating to the solver
-        //void setJJsigma(const word regionName, volScalarField& field);
+        // Assign current density to solvers
+        void setJ(volVectorField& field, bool imaginary=false);
 
-        // Get velocity from solver
-        //volVectorField& getVelocity(const word regionName);
-
-        // Get pressure from solver
-        //volScalarField& getPressure(const word regionName);
-
-        // Get temperature from solver
-        //volScalarField& getTemperature(const word regionName);
+        // Assign magnetic field to solvers
+        void setB(volVectorField& field, bool imaginary=false);
 
         // Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);

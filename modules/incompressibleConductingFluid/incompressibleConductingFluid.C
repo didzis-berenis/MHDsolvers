@@ -47,12 +47,7 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
 :
     incompressibleFluid(mesh),
 
-    electroPtr
-    (
-        electromagneticModel::New(mesh)
-    ),
-
-    electro(electroPtr),
+    electroBase(mesh),
 
     U_old_
     (
@@ -96,33 +91,8 @@ Foam::solvers::incompressibleConductingFluid::~incompressibleConductingFluid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-/*
-void Foam::solvers::incompressibleConductingFluid::setJxB(volVectorField& JxB)
-{   
-    JxB_=JxB;
-}
 
-Foam::volVectorField& Foam::solvers::incompressibleConductingFluid::getVelocity()
-{   
-    return U_;
-}
-
-Foam::volScalarField& Foam::solvers::incompressibleConductingFluid::getPressure()
-{   
-    return p_;
-}
-Foam::tmp<Foam::volVectorField>& Foam::solvers::incompressibleConductingFluid::JUB(bool imaginary)
-{
-    if (imaginary)
-    {
-        return JUBim_;
-    }
-    return JUBre_;
-}
-*/
-
-
-void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics();
+void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
 {
     if (electro.correctElectromagnetics())
     {
@@ -133,11 +103,6 @@ void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics();
         //Store old velocity for next update
         U_old_ = U_;
     }
-}
-
-void Foam::solvers::incompressibleConductingFluid::setCorrectElectromagnetics()
-{
-    electroPtr->setCorrectElectromagnetics();
 }
 
 // ************************************************************************* //

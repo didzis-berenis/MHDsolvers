@@ -30,34 +30,32 @@ Description
     motion and mesh topology changes.
 
 SourceFiles
-    conductingSolid.C
+    electroBase.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef conductingSolid_H
-#define conductingSolid_H
+#ifndef electroBase_H
+#define electroBase_H
 
-#include "solid.H"
-#include "electroBase.H"
+#include "electromagneticModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-namespace solvers
-{
 
 /*---------------------------------------------------------------------------*\
-                          Class conductingSolid Declaration
+                          Class electroBase Declaration
 \*---------------------------------------------------------------------------*/
 
-class conductingSolid
-:
-    public solid,
-    public electroBase
+//Abstract class
+class electroBase
 {
 
-//protected:
+protected:
+
+    //- Pointer to the electromagnetic model
+        autoPtr<electromagneticModel> electroPtr;
 
 public:
 
@@ -65,37 +63,49 @@ public:
 
 
     //- Runtime type information
-    TypeName("conductingSolid");
+    TypeName("electroBase");
 
 
     // Constructors
 
         //- Construct from region mesh
-        conductingSolid(fvMesh& mesh);
+        electroBase(fvMesh& mesh);
 
         //- Disallow default bitwise copy construction
-        conductingSolid(const conductingSolid&) = delete;
+        electroBase(const electroBase&) = delete;
 
 
     //- Destructor
-    virtual ~conductingSolid();
+    virtual ~electroBase();
 
 
     // Member Functions
+
+        //- Reference to the fluid fluid electromagnetic properties
+        const electromagneticModel& electro;
+        
         //- Solve electromagnetic system
-        //Override if necessary
-        //virtual void solveElectromagnetics();
+        virtual void solveElectromagnetics();
+
+        //- Set correctElectromagnetics switch to true
+        virtual void setCorrectElectromagnetics();
+
+        //- Current density [A/m^2]
+        virtual volVectorField& getJ(bool imaginary=false);
+
+        //- Magnetic field [T]
+        virtual volVectorField& getB(bool imaginary=false);
+
 
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const conductingSolid&) = delete;
+        void operator=(const electroBase&) = delete;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace solvers
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -47,12 +47,7 @@ Foam::solvers::conductingSolid::conductingSolid
 :
     solid(mesh),
 
-    electroPtr
-    (
-        electromagneticModel::New(mesh)
-    ),
-
-    electro(electroPtr)
+    electroBase(mesh)
 {
 }
 
@@ -64,19 +59,7 @@ Foam::solvers::conductingSolid::~conductingSolid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-
-
 /*
-void Foam::solvers::conductingSolid::setJJsigma(volScalarField& JJsigma)
-{
-    JJsigma_=JJsigma;
-}
-Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScalarField& T_external)
-{   
-    return thermo_.T();
-}
-*/
-
 void Foam::solvers::conductingSolid::solveElectromagnetics();
 {
     if (electro.correctElectromagnetics())
@@ -84,10 +67,5 @@ void Foam::solvers::conductingSolid::solveElectromagnetics();
         electroPtr->predict();
     }
 }
-
-void Foam::solvers::conductingSolid::setCorrectElectromagnetics()
-{
-    electroPtr->setCorrectElectromagnetics();
-}
-
+*/
 // ************************************************************************* //

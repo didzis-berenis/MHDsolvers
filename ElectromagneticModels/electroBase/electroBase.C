@@ -23,96 +23,58 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "conductingFluid.H"
+#include "electroBase.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-namespace Foam
-{
-namespace solvers
-{
-    defineTypeNameAndDebug(conductingFluid, 0);
-    addToRunTimeSelectionTable(solver, conductingFluid, fvMesh);
-}
-}
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
+Foam::electroBase::electroBase
+(
+    fvMesh& mesh
+)
 :
-    isothermalFluid(mesh),
-
-    electroBase(mesh),
-
-    thermophysicalTransport
+    electroPtr
     (
-        fluidThermoThermophysicalTransportModel::New
-        (
-            momentumTransport(),
-            thermo
-        )
+        electromagneticModel::New(mesh)
     ),
 
-    U_old_
-    (
-        IOobject
-        (
-            "U_old",
-            mesh.time().name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        U_
-    )
+    electro(electroPtr)
 {
-    thermo.validate(type(), "h", "e");
 }
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::solvers::conductingFluid::~conductingFluid()
+Foam::electroBase::~electroBase()
 {}
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-void Foam::solvers::conductingFluid::prePredictor()
-{
-    isothermalFluid::prePredictor();
-
-    if (pimple.predictTransport())
-    {
-        thermophysicalTransport->predict();
-    }
-}
-
-
-void Foam::solvers::conductingFluid::postCorrector()
-{
-    isothermalFluid::postCorrector();
-
-    if (pimple.correctTransport())
-    {
-        thermophysicalTransport->correct();
-    }
-}
-
-
-void Foam::solvers::conductingFluid::solveElectromagnetics()
+void Foam::electroBase::solveElectromagnetics()
 {
     if (electro.correctElectromagnetics())
     {
-        // Update deltaU
-        electroPtr->updateDeltaU(U_ - U_old_);
-        //Correct current density
-        electroPtr->correct();
-        //Store old velocity for next update
-        U_old_ = U_;
+        electroPtr->predict();
     }
+}
+
+void Foam::electroBase::setCorrectElectromagnetics()
+{
+    electroPtr->setCorrectElectromagnetics();
+}
+
+Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
+{
+    electroPtr->J(imaginary);
+}
+
+Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
+{
+    electroPtr->B(imaginary);
 }
 
 // ************************************************************************* //
