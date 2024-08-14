@@ -2,6 +2,10 @@
 #include <set>
 std::map<word, bool> keepField;
 
+std::map<std::pair<word, label>, label> localToGlobalID;
+//std::map<word, label> regionID;
+List<word> regionNames;
+
 List<Pair<word>> getFieldPaths(const fvMesh& regionMesh)
 {
     List<Pair<word>> fieldPaths;

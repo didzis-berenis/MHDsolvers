@@ -25,6 +25,7 @@ License
 
 #include "conductingSolid.H"
 #include "addToRunTimeSelectionTable.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -49,6 +50,30 @@ Foam::solvers::conductingSolid::conductingSolid
 
     electroBase(mesh)
 {
+
+label PotERefCell = 0;
+scalar PotERefValue = 0.0;
+setRefCell
+( 
+    electro.PotE(),
+    pimple.dict(),
+    PotERefCell,
+    PotERefValue
+);
+mesh.schemes().setFluxRequired(electro.PotE().name());
+
+if (electro.isComplex())
+{
+    setRefCell
+    ( 
+        electro.PotE(true),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+    mesh.schemes().setFluxRequired(electro.PotE(true).name());
+}
+
 }
 
 

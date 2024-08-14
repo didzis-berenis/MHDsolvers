@@ -198,7 +198,7 @@ Foam::electroBase* Foam::conductingRegionSolvers::getElectroBasePtr_(const word 
     }
     return nullptr;
 }
-/*
+
 Foam::solvers::conductingFluid* Foam::conductingRegionSolvers::getFluidPtr_(const word regionName)
 {
     const word& solverName = names_[regionIdx_[regionName]].second();
@@ -220,7 +220,6 @@ Foam::solvers::conductingSolid* Foam::conductingRegionSolvers::getSolidPtr_(cons
     }
     return nullptr;
 }
-*/
 
 // * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
 
@@ -388,6 +387,39 @@ const Foam::electromagneticModel& Foam::conductingRegionSolvers::getElectro(cons
         << exit(FatalIOError);
     }
 }
+const Foam::solvers::conductingFluid& Foam::conductingRegionSolvers::getFluid(const word regionName)
+{
+    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
+    if (fluidPtr)
+    {
+        const Foam::solvers::conductingFluid& fluidRef(*fluidPtr);
+        return fluidRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get Electric module!\n"
+        << exit(FatalIOError);
+    }
+}
+const Foam::solvers::conductingSolid& Foam::conductingRegionSolvers::getSolid(const word regionName)
+{
+    Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
+    if (solidPtr)
+    {
+        const Foam::solvers::conductingSolid& solidRef(*solidPtr);
+        return solidRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get Electric module!\n"
+        << exit(FatalIOError);
+    }
+}
+
 //Assigns single fluid/solid region values from region to global field
 void Foam::conductingRegionSolvers::scalarFieldToGlobal(volScalarField& global,volScalarField& region,const word& regionName)
 {
@@ -447,6 +479,12 @@ Foam::solver& Foam::conductingRegionSolvers::operator[](const label i)
 {
     setPrefix(i);
     return solvers_[i];
+}
+
+Foam::solver& Foam::conductingRegionSolvers::operator()(const word regionName)
+{
+    setPrefix(regionIdx_[regionName]);
+    return solvers_[regionIdx_[regionName]];
 }
 /*
 Foam::solver* Foam::conductingRegionSolvers::operator()(const label i)

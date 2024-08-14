@@ -111,8 +111,8 @@ class conductingRegionSolvers
         //std::set<word> conductingSolidNames_;
 
         electroBase* getElectroBasePtr_(const word regionName);
-        //solvers::conductingFluid* getFluidPtr_(const word regionName);
-        //solvers::conductingSolid* getSolidPtr_(const word regionName);
+        solvers::conductingFluid* getFluidPtr_(const word regionName);
+        solvers::conductingSolid* getSolidPtr_(const word regionName);
         void scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName);
         void vectorGlobalToField_(volVectorField& global,volVectorField& region,const word& regionName);
 
@@ -177,6 +177,10 @@ public:
 
         //- solve electromagnetics for region
         void solveElectromagnetics(const word regionName);
+        
+        const Foam::solvers::conductingFluid& getFluid(const word regionName);
+        
+        const Foam::solvers::conductingSolid& getSolid(const word regionName);
 
         // Get names
         List<Pair<word>> getNames();
@@ -234,6 +238,7 @@ public:
 
         //- Set the region i prefix and return the corresponding solver
         solver& operator[](const label i);
+        solver& operator()(const word regionName);
         //solver* operator()(const label i);
 
         //- Disallow default bitwise assignment

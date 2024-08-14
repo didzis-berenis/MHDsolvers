@@ -25,6 +25,7 @@ License
 
 #include "incompressibleConductingFluid.H"
 #include "addToRunTimeSelectionTable.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -81,6 +82,27 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
 
     rho(rho_)
 {
+
+label PotERefCell = 0;
+scalar PotERefValue = 0.0;
+setRefCell
+( 
+    electro.PotE(),
+    pimple.dict(),
+    PotERefCell,
+    PotERefValue
+);
+
+if (electro.isComplex())
+{
+    setRefCell
+    ( 
+        electro.PotE(true),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+}
 }
 
 

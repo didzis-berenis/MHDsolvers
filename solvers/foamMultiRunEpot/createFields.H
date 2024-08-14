@@ -17,6 +17,7 @@ volVectorField UGlobal
     meshGlobal,
     dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
+/*
 volVectorField U_oldGlobal
 (
     IOobject
@@ -55,6 +56,7 @@ volScalarField TGlobal
     meshGlobal,
     dimensionedScalar(dimTemperature, 0)
 );
+*/
 volScalarField JJsigmaGlobal
 (
     IOobject
@@ -82,6 +84,60 @@ volVectorField JxBGlobal
     meshGlobal,
     dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
+
+Info<< "Initializing field JreGlobal\n" << endl;
+volVectorField JreGlobal
+(
+    IOobject
+    (
+        "Jre",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+Info<< "Initializing field JimGlobal\n" << endl;
+volVectorField JimGlobal
+(
+    IOobject
+    (
+        "Jim",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+Info<< "Initializing field BreGlobal\n" << endl;
+volVectorField BreGlobal
+(
+    IOobject
+    (
+        "Bre",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+Info<< "Initializing field BimGlobal\n" << endl;
+volVectorField BimGlobal
+(
+    IOobject
+    (
+        "Bim",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    meshGlobal
+);
+/*
 volScalarField GeometryIdsGlobal
 (
     IOobject
@@ -108,6 +164,7 @@ volScalarField sigmaGlobal
     meshGlobal,
     dimensionedScalar(dimensionSet(-1, -3, 3, 0, 0, 2, 0), 1)
 );
+*/
 volScalarField sigmaGlobalInv
 (
     IOobject
@@ -121,6 +178,7 @@ volScalarField sigmaGlobalInv
     meshGlobal,
     dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
 );
+/*
 surfaceScalarField phi
 (
     IOobject
@@ -135,20 +193,20 @@ surfaceScalarField phi
     dimensionedScalar(dimensionSet(1, 0, -1, 0, 0, 0, 0), 0)
 );
 scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsRegion);
-
+*/
 forAll(sigmaGlobal, cellI)
 {
     scalar sigma = sigmaRegion[cellToRegion[cellI]].value();
     sigmaGlobal[cellI] = sigma == 0 ? ROOTVSMALL : sigma;
     sigmaGlobalInv[cellI] = sigma == 0 ? 0 : 1/sigma;
 }
-
+/*
 #if (ELMER_TIME == HARMONIC_TIME)
     #include "createHarmonicFields.H"
 #elif (ELMER_TIME == TRANSIENT_TIME)
     #include "createTransientFields.H"
 #endif
-
+*/
 //Initialize field names and paths
 List<word> regionPaths(regionNames.size());
 

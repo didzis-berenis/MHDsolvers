@@ -47,12 +47,11 @@ Description
 #include "conductingRegionSolvers.H"
 #include "pimpleMultiRegionControl.H"
 #include "setDeltaT.H"
-#include "findRefCell.H"
+//#include "findRefCell.H"
 
 using namespace Foam;
 #include "Elmer.H"
 #include <fstream>
-#include "globalRegionMapper.H"
 #include "fieldMapper.H"
 #define TRANSIENT_TIME  2
 #define HARMONIC_TIME   3
@@ -73,18 +72,27 @@ int main(int argc, char *argv[])
 
     // Create the region meshes and solvers
     conductingRegionSolvers solvers(runTime);
-    #include "createMeshes.H"
+
+    // Read global mesh of all regions
+    const fvMesh& meshGlobal = solvers.globalMesh();
+    localToGlobalID = solvers.localToGlobalID;
+    forAll(solvers.getNames(), i)
+    {
+        regionNames.append(solvers.getNames()[i].first());
+    }
     // Create the outer PIMPLE loop and control structure
     pimpleMultiRegionControl pimple(runTime, solvers);
     #include "createFields.H"
 
     // Set the initial time-step
     setDeltaT(runTime, solvers);
+    /*
     #if (ELMER_TIME == HARMONIC_TIME)
         #include "createHarmonicEpotControls.H"
     #elif (ELMER_TIME == TRANSIENT_TIME)
         #include "createTransientEpotControls.H"
     #endif
+    */
     #include "createElmerComms.H"
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -96,11 +104,11 @@ int main(int argc, char *argv[])
 
     bool initialize_elmer = true;
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
-    #if (ELMER_TIME == HARMONIC_TIME)
-        #include "setHarmonicElmerComms.H"
-    #elif (ELMER_TIME == TRANSIENT_TIME)
-        #include "setTransientElmerComms.H"
-    #endif
+    //#if (ELMER_TIME == HARMONIC_TIME)
+        #include "setElmerComms.H"
+    //#elif (ELMER_TIME == TRANSIENT_TIME)
+    //    #include "setTransientElmerComms.H"
+    //#endif
     initialize_elmer = false;
 	
     // Create file for logging simulation times whenever Elmer is called
@@ -204,11 +212,11 @@ int main(int argc, char *argv[])
         // Check whether we need to update electromagnetic stuff with Elmer
         bool doElmer = false;
 
-        #if (ELMER_TIME == HARMONIC_TIME)
-            #include "setHarmonicPotential.H"
-        #elif (ELMER_TIME == TRANSIENT_TIME)
-            #include "setTransientPotential.H"
-        #endif
+        //#if (ELMER_TIME == HARMONIC_TIME)
+            #include "checkDoElmer.H"
+        //#elif (ELMER_TIME == TRANSIENT_TIME)
+        //    #include "setTransientPotential.H"
+        //#endif
 
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
@@ -254,11 +262,7 @@ int main(int argc, char *argv[])
         // Update electromagnetic stuff with Elmer
 
         if(doElmer && runTime.run()) {
-            #if (ELMER_TIME == HARMONIC_TIME)
-                #include "setHarmonicElmerComms.H"
-            #elif (ELMER_TIME == TRANSIENT_TIME)
-                #include "setTransientElmerComms.H"
-            #endif
+            #include "setElmerComms.H"
 			
 			// Log the current simulation time
 			if (Pstream::master())
@@ -297,11 +301,7 @@ int main(int argc, char *argv[])
 
     //Final iter for Elmer
     elmer_status = 0; // 1=ok, 0=lastIter, -1=error
-    #if (ELMER_TIME == HARMONIC_TIME)
-        #include "setHarmonicElmerComms.H"
-    #elif (ELMER_TIME == TRANSIENT_TIME)
-        #include "setTransientElmerComms.H"
-    #endif
+    #include "setElmerComms.H"
 	
 	// Log the current simulation time
     if (Pstream::master())

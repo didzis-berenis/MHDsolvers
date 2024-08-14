@@ -1,0 +1,54 @@
+
+// Save old U field
+forAll(regionNames, i)
+{
+    if (solvers.isFluid(regionNames[i]))
+    {
+        URegion[i] = solvers.getFluid(regionNames[i]).U;
+        solvers.vectorFieldToGlobal(
+            UGlobal,
+            URegion[i],
+            regionNames[i]
+        );
+    }
+    U_oldRegion[i] = URegion[i];
+}
+//vectorMultiRegionToGlobal(U_oldGlobal,U_oldRegion);
+// Send fields to Elmer
+if (initialize_elmer) sending.initialize();
+sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+sending.sendVector(UGlobal);
+// Receive fields from Elmer
+Info<< "\nReceiving fields from Elmer for all regions " << endl;
+if (initialize_elmer) receiving.initialize();
+receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+receiving.recvVector(JreGlobal);
+if (solvers.isElectroHarmonic())
+{
+    receiving.recvVector(JimGlobal);
+}
+receiving.recvVector(BreGlobal);
+if (solvers.isElectroHarmonic())
+{
+    receiving.recvVector(BimGlobal);
+}
+
+//Lorentz force term
+if (solvers.isElectroHarmonic())
+{
+    JxBGlobal =  0.5*((JreGlobal ^ BreGlobal)+(JimGlobal^ BimGlobal));
+    JJsigmaGlobal =  0.5*((JreGlobal & JreGlobal)+(JimGlobal & JimGlobal))*sigmaGlobalInv;
+}
+else
+{
+    JxBGlobal = (JGlobal ^ BGlobal);
+    JJsigmaGlobal = (JGlobal & JGlobal)*sigmaGlobalInv;
+}
+//convert global field to regions
+solvers.setJ(JreGlobal);
+solvers.setB(BreGlobal);
+if (solvers.isElectroHarmonic())
+{
+    solvers.setJ(JimGlobal,true);
+    solvers.setB(BimGlobal,true);
+}

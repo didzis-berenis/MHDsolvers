@@ -37,7 +37,7 @@ forAll(regionNames, i)
     );
     if (solvers.isFluid(regionNames[i]))
     {
-        URegion[i] = solvers.getVelocity(regionNames[i]);
+        URegion[i] = solvers.getFluid(regionNames[i]).U;
     }
 
     Info<< "    Adding to U_oldRegion\n" << endl;
