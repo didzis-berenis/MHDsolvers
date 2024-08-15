@@ -90,6 +90,7 @@ void Foam::solvers::conductingSolid::solveElectromagnetics();
     if (electro.correctElectromagnetics())
     {
         electroPtr->predict();
+        electroPtr->setCorrected();
     }
 }
 */

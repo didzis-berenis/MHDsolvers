@@ -87,6 +87,9 @@ public:
         //- Solve electromagnetic system
         virtual void solveElectromagnetics();
 
+        //- Update electromagnetic system without solving
+        virtual void electromagneticPredictor();
+
         //- Set correctElectromagnetics switch to true
         virtual void setCorrectElectromagnetics();
 

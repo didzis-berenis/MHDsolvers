@@ -86,6 +86,7 @@ namespace Foam
 class conductingRegionSolvers
 {
     // Private Member Data
+        const Time& runTime_;
 
         //- Region meshes
         PtrList<fvMesh> regions_;
@@ -104,6 +105,19 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        //- Region characteristic geometric size
+        List<scalar> characteristicSizes_;
+        
+        //- Magnetic field update controls
+        scalar maxRemDiff_ = 0;
+        scalar maxRelDiff_ = 1;
+
+        //- Write controls
+        int writeMultiplier_ = 1;
+        long long int writeCounter_ = 0;
+        word writeControlDict_ = word::null;
+        bool adjustableRunTime_ = false;
+
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
         //Perhaps better to construct set, if more solvers are implemented.
@@ -121,6 +135,9 @@ class conductingRegionSolvers
 
 
 public:
+    //constants
+        const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
+        static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
 
     // Constructors
 
@@ -166,6 +183,9 @@ public:
         // Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
 
+        // save old velocity
+        void storeU(const word regionName);
+
         // Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);
 
@@ -175,11 +195,17 @@ public:
         // Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();
 
+        // Check if magnetic field needs updating
+        bool updateMagneticField();
+
         //- Set correctElectromagnetics switch to true for all conducting regions
         void setCorrectElectromagnetics();
 
         //- solve electromagnetics for region
         void solveElectromagnetics(const word regionName);
+
+        //- Update electromagnetic system without solving
+        void electromagneticPredictor(const word regionName);
         
         const Foam::solvers::conductingFluid& getFluid(const word regionName);
         

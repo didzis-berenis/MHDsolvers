@@ -104,6 +104,11 @@ public:
 
     // Member Functions
 
+    //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
+
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
 

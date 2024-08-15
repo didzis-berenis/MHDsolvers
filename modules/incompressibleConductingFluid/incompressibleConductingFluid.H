@@ -92,14 +92,16 @@ public:
 
     // Member Functions
 
+    //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
+
         // update transport properties
         virtual void momentumPredictor();
 
         //- Solve electromagnetic modelling
         virtual void solveElectromagnetics();
-
-        //- Set correctElectromagnetics switch to true
-        virtual void setCorrectElectromagnetics();
 
 
     // Member Operators

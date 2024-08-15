@@ -48,6 +48,7 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
     const word& phaseName
 )
 :
+    electromagneticModel(mesh),
     PotE_(lookupOrConstructScalar(mesh, "PotE"))
 {
     constructVector(mesh, JName_);

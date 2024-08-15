@@ -28,7 +28,6 @@ else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " fo
 
 if (regionSolver.isFluid())
 {
-    volScalarField& T = regionSolver.getTemperature();
     scalar TIntegral = 0;
     scalar JJsigmaIntegral = 0;
 

@@ -22,5 +22,4 @@ LIB_LIBS = \
     -lcompressibleMomentumTransportModels \
     -lcoupledThermophysicalTransportModels \
     -L$(FOAM_USER_LIBBIN) \
-    -lelectromagneticModels \
     -lelectroBase

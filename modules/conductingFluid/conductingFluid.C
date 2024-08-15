@@ -67,7 +67,9 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
             IOobject::NO_WRITE
         ),
         U_
-    )
+    ),
+
+    U_old(U_old_)
 {
     thermo.validate(type(), "h", "e");
 
@@ -133,8 +135,14 @@ void Foam::solvers::conductingFluid::solveElectromagnetics()
         //Correct current density
         electroPtr->correct();
         //Store old velocity for next update
-        U_old_ = U_;
+        storeU();
     }
+}
+
+
+void Foam::solvers::conductingFluid::storeU()
+{
+    U_old_ = U_;
 }
 
 // ************************************************************************* //

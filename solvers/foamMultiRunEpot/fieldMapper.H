@@ -63,7 +63,7 @@ List<Pair<word>> getFieldPaths(const fvMesh& regionMesh)
 
     return fieldPaths;
 }
-
+/*
 word getRegionPath(fvMesh& regionMesh)
 {
     // get volScalarFields
@@ -86,3 +86,4 @@ word getRegionPath(fvMesh& regionMesh)
 
     return word::null;
 }
+*/

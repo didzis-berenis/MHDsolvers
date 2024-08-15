@@ -48,6 +48,7 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
     const word& phaseName
 )
 :
+    electromagneticModel(mesh),
     PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
     PotEim_(lookupOrConstructScalar(mesh, "PotEim"))
 {

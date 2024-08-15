@@ -2,6 +2,10 @@
 cd ${0%/*} || exit 1    # run from this directory
 set -x
 
+wclean ElectromagneticModels/electromagneticModels
+wclean ElectromagneticModels/electroBase
+wclean ElectromagneticModels/coupledElectromagneticModels
+
 wclean modules/incompressibleConductingFluid
 wclean modules/conductingFluid
 wclean modules/conductingSolid
@@ -14,8 +18,6 @@ wclean utilities/initializeMultiRegionTemperature
 wclean utilities/checkRegionCellZones
 
 wclean solvers/foamRunEpot
-wclean solvers/foamRunEpotTransient
 wclean solvers/foamMultiRunEpot
-wclean solvers/foamMultiRunEpotTransient
 
 # ----------------------------------------------------------------- end-of-file

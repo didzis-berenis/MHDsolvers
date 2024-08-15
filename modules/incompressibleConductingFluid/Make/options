@@ -13,5 +13,4 @@ EXE_INC = \
 LIB_LIBS = \
     -lincompressibleFluid \
     -L$(FOAM_USER_LIBBIN) \
-    -lelectromagneticModels \
     -lelectroBase

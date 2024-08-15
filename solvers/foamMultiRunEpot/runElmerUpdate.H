@@ -4,16 +4,15 @@ forAll(regionNames, i)
 {
     if (solvers.isFluid(regionNames[i]))
     {
-        URegion[i] = solvers.getFluid(regionNames[i]).U;
+        const volVectorField& U = solvers.getFluid(regionNames[i]).U;
         solvers.vectorFieldToGlobal(
             UGlobal,
-            URegion[i],
+            U,
             regionNames[i]
         );
     }
-    U_oldRegion[i] = URegion[i];
+    solvers.storeU(regionNames[i]);
 }
-//vectorMultiRegionToGlobal(U_oldGlobal,U_oldRegion);
 // Send fields to Elmer
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
@@ -32,6 +31,18 @@ if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(BimGlobal);
 }
+/*
+//Update sigmaInv if sigma is not constant
+forAll(regionNames, i)
+{
+    const volScalarField& sigmaInvRegion = solvers.getElectro(regionNames[i]).sigmaInv();
+    solvers.scalarFieldToGlobal(
+        sigmaGlobalInv,
+        sigmaInvRegion,
+        regionNames[i]
+    );
+}
+*/
 
 //Lorentz force term
 if (solvers.isElectroHarmonic())
@@ -51,4 +62,21 @@ if (solvers.isElectroHarmonic())
 {
     solvers.setJ(JimGlobal,true);
     solvers.setB(BimGlobal,true);
+}
+//Update region Lorentz force term
+// and Joule heating
+forAll(regionNames, i)
+{
+    solvers.electromagneticPredictor(regionNames[i]);
+}
+// Log the current simulation time
+if (Pstream::master())
+{
+    std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
+    if (elmerTimes.is_open())
+    {
+        elmerTimes << runTime.timeName() << std::endl;
+        elmerTimes.close();
+    }
+    else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
 }

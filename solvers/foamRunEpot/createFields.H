@@ -1,53 +1,4 @@
 
-volScalarField& p = regionSolver.getPressure();
-
-Info<< "Initializing field U\n" << endl;
-volVectorField& U = regionSolver.getVelocity();
-
-Info<< "Initializing field U_old\n" << endl;
-volVectorField U_old
-(
-    IOobject
-    (
-        "U_old",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    U
-);
-
-IOdictionary physicalProperties
-(
-    IOobject
-    (
-        "physicalProperties",
-        runTime.constant(),
-        mesh,
-        IOobject::MUST_READ_IF_MODIFIED,
-        IOobject::NO_WRITE
-    )
-);
-
-//Electrical conductivity
-dimensionedScalar sigma
-(
-    "sigma",
-    dimensionSet(-1, -3, 3, 0, 0, 2, 0),
-    0
-);
-
-if (regionSolver.isFluid())
-{
-    sigma = dimensionedScalar
-    (
-        "sigma",
-        dimensionSet(-1, -3, 3, 0, 0, 2, 0),
-        physicalProperties
-    );
-}
-
 Info<< "Initializing field JxB\n" << endl;
 volVectorField JxB
 (
@@ -78,11 +29,66 @@ volScalarField JJsigma
     dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
 );
 
-#if (ELMER_TIME == HARMONIC_TIME)
-    #include "createHarmonicFields.H"
-#elif (ELMER_TIME == TRANSIENT_TIME)
-    #include "createTransientFields.H"
-#endif
+//Info<< "Initializing field Jre\n" << endl;
+volVectorField Jre
+(
+    IOobject
+    (
+        "Jre",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+//Info<< "Initializing field Jim\n" << endl;
+volVectorField Jim
+(
+    IOobject
+    (
+        "Jim",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+//Info<< "Initializing field Bre\n" << endl;
+volVectorField Bre
+(
+    IOobject
+    (
+        "Bre",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+//Info<< "Initializing field Bim\n" << endl;
+volVectorField Bim
+(
+    IOobject
+    (
+        "Bim",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+const volScalarField& sigmaInv = regionSolver.getElectro().sigmaInv();
+const volScalarField& T = regionSolver.getFluid().thermo.T();
+const volVectorField& U = regionSolver.getFluid().U;
+volVectorField Usent = U;
 
 //Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
@@ -127,4 +133,4 @@ forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();
     keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
-}
+}   

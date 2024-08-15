@@ -47,22 +47,11 @@ Description
 #include "conductingRegionSolvers.H"
 #include "pimpleMultiRegionControl.H"
 #include "setDeltaT.H"
-//#include "findRefCell.H"
 
 using namespace Foam;
 #include "Elmer.H"
 #include <fstream>
 #include "fieldMapper.H"
-#define TRANSIENT_TIME  2
-#define HARMONIC_TIME   3
-#if (ELMER_TIME == HARMONIC_TIME)
-#warning "Compiling for coupling with HARMONIC Elmer simulation!"
-#elif (ELMER_TIME == TRANSIENT_TIME)
-#warning "Compiling for coupling with TRANSIENT Elmer simulation!"
-#else
-#error "Please define appropriate functions for your Elmer simulation!"
-#endif
-
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -83,54 +72,50 @@ int main(int argc, char *argv[])
     // Create the outer PIMPLE loop and control structure
     pimpleMultiRegionControl pimple(runTime, solvers);
     #include "createFields.H"
-
     // Set the initial time-step
     setDeltaT(runTime, solvers);
-    /*
-    #if (ELMER_TIME == HARMONIC_TIME)
-        #include "createHarmonicEpotControls.H"
-    #elif (ELMER_TIME == TRANSIENT_TIME)
-        #include "createTransientEpotControls.H"
-    #endif
-    */
-    #include "createElmerComms.H"
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    //
+    // EOF-Library supports using single mesh of communication either for sending or receiving
+    //
+    Info<< "*** Preparing Elmer communications for sending" << nl << endl;
+    Elmer<fvMesh> sending(
+            meshGlobal, //mesh
+            1, // 1=send, -1=receive
+            0, // 1=initialize, 0=w/o init
+            1 // 1=multiregion, 0=exports O2E files
+        );
+
+    Info<< "*** Preparing Elmer communications for receiving" << nl << endl;
+    Elmer<fvMesh> receiving(
+            meshGlobal, //mesh
+            -1, // 1=send, -1=receive
+            0, // 1=initialize, 0=w/o init
+            1 // 1=multiregion, 0=exports O2E files
+        );
+
+    double elmerClock = runTime.clockTimeIncrement();
+
+    Info<< nl << "Initializing electromagnetic solver\n" << endl;
+
+    // Create file for logging simulation times whenever Elmer is called
+    string elmerTimesFileName = "postProcessing/elmerTimes.log";
+    int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
+    bool initialize_elmer = true;
+    #include "runElmerUpdate.H"
+    initialize_elmer = false;
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-    double OFClock = 0;
-    double elmerClock = runTime.clockTimeIncrement();
-
-    Info<< nl << "Starting time loop\n" << endl;
-
-    bool initialize_elmer = true;
-    int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
-    //#if (ELMER_TIME == HARMONIC_TIME)
-        #include "setElmerComms.H"
-    //#elif (ELMER_TIME == TRANSIENT_TIME)
-    //    #include "setTransientElmerComms.H"
-    //#endif
-    initialize_elmer = false;
-	
-    // Create file for logging simulation times whenever Elmer is called
-    string elmerTimesFileName = "postProcessing/elmerTimes.log";
-	// Log the current simulation time
-    if (Pstream::master())
-    {
-		std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
-		if (elmerTimes.is_open())
-		{
-			elmerTimes << runTime.timeName() << std::endl;
-			elmerTimes.close();
-		}
-		else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
-	}
-
-    elmerClock = runTime.clockTimeIncrement();
-
     // Write initial values
     #include "writeIntegrals.H"
-
     bool lastTimeStep = false;
+
+    double OFClock = 0;
+    //elmerClock = runTime.clockTimeIncrement();
+
+    Info<< nl << "Starting time loop\n" << endl;
     while (pimple.run(runTime) || lastTimeStep)
     {
         forAll(solvers, i)
@@ -207,16 +192,24 @@ int main(int argc, char *argv[])
         {
             solvers[i].postSolve();
         }
+        //Update liquid-solid phase fraction
+        /*
+        forAll(regionNames, i)
+        {
+            if (solidificationEnabled[i])
+            {
+                alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
+                scalarFieldToGlobal(alpha1Global,alpha1Region[i],regionNames[i]);
+            }
+        }*/
+
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         // Check whether we need to update electromagnetic stuff with Elmer
-        bool doElmer = false;
-
-        //#if (ELMER_TIME == HARMONIC_TIME)
-            #include "checkDoElmer.H"
-        //#elif (ELMER_TIME == TRANSIENT_TIME)
-        //    #include "setTransientPotential.H"
-        //#endif
+        // Update electromagnetics with Elmer if magnetic field is
+        // significantly disturbed and needs to be updated.
+        // Otherwise, update electromagnetics locally by calculating electric potential.
+        bool doElmer = solvers.updateMagneticField();
 
         // Calculate electric potential if current density will not be updated
         if (!doElmer)
@@ -241,23 +234,23 @@ int main(int argc, char *argv[])
         }
 
         solvers.setGlobalPrefix();
-        //Update liquid-solid phase fraction
-        /*
-        forAll(regionNames, i)
-        {
-            if (solidificationEnabled[i])
-            {
-                alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
-                scalarFieldToGlobal(alpha1Global,alpha1Region[i],regionNames[i]);
-            }
-        }*/
-
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
         // Write last time step even if not write time
         if(runTime.writeTime() || lastTimeStep)
         {
             runTime.writeNow();
-            #include "writeGlobal.H"
+            // Cleanup
+            forAll(regionNames, i)
+            {
+                forAll(regionPaths[i], j)
+                {
+                    if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
+                    {
+                        //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+                        fileHandler().rm(regionPaths[i][j].second());//<< endl;
+                    }
+                }
+            }
         }
         //write integral values for all time steps
         #include "writeIntegrals.H"
@@ -272,20 +265,9 @@ int main(int argc, char *argv[])
 
         // Update electromagnetic stuff with Elmer
 
-        if(doElmer && runTime.run()) {
-            #include "setElmerComms.H"
-			
-			// Log the current simulation time
-			if (Pstream::master())
-			{
-				std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
-				if (elmerTimes.is_open())
-				{
-					elmerTimes << runTime.timeName() << std::endl;
-					elmerTimes.close();
-				}
-				else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
-			}
+        if(doElmer && runTime.run())
+        {
+            #include "runElmerUpdate.H"
         }
         elmerClock = runTime.clockTimeIncrement();
         // If run loop exited just before end time, schedule one more iteration.
@@ -312,19 +294,7 @@ int main(int argc, char *argv[])
 
     //Final iter for Elmer
     elmer_status = 0; // 1=ok, 0=lastIter, -1=error
-    #include "setElmerComms.H"
-	
-	// Log the current simulation time
-    if (Pstream::master())
-    {
-		std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
-		if (elmerTimes.is_open())
-		{
-			elmerTimes << runTime.timeName() << std::endl;
-			elmerTimes.close();
-		}
-		else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
-	}
+    #include "runElmerUpdate.H"
 
     int clockDays = std::floor(runTime.elapsedClockTime()/3600.0/24.0);
     int clockHours = std::floor(runTime.elapsedClockTime()/3600.0-clockDays*24.0);

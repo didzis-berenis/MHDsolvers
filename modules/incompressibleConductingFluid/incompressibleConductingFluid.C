@@ -63,6 +63,8 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
         U_
     ),
 
+    U_old(U_old_),
+
     rho_
     (
         "rho",
@@ -125,6 +127,12 @@ void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
         //Store old velocity for next update
         U_old_ = U_;
     }
+}
+
+
+void Foam::solvers::incompressibleConductingFluid::storeU()
+{
+    U_old_ = U_;
 }
 
 // ************************************************************************* //

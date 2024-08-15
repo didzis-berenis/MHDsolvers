@@ -65,6 +65,7 @@ SourceFiles
 #include "physicalProperties.H"
 #include "autoPtr.H"
 #include "wordIOList.H"
+//#include "runTimeSelectionTables.H"
 //#include "addToRunTimeSelectionTable.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,6 +76,7 @@ namespace Foam
                          Class electromagneticModel Declaration
 \*---------------------------------------------------------------------------*/
 
+//This is an abstract class
 class electromagneticModel
 :
     public physicalProperties
@@ -168,9 +170,9 @@ public:
     //- Runtime type information
     TypeName("electromagneticModel");
 
-
     //- Declare run-time constructor selection table
-    declareRunTimeNewSelectionTable
+    // define electromagneticModel::fvMeshConstructorTable
+    declareRunTimeSelectionTable
     (
         autoPtr,
         electromagneticModel,
@@ -181,7 +183,7 @@ public:
 
     //- Generic New for each of the related electromagnetics model
     //template<class ElectromagneticModel>
-    static autoPtr<electromagneticModel> New
+    static inline autoPtr<electromagneticModel> New
     (
         const fvMesh& mesh,
         const word& phaseName=word::null
@@ -203,7 +205,7 @@ public:
         electromagneticModel
         (
             const fvMesh& mesh,
-            const word& phaseName
+            const word& phaseName=word::null
         );
 
         //- Disallow default bitwise copy construction
@@ -271,6 +273,9 @@ public:
 
         //Template functions for derived classes
 
+        //- For determining if model fields has imaginary parts
+        virtual bool isComplex() const = 0;
+
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) = 0;
 
@@ -282,23 +287,20 @@ public:
 
         //- Current density correction [A/m^2]
         virtual tmp<volVectorField>& deltaJ(bool imaginary=false) = 0;
-
-        //- For determining if model fields has imaginary parts
-        virtual bool isComplex() const = 0;
         
         //- Non-const access the properties dictionary
-        virtual IOdictionary& properties() = 0;
+        //virtual IOdictionary& properties() = 0;
 
         //- Return const access to the mesh
-        virtual const fvMesh& mesh() const = 0;
+        //virtual const fvMesh& mesh() const = 0;
 
         //Read-only access
 
         //- Phase name
-        virtual const word& phaseName() const = 0;
+        //virtual const word& phaseName() const = 0;
 
         //- Properties dictionary
-        virtual const IOdictionary& properties() const = 0;
+        //virtual const IOdictionary& properties() const = 0;
 
         //- Electric conductivity [S/m]
         virtual const volScalarField& sigma() const;
@@ -343,9 +345,9 @@ public:
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-//#ifdef NoRepository
-//    #include "electromagneticModelTemplates.C"
-//#endif
+#ifdef NoRepository
+    #include "electromagneticModelNew.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

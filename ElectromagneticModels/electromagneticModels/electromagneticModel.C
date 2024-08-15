@@ -31,12 +31,17 @@ License
 
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
 namespace Foam
 {
     defineTypeNameAndDebug(electromagneticModel, 0);
-    //defineRunTimeSelectionTable(electromagneticModel, dictionary);
-
+    // define fvMeshConstructorTablePtr_
+    // constructfvMeshConstructorTables()
+    // and destroyfvMeshConstructorTables()
+    defineRunTimeSelectionTable(electromagneticModel, fvMesh);
+}
+/*
+namespace Foam
+{
     Foam::autoPtr<electromagneticModel> electromagneticModel::New
     (
         const fvMesh& mesh,
@@ -68,7 +73,7 @@ namespace Foam
         return autoPtr<electromagneticModel>(cstrIter()(mesh, phaseName));
     }
 }
-
+*/
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
@@ -349,7 +354,6 @@ void Foam::electromagneticModel::predict()
         (J() & J())
         +(J(imaginary) & J(imaginary))
     )*sigmaInv();
-    setCorrected();
 }
 
 void Foam::electromagneticModel::correct()
@@ -385,12 +389,12 @@ void Foam::electromagneticModel::correct()
             ((J()+deltaJre) & (J()+deltaJre))
             +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
         )*sigmaInv();
-        setCorrected();
     }
     else
     {
         predict();
     }
+    setCorrected();
 }
 
 bool Foam::electromagneticModel::read()

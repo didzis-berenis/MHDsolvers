@@ -86,6 +86,7 @@ namespace Foam
 class conductingRegionSolver
 {
     // Private Member Data
+        const Time& runTime_;
 
         //- Solver pointer
         solver* solverPtr_;
@@ -93,6 +94,19 @@ class conductingRegionSolver
 
         //- Solver name
         word name_;
+
+        //- Region characteristic geometric size
+        scalar characteristicSize_;
+        
+        //- Magnetic field update controls
+        scalar maxRemDiff_ = 0;
+        scalar maxRelDiff_ = 1;
+
+        //- Write controls
+        int writeMultiplier_ = 1;
+        long long int writeCounter_ = 0;
+        word writeControlDict_ = word::null;
+        bool adjustableRunTime_ = false;
 
         //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
@@ -102,14 +116,16 @@ class conductingRegionSolver
         const word solidSolverName_ = "conductingSolid";
 
         //- Get pointers to derived solver class object
+        electroBase* getElectroBasePtr_();
         solvers::incompressibleConductingFluid* getIncompressibleFluidPtr_();
-
         solvers::conductingFluid* getFluidPtr_();
-
         solvers::conductingSolid* getSolidPtr_();
 
 
 public:
+    //constants
+        const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
+        static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
 
     // Constructors
 
@@ -125,21 +141,16 @@ public:
 
 
     // Member Functions
+        const Foam::electromagneticModel& getElectro();
 
-        // Assign volume force to the solver
-        void setJxB(volVectorField& field);
+        // Assign current density to solvers
+        void setJ(volVectorField& field, bool imaginary=false);
 
-        // Assign volume heating to the solver
-        void setJJsigma(volScalarField& field);
+        // Assign magnetic field to solvers
+        void setB(volVectorField& field, bool imaginary=false);
 
-        // Get velocity from solver
-        volVectorField& getVelocity();
-
-        // Get pressure from solver
-        volScalarField& getPressure();
-
-        // Get temperature from solver
-        volScalarField& getTemperature();
+        // save old velocity
+        void storeU();
 
         // Check if solver type is incompressibleFluidSolverName_
         bool isIncompressibleFluid();
@@ -149,6 +160,28 @@ public:
 
         // Check if solver type is solidSolverName_
         bool isSolid();
+
+        // Check if electromagnetic solver time type is harmonic
+        bool isElectroHarmonic();
+
+        // Check if magnetic field needs updating
+        bool updateMagneticField();
+
+        //- Set correctElectromagnetics switch to true for all conducting regions
+        void setCorrectElectromagnetics();
+
+        //- solve electromagnetics for region
+        void solveElectromagnetics();
+
+        //- Update electromagnetic system without solving
+        void electromagneticPredictor();
+        
+        const Foam::solvers::incompressibleConductingFluid& getIncompressibleFluid();
+
+        const Foam::solvers::conductingFluid& getFluid();
+        
+        const Foam::solvers::conductingSolid& getSolid();
+
 
         // Getsolver name
         word getName();

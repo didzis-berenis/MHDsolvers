@@ -24,9 +24,15 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electroBase.H"
-#include "addToRunTimeSelectionTable.H"
+//#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
+namespace Foam
+{
+    defineTypeNameAndDebug(electroBase, 0);
+    //defineRunTimeSelectionTable(electroBase, fvMesh);
+}
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -59,7 +65,13 @@ void Foam::electroBase::solveElectromagnetics()
     if (electro.correctElectromagnetics())
     {
         electroPtr->predict();
+        electroPtr->setCorrected();
     }
+}
+
+void Foam::electroBase::electromagneticPredictor()
+{
+    electroPtr->predict();
 }
 
 void Foam::electroBase::setCorrectElectromagnetics()
