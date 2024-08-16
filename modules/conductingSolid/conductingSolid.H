@@ -82,6 +82,10 @@ public:
 
 
     // Member Functions
+    
+        //non-const Temperature access for initialization purposes
+        volScalarField& getTemperature();
+
         //- Solve electromagnetic system
         //Override if necessary
         //virtual void solveElectromagnetics();

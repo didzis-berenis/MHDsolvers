@@ -145,4 +145,10 @@ void Foam::solvers::conductingFluid::storeU()
     U_old_ = U_;
 }
 
+//non-const access for initialization purposes
+Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
+{   
+    return thermo_.T();
+}
+
 // ************************************************************************* //

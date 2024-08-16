@@ -87,6 +87,7 @@ class conductingRegionSolver
 {
     // Private Member Data
         const Time& runTime_;
+        const IOdictionary physicalProperties_;
 
         //- Solver pointer
         solver* solverPtr_;
@@ -175,6 +176,16 @@ public:
 
         //- Update electromagnetic system without solving
         void electromagneticPredictor();
+
+        void calcTemperatureGradient();
+
+        // Read-only access
+
+        // Get Velocity
+        const volVectorField& getVelocity();
+
+        // Get Temperature
+        const volScalarField& getTemperature();
         
         const Foam::solvers::incompressibleConductingFluid& getIncompressibleFluid();
 

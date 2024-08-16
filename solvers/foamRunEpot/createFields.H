@@ -86,8 +86,9 @@ volVectorField Bim
 );
 
 const volScalarField& sigmaInv = regionSolver.getElectro().sigmaInv();
-const volScalarField& T = regionSolver.getFluid().thermo.T();
-const volVectorField& U = regionSolver.getFluid().U;
+const volVectorField& U = regionSolver.getVelocity();
+// Cannot use const reference for Elmer functions,
+// so preparing designated field for sending velocity to Elmer.
 volVectorField Usent = U;
 
 //Initialize field names and paths

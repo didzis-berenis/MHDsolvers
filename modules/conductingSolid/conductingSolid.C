@@ -84,6 +84,12 @@ Foam::solvers::conductingSolid::~conductingSolid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
+
+//non-const access for initialization purposes
+Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()
+{   
+    return thermo_.T();
+}
 /*
 void Foam::solvers::conductingSolid::solveElectromagnetics();
 {

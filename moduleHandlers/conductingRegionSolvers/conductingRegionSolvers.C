@@ -519,6 +519,68 @@ bool Foam::conductingRegionSolvers::updateMagneticField()
     return doUpdate;
 }
 
+void Foam::conductingRegionSolvers::calcTemperatureGradient(const word regionName)
+{
+    IOdictionary physicalProperties
+    (
+        IOobject
+        (
+            "physicalProperties",
+            runTime_.constant(),
+            mesh(regionName),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+    if
+    ( 
+        physicalProperties.found("temperature_multiplier") &&
+        physicalProperties.found("temperature_addition")
+    )
+    {
+        dimensionedVector temperature_multiplier
+        (
+            "temperature_multiplier",
+            dimTemperature/dimLength,
+            physicalProperties
+        );
+        dimensionedScalar temperature_addition
+        (
+            "temperature_addition",
+            dimTemperature,
+            physicalProperties
+        );
+
+        if (isSolid(regionName))
+        {
+            Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
+            if (solidPtr)
+            {
+                volScalarField& T = solidPtr->getTemperature();
+                T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
+                T.write();
+            }
+        }
+        else if (isFluid(regionName))
+        {
+            Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
+            if (fluidPtr)
+            {
+                volScalarField& T = fluidPtr->getTemperature();
+                T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
+                T.write();
+            }
+        }
+        /**/
+        else
+        {
+            Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
+            << " or " << solidSolverName_ << "!\n" << "Cannot set temperature gradient!\n"; 
+        }
+        /**/
+    }
+}
+
 Foam::List<Foam::Pair<Foam::word>> Foam::conductingRegionSolvers::getNames()
 {
     return names_;

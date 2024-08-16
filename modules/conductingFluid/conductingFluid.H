@@ -103,6 +103,9 @@ public:
 
 
     // Member Functions
+    
+        //non-const Temperature access for initialization purposes
+        volScalarField& getTemperature();
 
     //- Store old velocity field
         const volVectorField& U_old;

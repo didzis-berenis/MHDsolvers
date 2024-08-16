@@ -206,6 +206,8 @@ public:
 
         //- Update electromagnetic system without solving
         void electromagneticPredictor(const word regionName);
+
+        void calcTemperatureGradient(const word regionName);
         
         const Foam::solvers::conductingFluid& getFluid(const word regionName);
         
