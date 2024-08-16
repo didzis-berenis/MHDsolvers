@@ -95,21 +95,59 @@ Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
     if (imaginary)
     {
-        return getVectorFromRegistry(JimName_);
+        return getVectorFieldRef(JimName_);
     }
-    return getVectorFromRegistry(JreName_);
+    return getVectorFieldRef(JreName_);
 }
 
 Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
 {
     if (imaginary)
     {
-        return getVectorFromRegistry(BimName_);
+        return getVectorFieldRef(BimName_);
     }
-    return getVectorFromRegistry(BreName_);
+    return getVectorFieldRef(BreName_);
 }
 
 Foam::tmp<Foam::volVectorField>& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary)
+{
+    if (imaginary)
+    {
+        return deltaJim_;
+    }
+    return deltaJre_;
+}
+
+//const-access
+
+const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary) const
+{
+    if (imaginary)
+    {
+        return PotEim_;
+    }
+    return PotEre_;
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
+{
+    if (imaginary)
+    {
+        return getVectorField(JimName_);
+    }
+    return getVectorField(JreName_);
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const
+{
+    if (imaginary)
+    {
+        return getVectorField(BimName_);
+    }
+    return getVectorField(BreName_);
+}
+
+const Foam::tmp<Foam::volVectorField>& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary) const
 {
     if (imaginary)
     {

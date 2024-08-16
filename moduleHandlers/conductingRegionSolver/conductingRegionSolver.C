@@ -69,14 +69,11 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
     solverPtr_ = solverAutoPtr.ptr();
     
     //get region characteristic size
-    characteristicSize_ = physicalProperties_.lookupOrDefault<dimensionedScalar>
+    characteristicSize_ =
     (
-        "Lchar",
-        dimensionedScalar
-        (
-            dimLength,
-            0
-        )
+        physicalProperties_.found("Lchar") ?
+        dimensionedScalar("Lchar",dimLength,physicalProperties_) :
+        dimensionedScalar("Lchar",dimLength,0)
     ).value();
     
     // get write controls / magnetic field update controls

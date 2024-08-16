@@ -105,22 +105,34 @@ public:
 
 
     // Member Functions
-
         //- Electric potential [V]
-        virtual volScalarField& PotE(bool imaginary=false);
+        const virtual volScalarField& PotE(bool imaginary=false) const override;
 
         //- Current density [A/m^2]
-        virtual volVectorField& J(bool imaginary=false);
+        const virtual volVectorField& J(bool imaginary=false) const override;
 
         //- Magnetic field [T]
-        virtual volVectorField& B(bool imaginary=false);
+        const virtual volVectorField& B(bool imaginary=false) const override;
 
         //- Current density correction [A/m^2]
-        virtual tmp<volVectorField>& deltaJ(bool imaginary=false);
+        const virtual tmp<volVectorField>& deltaJ(bool imaginary=false) const override;
+
+        //const-access
+
+        //- Electric potential [V]
+        virtual volScalarField& PotE(bool imaginary=false) override;
+
+        //- Current density [A/m^2]
+        virtual volVectorField& J(bool imaginary=false) override;
+
+        //- Magnetic field [T]
+        virtual volVectorField& B(bool imaginary=false) override;
+
+        //- Current density correction [A/m^2]
+        virtual tmp<volVectorField>& deltaJ(bool imaginary=false) override;
 
         //- For determining if model fields has imaginary parts
-        virtual bool isComplex() const;
-
+        virtual bool isComplex() const override;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

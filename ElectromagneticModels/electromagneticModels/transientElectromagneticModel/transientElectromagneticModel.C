@@ -85,15 +85,37 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
 
 Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
 {
-    return getVectorFromRegistry(JName_);
+    return getVectorFieldRef(JName_);
 }
 
 Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
 {
-    return getVectorFromRegistry(BName_);
+    return getVectorFieldRef(BName_);
 }
 
 Foam::tmp<Foam::volVectorField>& Foam::transientElectromagneticModel::deltaJ(bool imaginary)
+{
+    return deltaJ_;
+}
+
+//const-access
+
+const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary) const
+{
+    return PotE_;
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
+{
+    return getVectorField(JName_);
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
+{
+    return getVectorField(BName_);
+}
+
+const Foam::tmp<Foam::volVectorField>& Foam::transientElectromagneticModel::deltaJ(bool imaginary) const
 {
     return deltaJ_;
 }

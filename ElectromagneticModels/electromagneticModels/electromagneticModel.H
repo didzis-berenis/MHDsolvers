@@ -256,10 +256,10 @@ public:
         //virtual dimensionedScalar sigmaConst();
 
         //- return field from object registry
-        virtual volScalarField& getScalarFromRegistry(const char* name);
+        virtual volScalarField& getScalarFieldRef(const char* name);
 
         //- return field from object registry
-        virtual volVectorField& getVectorFromRegistry(const char* name);
+        virtual volVectorField& getVectorFieldRef(const char* name);
 
         //- Predict the electromagnetic model coefficients if possible
         //  without solving electromagnetic model equations
@@ -302,6 +302,12 @@ public:
         //- Properties dictionary
         //virtual const IOdictionary& properties() const = 0;
 
+        //- return field from object registry
+        const virtual volScalarField& getScalarField(const char* name) const;
+
+        //- return field from object registry
+        const virtual volVectorField& getVectorField(const char* name) const;
+
         //- Electric conductivity [S/m]
         virtual const volScalarField& sigma() const;
 
@@ -315,16 +321,16 @@ public:
         virtual const dimensionedScalar sigmaConst() const;
 
         //- Electric potential [V]
-        virtual const volScalarField& PotE(bool imaginary=false) const;
+        virtual const volScalarField& PotE(bool imaginary=false) const = 0;
 
         //- Current density [A/m^2]
-        virtual const volVectorField& J(bool imaginary=false) const;
+        virtual const volVectorField& J(bool imaginary=false) const = 0;
 
         //- Magnetic field [T]
-        virtual const volVectorField& B(bool imaginary=false) const;
+        virtual const volVectorField& B(bool imaginary=false) const = 0;
 
         //- Current density correction [A/m^2]
-        virtual const tmp<volVectorField>& deltaJ(bool imaginary=false) const;
+        virtual const tmp<volVectorField>& deltaJ(bool imaginary=false) const = 0;
 
         //- Lorentz force [N/m^3]
         //virtual const volVectorField& JxB() const;

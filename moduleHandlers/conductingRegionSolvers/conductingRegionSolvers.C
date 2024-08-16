@@ -115,14 +115,11 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                 IOobject::NO_WRITE
             )
         );
-        characteristicSizes_[i] = physicalProperties.lookupOrDefault<dimensionedScalar>
+        characteristicSizes_[i] =
         (
-            "Lchar",
-            dimensionedScalar
-            (
-                dimLength,
-                0
-            )
+            physicalProperties.found("Lchar") ?
+            dimensionedScalar("Lchar",dimLength,physicalProperties) :
+            dimensionedScalar("Lchar",dimLength,0)
         ).value();
     }
 

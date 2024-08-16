@@ -245,14 +245,18 @@ Foam::electromagneticModel::electromagneticModel
 
     sigmaConst_
     (
-        physicalProperties::lookupOrDefault<dimensionedScalar>
+        IOdictionary(physicalProperties::findModelDict(mesh, phaseName)).found("sigma") ?
+        dimensionedScalar
         (
             "sigma",
-            dimensionedScalar
-            (
-                pow3(dimTime)*dimCurrent*dimCurrent/dimDensity,
-                0
-            )
+            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+            IOdictionary(physicalProperties::findModelDict(mesh, phaseName))
+        ) :
+        dimensionedScalar
+        (
+            "sigma",
+            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+            0
         )
     ),
 
@@ -402,14 +406,24 @@ bool Foam::electromagneticModel::read()
     return regIOobject::read();
 }
 
-Foam::volVectorField& Foam::electromagneticModel::getVectorFromRegistry(const char* name)
+Foam::volVectorField& Foam::electromagneticModel::getVectorFieldRef(const char* name)
 {
     return mesh_.objectRegistry::lookupObjectRef<volVectorField>(name);
 }
 
-Foam::volScalarField& Foam::electromagneticModel::getScalarFromRegistry(const char* name)
+Foam::volScalarField& Foam::electromagneticModel::getScalarFieldRef(const char* name)
 {
     return mesh_.objectRegistry::lookupObjectRef<volScalarField>(name);
+}
+
+const Foam::volVectorField& Foam::electromagneticModel::getVectorField(const char* name) const
+{
+    return mesh_.objectRegistry::lookupObject<volVectorField>(name);
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::getScalarField(const char* name) const
+{
+    return mesh_.objectRegistry::lookupObject<volScalarField>(name);
 }
 
 void Foam::electromagneticModel::setCorrectElectromagnetics()
@@ -454,19 +468,15 @@ Foam::volScalarField& Foam::electromagneticModel::JJsigma()
 */
 // Read only access functions
 
-const Foam::tmp<Foam::volVectorField>& Foam::electromagneticModel::deltaJ(bool imaginary) const
-{
-    return deltaJ(imaginary);
-}
 
 const Foam::volScalarField& Foam::electromagneticModel::sigmaInv() const
 {
-    return sigmaInv();
+    return sigmaInv_;
 }
 
 const Foam::volScalarField& Foam::electromagneticModel::sigma() const
 {
-    return sigma();
+    return sigma_;
 }
 
 const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
@@ -474,9 +484,21 @@ const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
     return sigmaConst_;
 }
 
+/**********************
+
+CANNOT DO THIS! CONST FUNCTION CALLS CONST FUNCTION => CREATES INFINITE LOOP!!
+
+**********************/
+/*
+const Foam::tmp<Foam::volVectorField>& Foam::electromagneticModel::deltaJ(bool imaginary) const
+{
+    return deltaJ(imaginary);
+}
+
 const Foam::volScalarField& Foam::electromagneticModel::PotE(bool imaginary) const
 {
-    return PotE(imaginary);
+    const Foam::volScalarField& constRef = this->PotERef(imaginary);
+    return constRef;
 }
 
 const Foam::volVectorField& Foam::electromagneticModel::J(bool imaginary) const
@@ -488,6 +510,7 @@ const Foam::volVectorField& Foam::electromagneticModel::B(bool imaginary) const
 {
     return B(imaginary);
 }
+*/
 /*
 const Foam::volVectorField& Foam::electromagneticModel::JxB() const
 {
