@@ -117,7 +117,7 @@ class conductingRegionSolver
         const word solidSolverName_ = "conductingSolid";
 
         //- Get pointers to derived solver class object
-        electroBase* getElectroBasePtr_();
+        //electroBase* getElectroBasePtr_();
         solvers::incompressibleConductingFluid* getIncompressibleFluidPtr_();
         solvers::conductingFluid* getFluidPtr_();
         solvers::conductingSolid* getSolidPtr_();

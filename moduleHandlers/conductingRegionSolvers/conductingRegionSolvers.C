@@ -239,7 +239,7 @@ void Foam::conductingRegionSolvers::vectorGlobalToField_(volVectorField& global,
         region[cellI] = global[localToGlobalID[std::make_pair(regionName,cellI)]];
     }
 }
-
+/*
 Foam::electroBase* Foam::conductingRegionSolvers::getElectroBasePtr_(const word regionName)
 {
     const word& solverName = names_[regionIdx_[regionName]].second();
@@ -250,13 +250,14 @@ Foam::electroBase* Foam::conductingRegionSolvers::getElectroBasePtr_(const word 
     }
     return nullptr;
 }
-
+*/
+//Note: Could make new solver base class with methods for conducting media
+//to avoid casting to each of derived class for accessing new common methods.
 Foam::solvers::conductingFluid* Foam::conductingRegionSolvers::getFluidPtr_(const word regionName)
 {
-    const word& solverName = names_[regionIdx_[regionName]].second();
-    Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
-    if (solverName == fluidSolverName_)
+    if (isFluid(regionName))
     {
+        Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
         return dynamic_cast<Foam::solvers::conductingFluid*>(basePtr);
     }
     return nullptr;
@@ -264,10 +265,9 @@ Foam::solvers::conductingFluid* Foam::conductingRegionSolvers::getFluidPtr_(cons
 
 Foam::solvers::conductingSolid* Foam::conductingRegionSolvers::getSolidPtr_(const word regionName)
 {
-    const word& solverName = names_[regionIdx_[regionName]].second();
-    Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
-    if (solverName == solidSolverName_)
+    if (isSolid(regionName))
     {
+        Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
         return dynamic_cast<Foam::solvers::conductingSolid*>(basePtr);
     }
     return nullptr;
@@ -297,34 +297,40 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 
 void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)
 {
-    Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-    if (electroBasePtr)
+    if (getFluidPtr_(regionName))
     {
-        electroBasePtr->solveElectromagnetics();
+        getFluidPtr_(regionName)->solveElectromagnetics();
     }
-    /**/
+    else if (getSolidPtr_(regionName))
+    {
+        getSolidPtr_(regionName)->solveElectromagnetics();
+    }
     else
     {
-        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot solve electromagnetics!\n"; 
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get solveElectromagnetics!\n"
+        << exit(FatalIOError);
     }
-    /**/
 }
 
 void Foam::conductingRegionSolvers::electromagneticPredictor(const word regionName)
 {
-    Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-    if (electroBasePtr)
+    if (getFluidPtr_(regionName))
     {
-        electroBasePtr->electromagneticPredictor();
+        getFluidPtr_(regionName)->electromagneticPredictor();
     }
-    /**/
+    else if (getSolidPtr_(regionName))
+    {
+        getSolidPtr_(regionName)->electromagneticPredictor();
+    }
     else
     {
-        Info << "Warning: region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot predict electromagnetics!\n"; 
+        FatalIOError
+        << " region " << regionName << " solver is not " << fluidSolverName_
+        << " or " << solidSolverName_ << "!\n" << "Cannot get electromagneticPredictor!\n"
+        << exit(FatalIOError);
     }
-    /**/
 }
 const Foam::fvMesh& Foam::conductingRegionSolvers::globalMesh()
 {
@@ -336,11 +342,22 @@ void Foam::conductingRegionSolvers::setJ(volVectorField& globalField, bool imagi
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-        if (electroBasePtr)
+        if (getFluidPtr_(regionName))
         {
-            volVectorField& regionField = electroBasePtr->getJ(imaginary);
+            volVectorField& regionField = getFluidPtr_(regionName)->getJ(imaginary);
             vectorGlobalToField_(globalField,regionField,regionName);
+        }
+        else if (getSolidPtr_(regionName))
+        {
+            volVectorField& regionField = getSolidPtr_(regionName)->getJ(imaginary);
+            vectorGlobalToField_(globalField,regionField,regionName);
+        }
+        else
+        {
+            FatalIOError
+            << " region " << regionName << " solver is not " << fluidSolverName_
+            << " or " << solidSolverName_ << "!\n" << "Cannot getJ!\n"
+            << exit(FatalIOError);
         }
     }
 }
@@ -350,68 +367,79 @@ void Foam::conductingRegionSolvers::setB(volVectorField& globalField, bool imagi
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-        if (electroBasePtr)
+        if (getFluidPtr_(regionName))
         {
-            volVectorField& regionField = electroBasePtr->getB(imaginary);
+            volVectorField& regionField = getFluidPtr_(regionName)->getB(imaginary);
             vectorGlobalToField_(globalField,regionField,regionName);
+        }
+        else if (getSolidPtr_(regionName))
+        {
+            volVectorField& regionField = getSolidPtr_(regionName)->getB(imaginary);
+            vectorGlobalToField_(globalField,regionField,regionName);
+        }
+        else
+        {
+            FatalIOError
+            << " region " << regionName << " solver is not " << fluidSolverName_
+            << " or " << solidSolverName_ << "!\n" << "Cannot getB!\n"
+            << exit(FatalIOError);
         }
     }
 }
 //Assigns U_old = U
 void Foam::conductingRegionSolvers::storeU(const word regionName)
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
-    if (fluidPtr)
+    if (getFluidPtr_(regionName))
     {
-        fluidPtr->storeU();
+        getFluidPtr_(regionName)->storeU();
     }
 }
 //returns read-only access to electro module
 const Foam::electromagneticModel& Foam::conductingRegionSolvers::getElectro(const word regionName)
 {
-    Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-    if (electroBasePtr)
+    if (isFluid(regionName))
     {
-        return electroBasePtr->electro;
+        return getFluid(regionName).electro;
+    }
+    else if (isSolid(regionName))
+    {
+        return getSolid(regionName).electro;
     }
     else
     {
         FatalIOError
         << " region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Electric module!\n"
+        << " or " << solidSolverName_ << "!\n" << "Cannot get electromagneticPredictor!\n"
         << exit(FatalIOError);
     }
 }
 const Foam::solvers::conductingFluid& Foam::conductingRegionSolvers::getFluid(const word regionName)
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
-    if (fluidPtr)
+    if (getFluidPtr_(regionName))
     {
-        const Foam::solvers::conductingFluid& fluidRef(*fluidPtr);
+        const Foam::solvers::conductingFluid& fluidRef(*getFluidPtr_(regionName));
         return fluidRef;
     }
     else
     {
         FatalIOError
         << " region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Electric module!\n"
+        << " or " << solidSolverName_ << "!\n" << "Cannot get fluid!\n"
         << exit(FatalIOError);
     }
 }
 const Foam::solvers::conductingSolid& Foam::conductingRegionSolvers::getSolid(const word regionName)
 {
-    Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
-    if (solidPtr)
+    if (getSolidPtr_(regionName))
     {
-        const Foam::solvers::conductingSolid& solidRef(*solidPtr);
+        const Foam::solvers::conductingSolid& solidRef(*getSolidPtr_(regionName));
         return solidRef;
     }
     else
     {
         FatalIOError
         << " region " << regionName << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot get Electric module!\n"
+        << " or " << solidSolverName_ << "!\n" << "Cannot get solid!\n"
         << exit(FatalIOError);
     }
 }
@@ -447,10 +475,20 @@ void Foam::conductingRegionSolvers::setCorrectElectromagnetics()
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        Foam::electroBase* electroBasePtr = getElectroBasePtr_(regionName);
-        if (electroBasePtr)
+        if (getFluidPtr_(regionName))
         {
-            electroBasePtr->setCorrectElectromagnetics();
+            getFluidPtr_(regionName)->setCorrectElectromagnetics();
+        }
+        else if (getSolidPtr_(regionName))
+        {
+            getSolidPtr_(regionName)->setCorrectElectromagnetics();
+        }
+        else
+        {
+            FatalIOError
+            << " region " << regionName << " solver is not " << fluidSolverName_
+            << " or " << solidSolverName_ << "!\n" << "Cannot get electromagneticPredictor!\n"
+            << exit(FatalIOError);
         }
     }
 }
@@ -548,25 +586,17 @@ void Foam::conductingRegionSolvers::calcTemperatureGradient(const word regionNam
             physicalProperties
         );
 
-        if (isSolid(regionName))
+        if (getSolidPtr_(regionName))
         {
-            Foam::solvers::conductingSolid* solidPtr = getSolidPtr_(regionName);
-            if (solidPtr)
-            {
-                volScalarField& T = solidPtr->getTemperature();
-                T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
-                T.write();
-            }
+            volScalarField& T = getSolidPtr_(regionName)->getTemperature();
+            T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
+            T.write();
         }
-        else if (isFluid(regionName))
+        else if (getFluidPtr_(regionName))
         {
-            Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_(regionName);
-            if (fluidPtr)
-            {
-                volScalarField& T = fluidPtr->getTemperature();
-                T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
-                T.write();
-            }
+            volScalarField& T = getFluidPtr_(regionName)->getTemperature();
+            T = (mesh(regionName).C() & temperature_multiplier) +  temperature_addition;
+            T.write();
         }
         /**/
         else

@@ -83,7 +83,7 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         PotERefValue
     );
 
-    if (electro.isComplex())
+    if (electroPtr->isComplex())
     {
         setRefCell
         ( 

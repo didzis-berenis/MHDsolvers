@@ -124,7 +124,7 @@ class conductingRegionSolvers
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
 
-        electroBase* getElectroBasePtr_(const word regionName);
+        //electroBase* getElectroBasePtr_(const word regionName);
         solvers::conductingFluid* getFluidPtr_(const word regionName);
         solvers::conductingSolid* getSolidPtr_(const word regionName);
         void scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName);

@@ -271,7 +271,7 @@ Foam::electromagneticModel::electromagneticModel
             IOobject::NO_WRITE
         ),
         mesh,
-        dimensionedScalar(dimDensity/pow3(dimTime)/dimCurrent/dimCurrent,0)
+        dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0)
     )
 {
     //Update sigma patch fields

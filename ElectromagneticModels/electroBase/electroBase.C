@@ -81,12 +81,12 @@ void Foam::electroBase::setCorrectElectromagnetics()
 
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 {
-    electroPtr->J(imaginary);
+    return electroPtr->J(imaginary);
 }
 
 Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
 {
-    electroPtr->B(imaginary);
+    return electroPtr->B(imaginary);
 }
 
 // ************************************************************************* //
