@@ -56,29 +56,33 @@ class harmonicElectromagneticModel
 
     //- Electric potential [V]
         //- real
-        volScalarField PotEre_;
+        volScalarField& PotEre_;
         //- imaginary
-        volScalarField PotEim_;
+        volScalarField& PotEim_;
 
     //- Current density correction [A/m^2]
         //real
-        tmp<volVectorField> deltaJre_;
+        volVectorField& deltaJre_;
         //imaginary
-        tmp<volVectorField> deltaJim_;
+        volVectorField& deltaJim_;
 
     //- Current density [A/m^2]
         //- real
-        const char* JreName_ = "Jre";
+        //const char* JreName_ = "Jre";
+        volVectorField& Jre_;
 
         //- imaginary
-        const char* JimName_ = "Jim";
+        //const char* JimName_ = "Jim";
+        volVectorField& Jim_;
 
     //- Magnetic field [T]
         //- real
-        const char* BreName_ = "Bre";
+        //const char* BreName_ = "Bre";
+        volVectorField& Bre_;
 
         //- imaginary
-        const char* BimName_ = "Bim";
+        //const char* BimName_ = "Bim";
+        volVectorField& Bim_;
 
     //- isComplex_ switch for solvers
         // true for harmonic models
@@ -131,19 +135,6 @@ public:
 
 
     // Member Functions
-        //- Electric potential [V]
-        const virtual volScalarField& PotE(bool imaginary=false) const override;
-
-        //- Current density [A/m^2]
-        const virtual volVectorField& J(bool imaginary=false) const override;
-
-        //- Magnetic field [T]
-        const virtual volVectorField& B(bool imaginary=false) const override;
-
-        //- Current density correction [A/m^2]
-        const virtual tmp<volVectorField>& deltaJ(bool imaginary=false) const override;
-
-        //const-access
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) override;
@@ -155,10 +146,24 @@ public:
         virtual volVectorField& B(bool imaginary=false) override;
 
         //- Current density correction [A/m^2]
-        virtual tmp<volVectorField>& deltaJ(bool imaginary=false) override;
+        virtual volVectorField& deltaJ(bool imaginary=false) override;
 
         //- For determining if model fields has imaginary parts
         virtual bool isComplex() const override;
+
+        //const-access
+
+        //- Electric potential [V]
+        const virtual volScalarField& PotE(bool imaginary=false) const override;
+
+        //- Current density [A/m^2]
+        const virtual volVectorField& J(bool imaginary=false) const override;
+
+        //- Magnetic field [T]
+        const virtual volVectorField& B(bool imaginary=false) const override;
+
+        //- Current density correction [A/m^2]
+        const virtual volVectorField& deltaJ(bool imaginary=false) const override;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

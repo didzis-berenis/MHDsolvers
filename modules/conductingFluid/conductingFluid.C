@@ -131,7 +131,8 @@ void Foam::solvers::conductingFluid::solveElectromagnetics()
     if (electro.correctElectromagnetics())
     {
         // Update deltaU
-        electroPtr->updateDeltaU(U_ - U_old_);
+        volVectorField deltaU = U_ - U_old_;
+        electroPtr->updateDeltaU(deltaU);
         //Correct current density
         electroPtr->correct();
         //Store old velocity for next update

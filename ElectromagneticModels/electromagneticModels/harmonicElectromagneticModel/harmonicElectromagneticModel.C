@@ -50,16 +50,35 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
 :
     electromagneticModel(mesh),
     PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
-    PotEim_(lookupOrConstructScalar(mesh, "PotEim"))
-{
-    constructVector(mesh, JreName_);
-    constructVector(mesh, JimName_);
-    constructVector(mesh, BreName_);
-    constructVector(mesh, BimName_);
+    PotEim_(lookupOrConstructScalar(mesh, "PotEim")),
+    Jre_(lookupOrConstructVector(mesh, "Jre")),
+    Jim_(lookupOrConstructVector(mesh, "Jim")),
+    Bre_(lookupOrConstructVector(mesh, "Bre")),
+    Bim_(lookupOrConstructVector(mesh, "Bim")),
     //Get boundary conditions from J
-    deltaJ() = tmp<volVectorField>(J());
-    deltaJ(true) = tmp<volVectorField>(J(true));
-}
+    deltaJre_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaJre",
+            lookupOrConstructVector(mesh, "Jre"),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        )
+    ),
+    deltaJim_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaJim",
+            lookupOrConstructVector(mesh, "Jim"),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        )
+    )
+{}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -84,76 +103,44 @@ Foam::harmonicElectromagneticModel::~harmonicElectromagneticModel()
 
 Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
 {
-    if (imaginary)
-    {
-        return PotEim_;
-    }
-    return PotEre_;
+    return imaginary ? PotEim_ : PotEre_;
 }
 
 Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
-    if (imaginary)
-    {
-        return getVectorFieldRef(JimName_);
-    }
-    return getVectorFieldRef(JreName_);
+    return imaginary ? Jim_ : Jre_;
 }
 
 Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
 {
-    if (imaginary)
-    {
-        return getVectorFieldRef(BimName_);
-    }
-    return getVectorFieldRef(BreName_);
+    return imaginary ? Bim_ : Bre_;
 }
 
-Foam::tmp<Foam::volVectorField>& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary)
+Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary)
 {
-    if (imaginary)
-    {
-        return deltaJim_;
-    }
-    return deltaJre_;
+    return imaginary ? deltaJim_ : deltaJre_;
 }
 
 //const-access
 
 const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary) const
 {
-    if (imaginary)
-    {
-        return PotEim_;
-    }
-    return PotEre_;
+    return imaginary ? PotEim_ : PotEre_;
 }
 
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
 {
-    if (imaginary)
-    {
-        return getVectorField(JimName_);
-    }
-    return getVectorField(JreName_);
+    return imaginary ? Jim_ : Jre_;
 }
 
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const
 {
-    if (imaginary)
-    {
-        return getVectorField(BimName_);
-    }
-    return getVectorField(BreName_);
+    return imaginary ? Bim_ : Bre_;
 }
 
-const Foam::tmp<Foam::volVectorField>& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary) const
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary) const
 {
-    if (imaginary)
-    {
-        return deltaJim_;
-    }
-    return deltaJre_;
+    return imaginary ? deltaJim_ : deltaJre_;
 }
 
 bool Foam::harmonicElectromagneticModel::isComplex() const

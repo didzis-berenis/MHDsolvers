@@ -49,13 +49,22 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
 )
 :
     electromagneticModel(mesh),
-    PotE_(lookupOrConstructScalar(mesh, "PotE"))
-{
-    constructVector(mesh, JName_);
-    constructVector(mesh, BName_);
+    PotE_(lookupOrConstructScalar(mesh, "PotE")),
+    Jre_(lookupOrConstructVector(mesh, "J")),
+    Bre_(lookupOrConstructVector(mesh, "B")),
     //Get boundary conditions from J
-    deltaJ_ = tmp<volVectorField>(J());
-}
+    deltaJre_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaJ",
+            lookupOrConstructVector(mesh, "J"),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        )
+    )
+{}
 
 
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
@@ -85,17 +94,17 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
 
 Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
 {
-    return getVectorFieldRef(JName_);
+    return Jre_;
 }
 
 Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
 {
-    return getVectorFieldRef(BName_);
+    return Bre_;
 }
 
-Foam::tmp<Foam::volVectorField>& Foam::transientElectromagneticModel::deltaJ(bool imaginary)
+Foam::volVectorField& Foam::transientElectromagneticModel::deltaJ(bool imaginary)
 {
-    return deltaJ_;
+    return deltaJre_;
 }
 
 //const-access
@@ -107,17 +116,17 @@ const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imagi
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
 {
-    return getVectorField(JName_);
+    return Jre_;
 }
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
 {
-    return getVectorField(BName_);
+    return Bre_;
 }
 
-const Foam::tmp<Foam::volVectorField>& Foam::transientElectromagneticModel::deltaJ(bool imaginary) const
+const Foam::volVectorField& Foam::transientElectromagneticModel::deltaJ(bool imaginary) const
 {
-    return deltaJ_;
+    return deltaJre_;
 }
 
 bool Foam::transientElectromagneticModel::isComplex() const

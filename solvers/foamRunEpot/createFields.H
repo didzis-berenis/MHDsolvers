@@ -1,4 +1,4 @@
-
+/*
 Info<< "Initializing field JxB\n" << endl;
 volVectorField JxB
 (
@@ -84,7 +84,13 @@ volVectorField Bim
     ),
     mesh
 );
-
+*/
+volVectorField JxB = regionSolver.getElectro().JxB;
+volScalarField JJsigma = regionSolver.getElectro().JJsigma;
+volVectorField Jre = regionSolver.getElectro().J();
+volVectorField Jim = regionSolver.getElectro().J(true);
+volVectorField Bre = regionSolver.getElectro().B();
+volVectorField Bim = regionSolver.getElectro().B(true);
 const volScalarField& sigmaInv = regionSolver.getElectro().sigmaInv();
 const volVectorField& U = regionSolver.getVelocity();
 // Cannot use const reference for Elmer functions,

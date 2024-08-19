@@ -117,6 +117,9 @@ protected:
         //- Inverse Electric conductivity [m/S]
         volScalarField& sigmaInv_;
 
+        //- Velocity difference
+        volVectorField& deltaU_;
+
 
     // Protected Static Member Functions
 
@@ -136,7 +139,19 @@ protected:
         static volVectorField& lookupOrConstructVector
         (
             const fvMesh& mesh,
-            const char* name
+            const char* name,
+            dimensionedVector value = dimensionedVector(dimless,Foam::vector(0,0,0)),
+            readOption ro = IOobject::MUST_READ,
+            writeOption wo = IOobject::AUTO_WRITE
+        );
+
+        static volVectorField& lookupOrConstructVector
+        (
+            const fvMesh& mesh,
+            const char* name,
+            const volVectorField& field,
+            readOption ro = IOobject::MUST_READ,
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Construct named field as MUST-READ if it is not found
@@ -232,9 +247,6 @@ public:
 
     // Member Functions
 
-        //- Velocity difference
-        tmp<volVectorField> deltaU;
-
         //- Read model coefficients if they have changed
         virtual bool read();
 
@@ -248,7 +260,7 @@ public:
         virtual bool correctElectromagnetics() const;
 
         //- calculate and return J correction difference
-        virtual volVectorField findDeltaJ(bool imaginary=false);
+        virtual void findDeltaJ(bool imaginary=false);
 
         //- Lorentz force [N/m^3]
         //virtual volVectorField& JxB();
@@ -282,7 +294,7 @@ public:
         //- Update properties
         virtual void correct();
 
-        virtual void updateDeltaU(const volVectorField& Udiff);
+        virtual void updateDeltaU(volVectorField& Udiff);
 
         //Template functions for derived classes
 
@@ -299,7 +311,7 @@ public:
         virtual volVectorField& B(bool imaginary=false) = 0;
 
         //- Current density correction [A/m^2]
-        virtual tmp<volVectorField>& deltaJ(bool imaginary=false) = 0;
+        virtual volVectorField& deltaJ(bool imaginary=false) = 0;
         
         //- Non-const access the properties dictionary
         //virtual IOdictionary& properties() = 0;
@@ -343,7 +355,7 @@ public:
         virtual const volVectorField& B(bool imaginary=false) const = 0;
 
         //- Current density correction [A/m^2]
-        virtual const tmp<volVectorField>& deltaJ(bool imaginary=false) const = 0;
+        virtual const volVectorField& deltaJ(bool imaginary=false) const = 0;
 
         //- Lorentz force [N/m^3]
         //virtual const volVectorField& JxB() const;

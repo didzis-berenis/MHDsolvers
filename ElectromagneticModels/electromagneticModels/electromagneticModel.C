@@ -138,13 +138,17 @@ Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
 Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
 (
     const fvMesh& mesh,
-    const char* name
+    const char* name,
+    dimensionedVector value,
+    readOption ro,
+    writeOption wo
 )
 {
     if (!mesh.objectRegistry::foundObject<volVectorField>(name))
     {
         volVectorField* fPtr
         (
+            ro == IOobject::MUST_READ ?
             new volVectorField
             (
                 IOobject
@@ -152,10 +156,70 @@ Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
                     name,
                     mesh.time().name(),
                     mesh,
-                    IOobject::MUST_READ,
-                    IOobject::AUTO_WRITE
+                    ro,
+                    wo
                 ),
                 mesh
+            ) :
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    ro,
+                    wo
+                ),
+                mesh,
+                value
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh.objectRegistry::lookupObjectRef<volVectorField>(name);
+}
+
+Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
+(
+    const fvMesh& mesh,
+    const char* name,
+    const volVectorField& field,
+    readOption ro,
+    writeOption wo
+)
+{
+    if (!mesh.objectRegistry::foundObject<volVectorField>(name))
+    {
+        volVectorField* fPtr
+        (
+            ro == IOobject::MUST_READ ?
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    ro,
+                    wo
+                ),
+                mesh
+            ) :
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    ro,
+                    wo
+                ),
+                field
             )
         );
 
@@ -306,6 +370,18 @@ Foam::electromagneticModel::electromagneticModel
         )
     ),
 
+    deltaU_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaU",
+            dimensionedVector(dimVelocity,Foam::vector(0,0,0)),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        )
+    ),
+
     sigmaInv_
     (
         lookupOrConstructScalar
@@ -346,26 +422,27 @@ Foam::electromagneticModel::electromagneticModel
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::electromagneticModel::updateDeltaU(const volVectorField& Udiff)
+void Foam::electromagneticModel::updateDeltaU(volVectorField& Udiff)
 {
-    deltaU.clear();
-    deltaU = tmp<volVectorField>(Udiff);
+    //deltaU.clear();
+    //deltaU.ref()+=Udiff;//deltaU = tmp<volVectorField>(Udiff);
+    deltaU_ = Udiff;
 }
 
-Foam::volVectorField Foam::electromagneticModel::findDeltaJ(bool imaginary)
+void Foam::electromagneticModel::findDeltaJ(bool imaginary)
 {
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(deltaU ^ B(imaginary)) & mesh_.Sf();
+    surfaceScalarField psiUB = fvc::interpolate(deltaU_ ^ B(imaginary)) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotE(imaginary);
     //Const access
-    volScalarField sigma(sigma_);
+    volScalarField sigma_field(sigma_);
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
-    fvm::laplacian(sigma,PotE)
+    fvm::laplacian(sigma_field,PotE)
     ==
-    sigma*fvc::div(psiUB)
+    sigma_field*fvc::div(psiUB)
     );
     //Reference potential
     label PotERefCell = 0;
@@ -379,13 +456,13 @@ Foam::volVectorField Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
     
-    volVectorField JUB = deltaJ(imaginary).ref();
+    //get boundary conditions from J
+    volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolation of current density at cell center
-    JUB = sigma*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    JUB = sigma_field*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary condition
     JUB.correctBoundaryConditions();
-
-    return JUB;
+    //return JUB;
 }
 
 void Foam::electromagneticModel::predict()
@@ -408,42 +485,31 @@ void Foam::electromagneticModel::predict()
 
 void Foam::electromagneticModel::correct()
 {
-    //volVectorField deltaU = U_-U_old_;
-    //tmp<volVectorField> deltaU = deltaU()
     bool imaginary = isComplex();
-    if (deltaU.valid())
+    //Get J difference by incorporating deltaU x B term
+    findDeltaJ();
+    if (imaginary)
     {
-        volVectorField deltaJre = deltaJ();
-        volVectorField deltaJim = deltaJ(imaginary);
-        //Get J difference by incorporating deltaU x B term
-        //volVectorField deltaJre = findDeltaJ(deltaU);
-        deltaJre = findDeltaJ();
-        //volVectorField deltaJim = deltaJre;
-        deltaJim = deltaJre;
-        if (imaginary)
-        {
-            deltaJim = findDeltaJ(imaginary);
-        }
+        findDeltaJ(imaginary);
+    }
+    volVectorField deltaJre = deltaJ();
+    volVectorField deltaJim = deltaJ(imaginary);
 
-        //Get references for modification
-        //Lorentz force term
-        JxB_ =
-        0.5*(
-            ((J()+deltaJre) ^ B() )
-            +((J(imaginary)+deltaJim) ^ B(imaginary) )
-        );
-        //Joule heating
-        //multiply by inverse of sigma to avoid division by zero
-        JJsigma_ =
-        0.5*(
-            ((J()+deltaJre) & (J()+deltaJre))
-            +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
-        )*sigmaInv();
-    }
-    else
-    {
-        predict();
-    }
+    //Get references for modification
+    //Lorentz force term
+    JxB_ =
+    0.5*(
+        ((J()+deltaJre) ^ B() )
+        +((J(imaginary)+deltaJim) ^ B(imaginary) )
+    );
+    //Joule heating
+    //multiply by inverse of sigma to avoid division by zero
+    JJsigma_ =
+    0.5*(
+        ((J()+deltaJre) & (J()+deltaJre))
+        +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
+    )*sigmaInv();
+    //mark as corrected
     setCorrected();
 }
 
@@ -529,44 +595,5 @@ const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const
 {
     return sigmaConst_;
 }
-
-/**********************
-
-CANNOT DO THIS! CONST FUNCTION CALLS CONST FUNCTION => CREATES INFINITE LOOP!!
-
-**********************/
-/*
-const Foam::tmp<Foam::volVectorField>& Foam::electromagneticModel::deltaJ(bool imaginary) const
-{
-    return deltaJ(imaginary);
-}
-
-const Foam::volScalarField& Foam::electromagneticModel::PotE(bool imaginary) const
-{
-    const Foam::volScalarField& constRef = this->PotERef(imaginary);
-    return constRef;
-}
-
-const Foam::volVectorField& Foam::electromagneticModel::J(bool imaginary) const
-{
-    return J(imaginary);
-}
-
-const Foam::volVectorField& Foam::electromagneticModel::B(bool imaginary) const
-{
-    return B(imaginary);
-}
-*/
-/*
-const Foam::volVectorField& Foam::electromagneticModel::JxB() const
-{
-    return JxB();
-}
-
-const Foam::volScalarField& Foam::electromagneticModel::JJsigma() const
-{
-    return JJsigma();
-}
-*/
 
 // ************************************************************************* //
