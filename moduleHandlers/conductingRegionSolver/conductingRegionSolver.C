@@ -30,18 +30,7 @@ License
 
 Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh& mesh)
 :
-    runTime_(runTime),
-    physicalProperties_
-    (
-        IOobject
-        (
-            "physicalProperties",
-            runTime.constant(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    )
+    runTime_(runTime)
 {
 
     if (runTime.controlDict().found("solver"))
@@ -68,11 +57,22 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
     // get pointer to solver
     solverPtr_ = solverAutoPtr.ptr();
     
+    IOdictionary physicalProperties
+    (
+        IOobject
+        (
+            "physicalProperties",
+            runTime.constant(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
     //get region characteristic size
     characteristicSize_ =
     (
-        physicalProperties_.found("Lchar") ?
-        dimensionedScalar("Lchar",dimLength,physicalProperties_) :
+        physicalProperties.found("Lchar") ?
+        dimensionedScalar("Lchar",dimLength,physicalProperties) :
         dimensionedScalar("Lchar",dimLength,0)
     ).value();
     
@@ -482,23 +482,35 @@ bool Foam::conductingRegionSolver::updateMagneticField()
 
 void Foam::conductingRegionSolver::calcTemperatureGradient()
 {
+    
+    IOdictionary physicalProperties
+    (
+        IOobject
+        (
+            "physicalProperties",
+            runTime_.constant(),
+            solverPtr_->mesh(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
     if
     ( 
-        physicalProperties_.found("temperature_multiplier") &&
-        physicalProperties_.found("temperature_addition")
+        physicalProperties.found("temperature_multiplier") &&
+        physicalProperties.found("temperature_addition")
     )
     {
         dimensionedVector temperature_multiplier
         (
             "temperature_multiplier",
             dimTemperature/dimLength,
-            physicalProperties_
+            physicalProperties
         );
         dimensionedScalar temperature_addition
         (
             "temperature_addition",
             dimTemperature,
-            physicalProperties_
+            physicalProperties
         );
 
         if (getSolidPtr_())

@@ -35,11 +35,24 @@ License
         const word& phaseName
     )
     {
+        /*
         const IOdictionary electromagneticDict
         (
             physicalProperties::findModelDict(mesh, phaseName)
         );
         const word modelType(electromagneticDict.lookup("electromagneticType"));
+        */
+        const word modelType
+        (
+            IOdictionary
+            (
+                electromagneticModel::readModelDict
+                (
+                    mesh.thisDb(),
+                    phaseName
+                )
+            ).lookup("electromagneticType")
+        );
 
         Info<< "Selecting electromagnetics model " << modelType << endl;
 

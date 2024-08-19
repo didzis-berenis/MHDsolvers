@@ -79,29 +79,57 @@ namespace Foam
 Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
 (
     const fvMesh& mesh,
-    const char* name
+    const char* name,
+    dimensionedScalar value,
+    readOption ro,
+    writeOption wo
 )
 {
     if (!mesh.objectRegistry::foundObject<volScalarField>(name))
     {
-        volScalarField* fPtr
-        (
-            new volScalarField
+        if (ro == IOobject::MUST_READ)
+        {
+            volScalarField* fPtr
             (
-                IOobject
+                new volScalarField
                 (
-                    name,
-                    mesh.time().name(),
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::AUTO_WRITE
-                ),
-                mesh
-            )
-        );
+                    IOobject
+                    (
+                        name,
+                        mesh.time().name(),
+                        mesh,
+                        ro,
+                        wo
+                    ),
+                    mesh
+                )
+            );
 
-        // Transfer ownership of this object to the objectRegistry
-        fPtr->store(fPtr);
+            // Transfer ownership of this object to the objectRegistry
+            fPtr->store(fPtr);
+        }
+        else
+        {
+            volScalarField* fPtr
+            (
+                new volScalarField
+                (
+                    IOobject
+                    (
+                        name,
+                        mesh.time().name(),
+                        mesh,
+                        ro,
+                        wo
+                    ),
+                    mesh,
+                    value
+                )
+            );
+
+            // Transfer ownership of this object to the objectRegistry
+            fPtr->store(fPtr);
+        }
     }
 
     return mesh.objectRegistry::lookupObjectRef<volScalarField>(name);
@@ -154,9 +182,7 @@ void Foam::electromagneticModel::constructScalar
                 (
                     name,
                     mesh.time().name(),
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::AUTO_WRITE
+                    mesh
                 ),
                 mesh
             )
@@ -202,10 +228,30 @@ const Foam::electromagneticModel& Foam::electromagneticModel::lookupElectromagne
     const fvPatchScalarField& pf
 )
 {
-    return pf.db().lookupObject<electromagneticModel>(physicalProperties::typeName);
+    return pf.db().lookupObject<electromagneticModel>(typeName);
 }
 
-// * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
+// * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
+
+Foam::typeIOobject<Foam::IOdictionary>
+Foam::electromagneticModel::readModelDict
+(
+    const objectRegistry& obr,
+    const word& group,
+    bool registerObject
+)
+{
+    typeIOobject<IOdictionary> electromagneticDict
+    (
+        IOobject::groupName(typeName, group),
+        obr.time().constant(),
+        obr,
+        IOobject::MUST_READ_IF_MODIFIED,
+        IOobject::NO_WRITE,
+        registerObject
+    );
+    return electromagneticDict;
+}
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -215,11 +261,13 @@ Foam::electromagneticModel::electromagneticModel
     const word& phaseName
 )
 :
+    IOdictionary(readModelDict(mesh.thisDb(), phaseName, true)),
+
+    //physicalProperties(mesh, phaseName),
+
     mesh_(mesh),
 
     phaseName_(phaseName),
-
-    physicalProperties(mesh, phaseName),
 
     JxB_(lookupOrConstructVector(mesh, "JxB")),
 
@@ -231,26 +279,24 @@ Foam::electromagneticModel::electromagneticModel
 
     sigma_
     (
-        IOobject
+        lookupOrConstructScalar
         (
-            "sigma",
-            mesh.time().name(),
             mesh,
+            "sigma",
+            sigmaConst_,
             IOobject::READ_IF_PRESENT,
             IOobject::NO_WRITE
-        ),
-        mesh,
-        sigmaConst_
+        )
     ),
 
     sigmaConst_
     (
-        IOdictionary(physicalProperties::findModelDict(mesh, phaseName)).found("sigma") ?
+        IOdictionary(readModelDict(mesh.thisDb(),phaseName)).found("sigma") ?
         dimensionedScalar
         (
             "sigma",
             pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
-            IOdictionary(physicalProperties::findModelDict(mesh, phaseName))
+            IOdictionary(readModelDict(mesh.thisDb(),phaseName))
         ) :
         dimensionedScalar
         (
@@ -262,18 +308,18 @@ Foam::electromagneticModel::electromagneticModel
 
     sigmaInv_
     (
-        IOobject
+        lookupOrConstructScalar
         (
-            "sigmaInv",
-            mesh.time().name(),
             mesh,
+            "sigmaInv",
+            dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0),
             IOobject::NO_READ,
             IOobject::NO_WRITE
-        ),
-        mesh,
-        dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0)
+        )
     )
 {
+    // Ensure name of IOdictionary is typeName
+    //rename(IOobject::groupName(typeName, phaseName_));
     //Update sigma patch fields
     if (sigmaConst_.value() > SMALL)
     {

@@ -61,10 +61,10 @@ class transientElectromagneticModel
     tmp<volVectorField> deltaJ_;
 
     //- Current density [A/m^2]
-    const char* JName_ = "J";
+    const char* JName_ = "Jre";
 
     //- Magnetic field [T]
-    const char* BName_ = "B";
+    const char* BName_ = "Bre";
 
     //- isComplex_ switch for solvers
     // false for transient models

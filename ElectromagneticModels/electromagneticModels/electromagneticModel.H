@@ -62,7 +62,8 @@ SourceFiles
 
 #include "volFields.H"
 #include "typeInfo.H"
-#include "physicalProperties.H"
+//#include "physicalProperties.H"
+#include "IOdictionary.H"
 #include "autoPtr.H"
 #include "wordIOList.H"
 //#include "runTimeSelectionTables.H"
@@ -79,7 +80,9 @@ namespace Foam
 //This is an abstract class
 class electromagneticModel
 :
-    public physicalProperties
+    public IOdictionary
+//:
+//    public physicalProperties
 {
     // Private Member Data
 
@@ -97,22 +100,22 @@ protected:
         //- Phase-name
         const word& phaseName_;
 
+        //- Electrical conductivity [S/m]
+        const dimensionedScalar sigmaConst_;
+
         // Fields
 
-        //- Electrical conductivity [S/m]
-        volScalarField sigma_;
-        dimensionedScalar sigmaConst_;
-
         // Lorentz force
-
-        volVectorField JxB_;
+        volVectorField& JxB_;
 
         // Joule heating
+        volScalarField& JJsigma_;
 
-        volScalarField JJsigma_;
+        //- Electrical conductivity [S/m]
+        volScalarField& sigma_;
 
         //- Inverse Electric conductivity [m/S]
-        volScalarField sigmaInv_;
+        volScalarField& sigmaInv_;
 
 
     // Protected Static Member Functions
@@ -122,7 +125,10 @@ protected:
         static volScalarField& lookupOrConstructScalar
         (
             const fvMesh& mesh,
-            const char* name
+            const char* name,
+            dimensionedScalar value = dimensionedScalar(dimless,0),
+            readOption ro = IOobject::MUST_READ,
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -163,6 +169,13 @@ protected:
             const fvMesh& mesh,
             const word& phaseName
         );*/
+
+        static typeIOobject<IOdictionary> readModelDict
+        (
+            const objectRegistry& obr,
+            const word& group,
+            bool registerObject = false
+        );
 
 
 public:

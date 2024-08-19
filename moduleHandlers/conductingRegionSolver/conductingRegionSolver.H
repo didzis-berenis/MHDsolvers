@@ -87,7 +87,7 @@ class conductingRegionSolver
 {
     // Private Member Data
         const Time& runTime_;
-        const IOdictionary physicalProperties_;
+        //const IOdictionary& physicalProperties_;
 
         //- Solver pointer
         solver* solverPtr_;
