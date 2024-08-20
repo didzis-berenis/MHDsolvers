@@ -133,6 +133,8 @@ class conductingRegionSolvers
         //- Region solvers
         autoPtr<fvMesh> globalMesh_;
 
+        void calculateGlobalMesh_();
+
 
 public:
     //constants

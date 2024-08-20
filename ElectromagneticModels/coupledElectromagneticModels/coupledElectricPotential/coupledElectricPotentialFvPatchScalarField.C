@@ -246,7 +246,7 @@ void Foam::coupledElectricPotentialFvPatchScalarField::write
 {
     mixedFvPatchScalarField::write(os);
 
-    writeEntryIfDifferent<word>(os, "ePot", "ePot", ePotnbrName_);
+    writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotnbrName_);
 }
 
 

@@ -51,7 +51,7 @@ License
                     mesh.thisDb(),
                     phaseName
                 )
-            ).lookup("electromagneticType")
+            ).lookup("electromagneticModel")
         );
 
         Info<< "Selecting electromagnetics model " << modelType << endl;

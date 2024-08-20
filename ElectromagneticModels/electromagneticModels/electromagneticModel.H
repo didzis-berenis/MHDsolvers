@@ -150,8 +150,8 @@ protected:
             const fvMesh& mesh,
             const char* name,
             const volVectorField& field,
-            readOption ro = IOobject::MUST_READ,
-            writeOption wo = IOobject::AUTO_WRITE
+            readOption ro = IOobject::NO_READ,
+            writeOption wo = IOobject::NO_WRITE
         );
 
         //- Construct named field as MUST-READ if it is not found

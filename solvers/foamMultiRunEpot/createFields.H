@@ -49,10 +49,11 @@ volVectorField JreGlobal
         "Jre",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(0, -2, 0, 0, 0, 1, 0), Foam::vector(0,0,0))
 );
 volVectorField JimGlobal
 (
@@ -61,10 +62,11 @@ volVectorField JimGlobal
         "Jim",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(0, -2, 0, 0, 0, 1, 0), Foam::vector(0,0,0))
 );
 volVectorField BreGlobal
 (
@@ -73,10 +75,11 @@ volVectorField BreGlobal
         "Bre",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
 );
 volVectorField BimGlobal
 (
@@ -85,10 +88,11 @@ volVectorField BimGlobal
         "Bim",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
     ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
 );
 /*
 volScalarField GeometryIdsGlobal
