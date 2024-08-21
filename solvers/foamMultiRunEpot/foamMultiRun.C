@@ -62,6 +62,12 @@ int main(int argc, char *argv[])
     // Create the region meshes and solvers
     conductingRegionSolvers solvers(runTime);
 
+    // Create the outer PIMPLE loop and control structure
+    pimpleMultiRegionControl pimple(runTime, solvers);
+    
+    // Set the initial time-step
+    setDeltaT(runTime, solvers);
+
     // Read global mesh of all regions
     const fvMesh& meshGlobal = solvers.globalMesh();
     localToGlobalID = solvers.localToGlobalID;
@@ -69,11 +75,8 @@ int main(int argc, char *argv[])
     {
         regionNames.append(solvers.getNames()[i].first());
     }
-    // Create the outer PIMPLE loop and control structure
-    pimpleMultiRegionControl pimple(runTime, solvers);
+
     #include "createFields.H"
-    // Set the initial time-step
-    setDeltaT(runTime, solvers);
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     //
