@@ -337,7 +337,7 @@ public:
         virtual const volScalarField& sigma() const;
 
         //- Electric conductivity for patch [S/m]
-        virtual scalarField sigma(const label patchi) const;
+        virtual tmp<scalarField> sigma(const label patchi) const;
 
         //- Inverse Electric conductivity [m/S]
         virtual const volScalarField& sigmaInv() const;

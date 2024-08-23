@@ -558,7 +558,7 @@ Foam::volScalarField& Foam::electromagneticModel::sigma()
     return sigma_;
 }
 
-Foam::scalarField Foam::electromagneticModel::sigma(const label patchi) const
+Foam::tmp<Foam::scalarField> Foam::electromagneticModel::sigma(const label patchi) const
 {
     return sigma_.boundaryField()[patchi];
 }

@@ -222,16 +222,14 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     //    patchNbr.lookupPatchField<volVectorField, vector>(JName_);
     //const Field<vector> nfNbr(mpp.nbrPolyPatch().nf());
     //const scalarField nJpNbr(JpNbr & nfNbr);
-    
-    scalarField smallVal(size(), SMALL);
-    scalarField identityVal(size(), 1);
+
     // default: 0; if sigma->0 => valueFraction=1
-    this->valueFraction() = identityVal - sigma()/(sigma() + smallVal);
+    this->valueFraction() = 1 - sigma()/(sigma() + SMALL);
     // if sigma->: ePot = ePotNbr; if sigmaNbr-> => ePot = 0
-    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+smallVal);
+    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+SMALL);
     // default: using gradient grad(ePot) = grad(ePotNbr)*sigmaNbr/sigma
     // if sigmaNbr-> => grad(ePot) = 0
-    this->refGrad() = sigmaEPotByDelta()/(sigma()+smallVal);
+    this->refGrad() = sigmaEPotByDelta()/(sigma()+SMALL);
 
     mixedFvPatchScalarField::updateCoeffs();
 
@@ -246,8 +244,6 @@ void Foam::coupledElectricPotentialFvPatchScalarField::write
 ) const
 {
     mixedFvPatchScalarField::write(os);
-
-    Pout << "writeEntryIfDifferent" << endl;
     writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotnbrName_);
 }
 
