@@ -133,7 +133,7 @@ class conductingRegionSolvers
         //- Region solvers
         autoPtr<fvMesh> globalMesh_;
 
-        void calculateGlobalMesh_();
+        autoPtr<fvMesh> globalMeshNew_();
 
 
 public:
@@ -173,7 +173,7 @@ public:
 
         const fvMesh& globalMesh();
 
-        std::map<std::pair<word, label>, label> localToGlobalID;
+        std::map<std::pair<word, label>, label> regionToGlobalCellId;
 
         void scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName);
         void vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName);

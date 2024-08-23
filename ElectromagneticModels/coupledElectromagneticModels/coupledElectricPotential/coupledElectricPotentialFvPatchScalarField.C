@@ -163,7 +163,6 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     {
         return;
     }
-
     // Since we're inside initEvaluate/evaluate there might be processor
     // comms underway. Change the tag we use.
     int oldTag = UPstream::msgType();
@@ -223,14 +222,16 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     //    patchNbr.lookupPatchField<volVectorField, vector>(JName_);
     //const Field<vector> nfNbr(mpp.nbrPolyPatch().nf());
     //const scalarField nJpNbr(JpNbr & nfNbr);
-
+    
+    scalarField smallVal(size(), SMALL);
+    scalarField identityVal(size(), 1);
     // default: 0; if sigma->0 => valueFraction=1
-    this->valueFraction() = 1 - sigma()/(sigma() + SMALL);
+    this->valueFraction() = identityVal - sigma()/(sigma() + smallVal);
     // if sigma->: ePot = ePotNbr; if sigmaNbr-> => ePot = 0
-    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+SMALL);
+    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+smallVal);
     // default: using gradient grad(ePot) = grad(ePotNbr)*sigmaNbr/sigma
     // if sigmaNbr-> => grad(ePot) = 0
-    this->refGrad() = sigmaEPotByDelta()/(sigma()+SMALL);
+    this->refGrad() = sigmaEPotByDelta()/(sigma()+smallVal);
 
     mixedFvPatchScalarField::updateCoeffs();
 
@@ -246,6 +247,7 @@ void Foam::coupledElectricPotentialFvPatchScalarField::write
 {
     mixedFvPatchScalarField::write(os);
 
+    Pout << "writeEntryIfDifferent" << endl;
     writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotnbrName_);
 }
 

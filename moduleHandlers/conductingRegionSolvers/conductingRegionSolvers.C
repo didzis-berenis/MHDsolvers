@@ -159,7 +159,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         const cellList cells = regionMesh.cells();
         forAll(cells, cellI)
         {
-            localToGlobalID[std::make_pair(regionName,cellI)] = globalCellI++;
+            regionToGlobalCellId[std::make_pair(regionName,cellI)] = globalCellI++;
         }
     }
 }
@@ -177,7 +177,7 @@ void Foam::conductingRegionSolvers::scalarGlobalToField_(volScalarField& global,
 {
     forAll(region, cellI)
     {
-        region[cellI] = global[localToGlobalID[std::make_pair(regionName,cellI)]];
+        region[cellI] = global[regionToGlobalCellId[std::make_pair(regionName,cellI)]];
     }
 }
 
@@ -185,7 +185,7 @@ void Foam::conductingRegionSolvers::vectorGlobalToField_(volVectorField& global,
 {
     forAll(region, cellI)
     {
-        region[cellI] = global[localToGlobalID[std::make_pair(regionName,cellI)]];
+        region[cellI] = global[regionToGlobalCellId[std::make_pair(regionName,cellI)]];
     }
 }
 /*
@@ -281,16 +281,17 @@ void Foam::conductingRegionSolvers::electromagneticPredictor(const word regionNa
         << exit(FatalIOError);
     }
 }
-void Foam::conductingRegionSolvers::calculateGlobalMesh_()
+// Construct new global mesh from region meshes
+Foam::autoPtr<Foam::fvMesh> Foam::conductingRegionSolvers::globalMeshNew_()
 {
     // Prepare global mesh
     // Get points from each region
-	List<vector> list_p;
-    int globalPointI = 0;
-    std::map<label,label> allToUniqueId;
+	List<vector> list_p;// Don't know a priori how many unique points there are
+    int allPointI = 0;
+    //First label comes from iterating through names_/faces/thisFacePoints
+    std::map<label,label> allToUniquePointId;
     forAll(names_, i)
     {
-        const word& regionName = names_[i].first();
         fvMesh& regionMesh = regions_[i];
         const faceList faces = regionMesh.faces();
         const pointField points = regionMesh.points();
@@ -305,17 +306,17 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
                 {
                     if (list_p[p] == thisPoint)
                     {
-                        allToUniqueId[globalPointI] = p;
+                        allToUniquePointId[allPointI] = p;
                         found = true;
                         break;
                     }
                 }
                 if (!found)
                 {
-                    allToUniqueId[globalPointI] = list_p.size();
+                    allToUniquePointId[allPointI] = list_p.size();
                     list_p.append(thisPoint);
                 }
-                globalPointI++;
+                allPointI++;
             }
         }
     }
@@ -324,19 +325,20 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
     forAll(names_, i)
     {
         fvMesh& regionMesh = regions_[i];
+        const faceList faces = regionMesh.faces();
         face_size += regionMesh.faces().size();
     }
     std::vector<face> reordered_faces;
-    reordered_faces.reserve(face_size);
+    reordered_faces.reserve(face_size);//size known
     std::map<face,label> faceOwners;
     std::map<std::pair<word, label>, face> regionIdToFace;
-    globalPointI = 0;
+    allPointI = 0;
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
         fvMesh& regionMesh = regions_[i];
         const faceList faces = regionMesh.faces();
-        const labelList owner = regionMesh.faceOwner();
+        const labelList owner = regionMesh.faceOwner();//including boundary faces
         const pointField points = regionMesh.points();
         forAll(faces, faceI)
         {
@@ -345,16 +347,27 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
             thisFaceLabels.setSize(thisFacePoints.size());
             forAll (thisFacePoints,pointI)
             {
-                thisFaceLabels[pointI] = allToUniqueId[globalPointI];
-                globalPointI++;
+                thisFaceLabels[pointI] = allToUniquePointId[allPointI];//Get global point Id
+                allPointI++;
             }
             face newFace(thisFaceLabels);
-            regionIdToFace[std::make_pair(regionName,faceI)] = newFace;
-            faceOwners[newFace] = localToGlobalID[std::make_pair(regionName,owner[faceI])];
+            std::pair<word, label> faceMarker = std::make_pair(regionName,faceI);//Marker for mapping to Face
+            regionIdToFace[faceMarker] = newFace;
             reordered_faces.push_back(newFace);
+            label thisOwnerCellID = owner[faceI];//Owner id in region mesh
+            std::pair<word, label> cellMarker = std::make_pair(regionName,thisOwnerCellID);//Marker for mapping to Cell
+            faceOwners[newFace] = regionToGlobalCellId[cellMarker];
+            
         }
     }
-    // Find face neighbours
+    // Check if all faces have owners
+    if (faceOwners.size() != reordered_faces.size())
+    {
+        FatalIOError
+        << "Incorrect face owner size!\n"
+        << exit(FatalIOError);
+    }
+    // Assign owners to boundary faces and neighbours to internal faces
     std::map<face,label> faceNeighbours;
     forAll(names_, i)
     {
@@ -363,49 +376,77 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
         const cellList cells = regionMesh.cells();
         forAll(cells, cellI)
         {
+            std::pair<word, label> cellMarker = std::make_pair(regionName,cellI);//Marker for mapping to Cell
+            label globalCellID = regionToGlobalCellId[cellMarker];//Cell id in global mesh
             cell thisCell = cells[cellI];
-            labelList thisCellLabels;
             forAll (thisCell,faceI)
             {
-                face thisFace = regionIdToFace[std::make_pair(regionName,thisCell[faceI])];
-                if (faceOwners[thisFace] != localToGlobalID[std::make_pair(regionName,cellI)])
+                label regionFaceID = thisCell[faceI];//Face id in region mesh
+                std::pair<word, label> faceMarker = std::make_pair(regionName,regionFaceID);//Marker for mapping to Face
+                face thisFace = regionIdToFace[faceMarker];//Mapping to Face
+                if (faceOwners[thisFace] != globalCellID)//This cell is not an owner of this face
                 {
-                    faceNeighbours[thisFace] = localToGlobalID[std::make_pair(regionName,cellI)];
+                    faceNeighbours[thisFace] = globalCellID;//Asign neighbour to internal face
                 }
             }
         }
     }
     // Sort faces
-    std::sort(reordered_faces.begin(), reordered_faces.end(), 
-    [&faceOwners, &faceNeighbours](face const& f1, face const& f2) {
-        return std::tie(faceOwners[f1], faceNeighbours[f1]) < std::tie(faceOwners[f2], faceNeighbours[f2]);
-    });
-    // Assign global face, owner, neighbour to lists
+    // First sort by owner, then by neighbour
+    std::sort(reordered_faces.begin(), reordered_faces.end(),
+    [&faceOwners](face const& f1, face const& f2)
+        {
+            return faceOwners[f1] < faceOwners[f2];
+        }
+    );
+    std::sort(reordered_faces.begin(), reordered_faces.end(),
+    [&faceNeighbours](face const& f1, face const& f2)
+        {
+            if (faceNeighbours.count(f1) && faceNeighbours.count(f2))//both faces have neighbours assigned
+            {
+                return faceNeighbours[f1] < faceNeighbours[f2];
+            }
+            else if (faceNeighbours.count(f1) && !faceNeighbours.count(f2))
+            {
+                //Prioritize existing neighbours over non-existing neighbours
+                // (i.e. internal faces over boundary faces)
+                return true;
+            }
+            return false;
+        }
+    );
+    // Assign global face, owner, neighbour to lists.
+    // Owner size is equal to face size,
+    // because each face has an owner.
+    // Neighbour size is less than face size,
+    // because boundary faces have no neighbours.
 	faceList list_f;
     list_f.setSize(reordered_faces.size());
-    int globalFaceI = 0;
     labelList list_o;
     list_o.setSize(reordered_faces.size());
-    int globalOwnerI = 0;
     labelList list_n;
+    int globalFaceI = 0;
     for (const auto& thisFace : reordered_faces)
     {
-        list_f[globalFaceI++] = thisFace;
-        list_o[globalOwnerI++] = faceOwners[thisFace];
-        auto it = faceNeighbours.find(thisFace);
-        if (it != faceNeighbours.end())
+        list_f[globalFaceI] = thisFace;
+        list_o[globalFaceI++] = faceOwners[thisFace];
+        //auto it = faceNeighbours.find(thisFace);
+        //if (it != faceNeighbours.end())
+        if (faceNeighbours.count(thisFace))//face has neighbour
         {
             list_n.append(faceNeighbours[thisFace]);
         }
     }
-    // Create global mesh
-    globalMesh_ = new 
-    fvMesh
+    // Create global mesh pointer
+    autoPtr<fvMesh> globalMeshPtr(
+        new fvMesh
         (
             IOobject
             (
-                "dummyRegion",//fvMesh::defaultRegion,//
-                runTime_.name(),
+                // Using default region name ("region0").
+                // Use different name if conflicts arise.
+                fvMesh::defaultRegion,//"dummyRegion",//
+                runTime_.timeName(),
                 runTime_,
                 IOobject::NO_READ
             ),
@@ -413,20 +454,30 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
             faceList(list_f),
             labelList(list_o),
             labelList(list_n),
-            false
+            false// No parallel sync
+        )
         );
-    //Pout << "global mesh " << endl;
-    //const Foam::fvMesh& globalMesh = globalMesh_;
-    //Pout << "global write " << endl;
-    //globalMesh.write();
-    /*const cellList cells = globalMesh.cells();
-    forAll(cells, cellI)
-    {
-        Pout << cellI << "  " << cells[cellI] << endl;
-    }*/
-    //point tmpPoint = globalMesh.points()[globalMesh.points().size()-1];
-    //Pout << "point test: " << globalMesh.points().size()-1 << " ? " <<   globalMesh.findCell(tmpPoint) << endl;
-
+    fvMesh& globalMesh = globalMeshPtr();
+    // Add boundary faces.
+    // Create one boundary patch with all faces.
+    // Size of the patch is the difference.
+    // between the size of the owner list and the size of the neighbour list.
+    // This is because boundary faces have no neighbours.
+    // Faces were sorted, so that the boundary faces ar at the end of the list
+    // (i.e. start index is the size of the neighbour list).
+    List<polyPatch*> patches(1);
+    patches[0] = polyPatch::New
+            (
+                "patch",//const word& patchType,
+                "boundaryPatch",//const word& name,
+                list_o.size()-list_n.size(),//const label size,
+                list_n.size(),//const label start,
+                0,//const label index,
+                globalMesh.boundaryMesh()//const polyBoundaryMesh& bm
+            ).ptr();
+    // Add patches; no parallel comms
+    globalMesh.addFvPatches(patches, false);
+    // Get fvSchemes dictionary and transfer ownership to objectRegistry
     if (!globalMesh.objectRegistry::foundObject<IOdictionary>("fvSchemes"))
     {
         IOdictionary* fPtr
@@ -444,21 +495,24 @@ void Foam::conductingRegionSolvers::calculateGlobalMesh_()
             )
             )
         );
-        // Transfer ownership of this object to the objectRegistry
         fPtr->store(fPtr);
     }
-
+    // Write global mesh for debugging purposes
+    //globalMesh.write();
+    return globalMeshPtr;
 }
+//Returns global mesh
 const Foam::fvMesh& Foam::conductingRegionSolvers::globalMesh()
 {
+    // If pointer empty, create new global mesh.
     if (globalMesh_.empty())
     {
-        calculateGlobalMesh_();
+        globalMesh_ = globalMeshNew_();
     }
-
+    // Check if global mesh is already created.
     if (globalMesh_.valid())
     {
-        return globalMesh_;
+        return *globalMesh_;
     }
     else
     {
@@ -580,7 +634,7 @@ void Foam::conductingRegionSolvers::scalarFieldToGlobal(volScalarField& global,c
 {
     forAll(region, cellI)
     {
-        global[localToGlobalID[std::make_pair(regionName,cellI)]] = region[cellI];
+        global[regionToGlobalCellId[std::make_pair(regionName,cellI)]] = region[cellI];
     }
 }
 
@@ -588,7 +642,7 @@ void Foam::conductingRegionSolvers::vectorFieldToGlobal(volVectorField& global,c
 {
     forAll(region, cellI)
     {
-        global[localToGlobalID[std::make_pair(regionName,cellI)]] = region[cellI];
+        global[regionToGlobalCellId[std::make_pair(regionName,cellI)]] = region[cellI];
     }
 }
 bool Foam::conductingRegionSolvers::isFluid(const word regionName)

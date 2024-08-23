@@ -124,7 +124,7 @@ protected:
 public:
 
     //- Runtime type information
-    TypeName("coupledTemperature");
+    TypeName("coupledPotential");
 
 
     // Constructors

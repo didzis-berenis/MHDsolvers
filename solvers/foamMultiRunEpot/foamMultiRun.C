@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     // Read global mesh of all regions
     const fvMesh& meshGlobal = solvers.globalMesh();
-    localToGlobalID = solvers.localToGlobalID;
+    regionToGlobalCellId = solvers.regionToGlobalCellId;
     forAll(solvers.getNames(), i)
     {
         regionNames.append(solvers.getNames()[i].first());

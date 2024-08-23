@@ -2,7 +2,7 @@
 #include <set>
 std::map<Pair<word>, bool> keepField;
 
-std::map<std::pair<word, label>, label> localToGlobalID;
+std::map<std::pair<word, label>, label> regionToGlobalCellId;
 //std::map<word, label> regionID;
 List<word> regionNames;
 
