@@ -443,11 +443,13 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     fvm::laplacian(sigma_field,PotE)
     ==
     sigma_field*fvc::div(psiUB)
+    //fvm::laplacian(PotE)
     );
     //Reference potential
-    label PotERefCell = 0;
-    scalar PotERefValue = 0.0;
-    PotEEqn.setReference(PotERefCell, PotERefValue);
+    //label PotERefCell = 0;
+    //scalar PotERefValue = 0.0;
+    //PotEEqn.setReference(PotERefCell, PotERefValue);
+    PotEEqn.relax();
     //Solving Poisson equation
     PotEEqn.solve();
 

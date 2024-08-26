@@ -741,7 +741,6 @@ bool Foam::conductingRegionSolvers::updateMagneticField()
 
 void Foam::conductingRegionSolvers::calcTemperatureGradient(const word regionName)
 {
-    Pout << "calc gradient" << endl;
     IOdictionary physicalProperties
     (
         IOobject

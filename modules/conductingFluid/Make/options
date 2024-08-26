@@ -13,6 +13,7 @@ EXE_INC = \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/coupledElectromagneticModels/lnInclude \
     -I../../ElectromagneticModels/electroBase/lnInclude
 
 LIB_LIBS = \
@@ -22,4 +23,6 @@ LIB_LIBS = \
     -lcompressibleMomentumTransportModels \
     -lcoupledThermophysicalTransportModels \
     -L$(FOAM_USER_LIBBIN) \
-    -lelectroBase
+    -lelectromagneticModels \
+    -lelectroBase \
+    -lcoupledElectromagneticModels

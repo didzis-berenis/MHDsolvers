@@ -48,14 +48,16 @@ namespace Foam
                           Class electroBase Declaration
 \*---------------------------------------------------------------------------*/
 
-//Abstract class
+//Base class for electromagnetic modules
 class electroBase
 {
+    //- Pointer to the electromagnetic model
+        autoPtr<electromagneticModel> electroPtr_;
 
 protected:
 
-    //- Pointer to the electromagnetic model
-        autoPtr<electromagneticModel> electroPtr;
+        //- Non-const reference to the fluid fluid electromagnetic properties
+        electromagneticModel& electro_;
 
 public:
 

@@ -45,8 +45,6 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
 :
     isothermalFluid(mesh),
 
-    electroBase(mesh),
-
     thermophysicalTransport
     (
         fluidThermoThermophysicalTransportModel::New
@@ -69,7 +67,9 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         U_
     ),
 
-    U_old(U_old_)
+    U_old(U_old_),
+
+    electroBase(mesh)
 {
     thermo.validate(type(), "h", "e");
 
@@ -83,7 +83,7 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         PotERefValue
     );
 
-    if (electroPtr->isComplex())
+    if (electro_.isComplex())
     {
         setRefCell
         ( 
@@ -132,9 +132,9 @@ void Foam::solvers::conductingFluid::solveElectromagnetics()
     {
         // Update deltaU
         volVectorField deltaU = U_ - U_old_;
-        electroPtr->updateDeltaU(deltaU);
+        electro_.updateDeltaU(deltaU);
         //Correct current density
-        electroPtr->correct();
+        electro_.correct();
         //Store old velocity for next update
         storeU();
     }

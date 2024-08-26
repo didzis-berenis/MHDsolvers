@@ -59,6 +59,11 @@
         "typeinfo": "cpp",
         "setDeltaT.C": "cpp",
         "conductingSolid.C": "cpp",
-        "electromagneticModelNew.C": "cpp"
+        "electromagneticModelNew.C": "cpp",
+        "electroBase.C": "cpp",
+        "incompressibleConductingFluid.C": "cpp",
+        "thermophysicalPredictor.C": "cpp",
+        "momentumPredictor.C": "cpp",
+        "initializeTemperature.C": "cpp"
     }
 }

@@ -117,7 +117,6 @@ int main(int argc, char *argv[])
 
     double OFClock = 0;
     //elmerClock = runTime.clockTimeIncrement();
-            runTime.writeNow();
 
     Info<< nl << "Starting time loop\n" << endl;
     while (pimple.run(runTime) || lastTimeStep)

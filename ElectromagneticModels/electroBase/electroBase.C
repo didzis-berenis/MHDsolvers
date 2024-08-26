@@ -42,15 +42,10 @@ Foam::electroBase::electroBase
     fvMesh& mesh
 )
 :
-    electroPtr
-    (
-        electromagneticModel::New(mesh)
-    ),
-
-    electro(electroPtr)
-{
-}
-
+    electroPtr_(electromagneticModel::New(mesh)),
+    electro_(electroPtr_()),
+    electro(electroPtr_)
+{}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -64,29 +59,29 @@ void Foam::electroBase::solveElectromagnetics()
 {
     if (electro.correctElectromagnetics())
     {
-        electroPtr->predict();
-        electroPtr->setCorrected();
+        //Correct current density
+        electroPtr_->correct();
     }
 }
 
 void Foam::electroBase::electromagneticPredictor()
 {
-    electroPtr->predict();
+    electroPtr_->predict();
 }
 
 void Foam::electroBase::setCorrectElectromagnetics()
 {
-    electroPtr->setCorrectElectromagnetics();
+    electroPtr_->setCorrectElectromagnetics();
 }
 
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 {
-    return electroPtr->J(imaginary);
+    return electroPtr_->J(imaginary);
 }
 
 Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
 {
-    return electroPtr->B(imaginary);
+    return electroPtr_->B(imaginary);
 }
 
 // ************************************************************************* //

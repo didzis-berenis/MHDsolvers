@@ -122,9 +122,9 @@ void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
     {
         // Update deltaU
         volVectorField deltaU = U_ - U_old_;
-        electroPtr->updateDeltaU(deltaU);
+        electro_.updateDeltaU(deltaU);
         //Correct current density
-        electroPtr->correct();
+        electro_.correct();
         //Store old velocity for next update
         U_old_ = U_;
     }
