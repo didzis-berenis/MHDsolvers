@@ -101,6 +101,9 @@ public:
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);
 
+        //- Electric potential [V/m]
+        virtual volScalarField& getPotE(bool imaginary=false);
+
 
     // Member Operators
 

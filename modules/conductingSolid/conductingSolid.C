@@ -90,14 +90,13 @@ Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()
 {   
     return thermo_.T();
 }
-/*
-void Foam::solvers::conductingSolid::solveElectromagnetics();
+
+void Foam::solvers::conductingSolid::solveElectromagnetics()
 {
     if (electro.correctElectromagnetics())
     {
-        electro_.predict();
-        electro_.setCorrected();
+        electro_.correct();
     }
 }
-*/
+
 // ************************************************************************* //

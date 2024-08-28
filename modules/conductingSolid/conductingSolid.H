@@ -87,8 +87,7 @@ public:
         volScalarField& getTemperature();
 
         //- Solve electromagnetic system
-        //Override if necessary
-        //virtual void solveElectromagnetics();
+        virtual void solveElectromagnetics() override;
 
     // Member Operators
 

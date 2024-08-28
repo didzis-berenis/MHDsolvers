@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electromagneticModel.H"
-#include "zeroGradientFvPatchFields.H"
 #include "fvmDiv.H"
 #include "fvmLaplacian.H"
 #include "fvcSnGrad.H"
@@ -440,10 +439,9 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
-    fvm::laplacian(sigma_field,PotE)
-    ==
-    sigma_field*fvc::div(psiUB)
-    //fvm::laplacian(PotE)
+        fvm::laplacian(sigma_field,PotE)
+        ==
+        sigma_field*fvc::div(psiUB)
     );
     //Reference potential
     //label PotERefCell = 0;
@@ -457,14 +455,14 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     surfaceScalarField En = -(fvc::snGrad(PotE) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
-    
-    //get boundary conditions from J
+
+    //Get deltaJ reference (boundary conditions should come from J)
     volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolation of current density at cell center
     JUB = sigma_field*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
-    //Update current density distribution and boundary condition
+    //Update current density distribution and boundary conditions
+    //Assuming PotE is updated correctly, zero gradient or slip condition should be sufficient.
     JUB.correctBoundaryConditions();
-    //return JUB;
 }
 
 void Foam::electromagneticModel::predict()

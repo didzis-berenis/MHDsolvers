@@ -249,8 +249,8 @@ int main(int argc, char *argv[])
                 {
                     if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
                     {
-                        //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
-                        fileHandler().rm(regionPaths[i][j].second());//<< endl;
+                        //Pout << "Deleting file " << regionPaths[i][j].first() <<" was " <<
+                        fileHandler().rm(regionPaths[i][j].second());// << endl;
                     }
                 }
             }

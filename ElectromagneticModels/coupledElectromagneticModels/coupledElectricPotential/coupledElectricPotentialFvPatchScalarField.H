@@ -129,6 +129,13 @@ public:
 
     // Constructors
 
+
+        //- Construct as copy setting internal field reference
+        coupledElectricPotentialFvPatchScalarField
+        (
+            const coupledElectricPotentialFvPatchScalarField&,
+            const DimensionedField<scalar, volMesh>&
+        );
         //- Construct from patch, internal field and dictionary
         coupledElectricPotentialFvPatchScalarField
         (
@@ -148,15 +155,8 @@ public:
             const fvPatchFieldMapper&
         );
 
-        //- Construct as copy setting internal field reference
-        coupledElectricPotentialFvPatchScalarField
-        (
-            const coupledElectricPotentialFvPatchScalarField&,
-            const DimensionedField<scalar, volMesh>&
-        );
-
         //- Construct and return a clone setting internal field reference
-        virtual tmp<fvPatchScalarField> clone
+        /*virtual tmp<fvPatchScalarField> clone
         (
             const DimensionedField<scalar, volMesh>& iF
         ) const
@@ -169,7 +169,7 @@ public:
                     iF
                 )
             );
-        }
+        }*/
 
 
     // Member Functions

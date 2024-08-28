@@ -57,11 +57,7 @@ Foam::electroBase::~electroBase()
 
 void Foam::electroBase::solveElectromagnetics()
 {
-    if (electro.correctElectromagnetics())
-    {
-        //Correct current density
-        electroPtr_->correct();
-    }
+    //overridden in derived classes
 }
 
 void Foam::electroBase::electromagneticPredictor()
@@ -82,6 +78,11 @@ Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
 {
     return electroPtr_->B(imaginary);
+}
+
+Foam::volScalarField& Foam::electroBase::getPotE(bool imaginary)
+{
+    return electroPtr_->PotE(imaginary);
 }
 
 // ************************************************************************* //

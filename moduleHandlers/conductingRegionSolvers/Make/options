@@ -20,6 +20,7 @@ EXE_INC = \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
     -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/coupledElectromagneticModels/lnInclude \
     -I../../ElectromagneticModels/electroBase/lnInclude
 
 EXE_LIBS = \

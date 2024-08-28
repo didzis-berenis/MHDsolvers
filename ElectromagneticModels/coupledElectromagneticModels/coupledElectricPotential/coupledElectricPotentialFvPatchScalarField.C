@@ -102,13 +102,13 @@ coupledElectricPotentialFvPatchScalarField
     //JName_(dict.lookupOrDefault<word>("J", "J")),
     ePotnbrName_(dict.lookupOrDefault<word>("PotE", "PotE"))
 {
-    mappedPatchBase::validateMapForField
+   /*mappedPatchBase::validateMapForField
     (
         *this,
         iF,
         dict,
         mappedPatchBase::from::differentPatch
-    );
+    );*/
 
     if (dict.found("refValue"))
     {
@@ -124,6 +124,7 @@ coupledElectricPotentialFvPatchScalarField
         refGrad() = 0;
         valueFraction() = 1;
     }
+    //evaluate() is called after all solvers have been constructed
 }
 
 

@@ -125,7 +125,7 @@ public:
         virtual void postCorrector();
 
         //- Solve electromagnetic modelling
-        virtual void solveElectromagnetics();
+        virtual void solveElectromagnetics() override;
 
     // Member Operators
 
