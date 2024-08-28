@@ -64,7 +64,7 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
             "deltaJre",
             lookupOrConstructVector(mesh, "Jre"),
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     ),
     deltaJim_
@@ -75,7 +75,7 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
             "deltaJim",
             lookupOrConstructVector(mesh, "Jim"),
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     )
 {}

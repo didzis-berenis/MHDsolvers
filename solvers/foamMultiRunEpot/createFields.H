@@ -149,7 +149,8 @@ List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WR
 //Initialize field names and paths
 List<List<Pair<word>>> regionPaths(regionNames.size());
 
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds","sigmaInv","sigma"};//,"deltaU", "deltaJ", "PotE"
+std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds",
+"sigmaInv","sigma","deltaU","deltaJ", "PotE","deltaJre", "PotEre","deltaJim", "PotEim",};//
 
 forAll(regionNames, i)
 {

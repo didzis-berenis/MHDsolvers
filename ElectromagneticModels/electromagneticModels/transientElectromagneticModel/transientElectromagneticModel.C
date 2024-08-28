@@ -61,7 +61,7 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
             "deltaJ",
             lookupOrConstructVector(mesh, "J"),
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     )
 {}

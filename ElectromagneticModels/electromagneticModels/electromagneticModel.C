@@ -348,7 +348,7 @@ Foam::electromagneticModel::electromagneticModel
             "sigma",
             sigmaConst_,
             IOobject::READ_IF_PRESENT,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     ),
 
@@ -377,7 +377,7 @@ Foam::electromagneticModel::electromagneticModel
             "deltaU",
             dimensionedVector(dimVelocity,Foam::vector(0,0,0)),
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     ),
 
@@ -389,7 +389,7 @@ Foam::electromagneticModel::electromagneticModel
             "sigmaInv",
             dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0),
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         )
     )
 {
@@ -443,11 +443,6 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
         ==
         sigma_field*fvc::div(psiUB)
     );
-    //Reference potential
-    //label PotERefCell = 0;
-    //scalar PotERefValue = 0.0;
-    //PotEEqn.setReference(PotERefCell, PotERefValue);
-    PotEEqn.relax();
     //Solving Poisson equation
     PotEEqn.solve();
 

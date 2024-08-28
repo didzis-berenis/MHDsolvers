@@ -225,12 +225,12 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     //const scalarField nJpNbr(JpNbr & nfNbr);
 
     // default: 0; if sigma->0 => valueFraction=1
-    this->valueFraction() = 1 - sigma()/(sigma() + SMALL);
-    // if sigma->: ePot = ePotNbr; if sigmaNbr-> => ePot = 0
+    this->valueFraction() = 1;//1 - sigma()/(sigma() + SMALL);
+    // if sigma->0: ePot = ePotNbr; if sigmaNbr->0 => ePot = 0
     this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+SMALL);
     // default: using gradient grad(ePot) = grad(ePotNbr)*sigmaNbr/sigma
-    // if sigmaNbr-> => grad(ePot) = 0
-    this->refGrad() = sigmaEPotByDelta()/(sigma()+SMALL);
+    // if sigmaNbr->0 => grad(ePot) = 0
+    this->refGrad() = 0;//sigmaEPotByDelta()/(sigma()+SMALL);
 
     mixedFvPatchScalarField::updateCoeffs();
 
