@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::coupledElectricPotentialFvPatchScalarField
+    Foam::coupledCurrentDensityFvPatchVectorField
 
 Description
     Mixed boundary condition for temperature, to be used for heat-transfer
@@ -63,15 +63,14 @@ Usage
     should be specified, not both.
 
 SourceFiles
-    coupledElectricPotentialFvPatchScalarField.C
+    coupledCurrentDensityFvPatchVectorField.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef coupledElectricPotentialFvPatchScalarField_H
-#define coupledElectricPotentialFvPatchScalarField_H
+#ifndef coupledCurrentDensityFvPatchVectorField_H
+#define coupledCurrentDensityFvPatchVectorField_H
 
-#include "mixedFvPatchFields.H"
-#include "scalarField.H"
+#include "directionMixedFvPatchFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,12 +78,12 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-            Class coupledElectricPotentialFvPatchScalarField Declaration
+            Class coupledCurrentDensityFvPatchVectorField Declaration
 \*---------------------------------------------------------------------------*/
 
-class coupledElectricPotentialFvPatchScalarField
+class coupledCurrentDensityFvPatchVectorField
 :
-    public mixedFvPatchScalarField
+    public directionMixedFvPatchVectorField
 {
     // Private Data
 
@@ -101,17 +100,17 @@ protected:
     //  heat-flux obtained from the sum heat-flux provided
     virtual void getThis
     (
-        tmp<scalarField>& sigma,
-        tmp<scalarField>& ePotByDelta
+        tmp<scalarField>& sigma//,
+        //tmp<scalarField>& ePotByDelta
     ) const;
 
     //- Get the neighbour patch kappa*Tc/delta and kappa/delta
     //  and the heat-flux correction
-    virtual void getNbr
-    (
-        tmp<scalarField>& sigmaByDeltaNbr,
-        tmp<scalarField>& sigmaEPotByDeltaNbr
-    ) const;
+    //virtual void getNbr
+    //(
+        //tmp<scalarField>& sigmaByDeltaNbr,
+        //tmp<scalarField>& sigmaEPotByDeltaNbr
+    //) const;
 
     //- Add field to result which may have not been previously set
     void add
@@ -120,54 +119,53 @@ protected:
         const tmp<scalarField>& field
     ) const;
 
+    
+    const word getCoupledPotentialName() const;
+
 
 public:
 
     //- Runtime type information
-    TypeName("coupledPotential");
-    virtual const scalarField& getNbr
-    (
-        //tmp<scalarField>& sigmaEPotByDeltaNbr
-    ) const;
+    TypeName("coupledCurrentDensity");
 
 
     // Constructors
 
 
         //- Construct as copy setting internal field reference
-        coupledElectricPotentialFvPatchScalarField
+        coupledCurrentDensityFvPatchVectorField
         (
-            const coupledElectricPotentialFvPatchScalarField&,
-            const DimensionedField<scalar, volMesh>&
+            const coupledCurrentDensityFvPatchVectorField&,
+            const DimensionedField<vector, volMesh>&
         );
         //- Construct from patch, internal field and dictionary
-        coupledElectricPotentialFvPatchScalarField
+        coupledCurrentDensityFvPatchVectorField
         (
             const fvPatch&,
-            const DimensionedField<scalar, volMesh>&,
+            const DimensionedField<vector, volMesh>&,
             const dictionary&
         );
 
         //- Construct by mapping given
-        //  coupledElectricPotentialFvPatchScalarField onto a
+        //  coupledCurrentDensityFvPatchVectorField onto a
         //  new patch
-        coupledElectricPotentialFvPatchScalarField
+        coupledCurrentDensityFvPatchVectorField
         (
-            const coupledElectricPotentialFvPatchScalarField&,
+            const coupledCurrentDensityFvPatchVectorField&,
             const fvPatch&,
-            const DimensionedField<scalar, volMesh>&,
+            const DimensionedField<vector, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct and return a clone setting internal field reference
         /*virtual tmp<fvPatchScalarField> clone
         (
-            const DimensionedField<scalar, volMesh>& iF
+            const DimensionedField<vector, volMesh>& iF
         ) const
         {
             return tmp<fvPatchScalarField>
             (
-                new coupledElectricPotentialFvPatchScalarField
+                new coupledCurrentDensityFvPatchVectorField
                 (
                     *this,
                     iF

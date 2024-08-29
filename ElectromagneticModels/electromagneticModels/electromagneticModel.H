@@ -128,8 +128,24 @@ protected:
         static volScalarField& lookupOrConstructScalar
         (
             const fvMesh& mesh,
+            const char* name
+        );
+
+        //- Lookup and the named field, or construct it as MUST-READ if it is
+        //  not found, and return a reference
+        static volVectorField& lookupOrConstructVector
+        (
+            const fvMesh& mesh,
+            const char* name
+        );
+
+        //- Lookup and the named field, or construct it as MUST-READ if it is
+        //  not found, and return a reference
+        static volScalarField& lookupOrConstructScalar
+        (
+            const fvMesh& mesh,
             const char* name,
-            dimensionedScalar value = dimensionedScalar(dimless,0),
+            dimensionedScalar value,
             readOption ro = IOobject::MUST_READ,
             writeOption wo = IOobject::AUTO_WRITE
         );
@@ -140,9 +156,17 @@ protected:
         (
             const fvMesh& mesh,
             const char* name,
-            dimensionedVector value = dimensionedVector(dimless,Foam::vector(0,0,0)),
+            dimensionedVector value,
             readOption ro = IOobject::MUST_READ,
             writeOption wo = IOobject::AUTO_WRITE
+        );
+        static volVectorField& lookupOrConstructVector
+        (
+            const fvMesh& mesh,
+            const char* name,
+            dimensionedVector value,
+            wordList JBoundaryTypes,
+            writeOption wo = IOobject::NO_WRITE
         );
 
         static volVectorField& lookupOrConstructVector
@@ -167,6 +191,7 @@ protected:
             const fvMesh& mesh,
             const char* name
         );
+        wordList JBoundaryTypes(bool imaginary = false) const;
 
         //- Get the constructor iterator for the given thermo dictionary and
         //  constructor iterator table
@@ -312,6 +337,8 @@ public:
 
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) = 0;
+
+        virtual const word getCoupledPotentialName(const word Jname) const = 0;
         
         //- Non-const access the properties dictionary
         //virtual IOdictionary& properties() = 0;

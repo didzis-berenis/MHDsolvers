@@ -28,6 +28,7 @@ License
 #include <set>
 #include <vector>
 #include "coupledElectricPotentialFvPatchScalarField.H"
+#include "coupledCurrentDensityFvPatchVectorField.H"
 //#include "mixedFvPatchFields.H"
 //#include "scalarField.H"
 //#include <map>
@@ -106,6 +107,16 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         if (imaginary)
         {
             evaluatePotEBfs_(regionName,true);
+        }
+    }
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        bool imaginary = isElectroHarmonic();
+        evaluateDeltaJBfs_(regionName);
+        if (imaginary)
+        {
+            evaluateDeltaJBfs_(regionName,true);
         }
     }
 
@@ -531,6 +542,28 @@ void Foam::conductingRegionSolvers::evaluatePotEBfs_(const word regionName, bool
                 coupledElectricPotentialFvPatchScalarField& cpPotE =
                 refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
                 cpPotE.evaluate();
+            }
+        }
+    }
+}
+//initializes boundary conditions
+void Foam::conductingRegionSolvers::evaluateDeltaJBfs_(const word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        volVectorField& deltaJ = getElectroBasePtr_(regionName)->getDeltaJ(imaginary);
+        volVectorField::Boundary& deltaJBf = deltaJ.boundaryFieldRef();
+        //Could also cast to directionMixedFvPatchVectorField,
+        //which is the base class of coupledCurrentDensityFvPatchVectorField,
+        //but this way it is more clear and excludes other uses of directionMixedFvPatchVectorField.
+        forAll(deltaJBf, patchi)
+        {
+            fvPatchVectorField& pDeltaJ = deltaJBf[patchi];
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pDeltaJ) )
+            {
+                coupledCurrentDensityFvPatchVectorField& cpDeltaJ =
+                refCast<coupledCurrentDensityFvPatchVectorField>(pDeltaJ);
+                cpDeltaJ.evaluate();
             }
         }
     }

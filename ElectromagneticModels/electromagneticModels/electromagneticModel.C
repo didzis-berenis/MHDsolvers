@@ -24,6 +24,10 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electromagneticModel.H"
+#include "coupledCurrentDensityFvPatchVectorField.H"
+#include "coupledElectricPotentialFvPatchScalarField.H"
+#include "noSlipFvPatchVectorField.H"
+#include "zeroGradientFvPatchFields.H"
 #include "fvmDiv.H"
 #include "fvmLaplacian.H"
 #include "fvcSnGrad.H"
@@ -78,57 +82,100 @@ namespace Foam
 Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
 (
     const fvMesh& mesh,
+    const char* name
+)
+{
+    if (!mesh.objectRegistry::foundObject<volScalarField>(name))
+    {
+        volScalarField* fPtr
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh.objectRegistry::lookupObjectRef<volScalarField>(name);
+}
+
+Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
+(
+    const fvMesh& mesh,
+    const char* name
+)
+{
+    if (!mesh.objectRegistry::foundObject<volVectorField>(name))
+    {
+        volVectorField* fPtr
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh.objectRegistry::lookupObjectRef<volVectorField>(name);
+}
+
+Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
+(
+    const fvMesh& mesh,
     const char* name,
     dimensionedScalar value,
     readOption ro,
     writeOption wo
 )
 {
+    if (ro == IOobject::MUST_READ)
+    {
+        return lookupOrConstructScalar(mesh, name);
+    }
+
     if (!mesh.objectRegistry::foundObject<volScalarField>(name))
     {
-        if (ro == IOobject::MUST_READ)
-        {
-            volScalarField* fPtr
+        volScalarField* fPtr
+        (
+            new volScalarField
             (
-                new volScalarField
+                IOobject
                 (
-                    IOobject
-                    (
-                        name,
-                        mesh.time().name(),
-                        mesh,
-                        ro,
-                        wo
-                    ),
-                    mesh
-                )
-            );
-
-            // Transfer ownership of this object to the objectRegistry
-            fPtr->store(fPtr);
-        }
-        else
-        {
-            volScalarField* fPtr
-            (
-                new volScalarField
-                (
-                    IOobject
-                    (
-                        name,
-                        mesh.time().name(),
-                        mesh,
-                        ro,
-                        wo
-                    ),
+                    name,
+                    mesh.time().name(),
                     mesh,
-                    value
-                )
-            );
+                    ro,
+                    wo
+                ),
+                mesh,
+                value
+            )
+        );
 
-            // Transfer ownership of this object to the objectRegistry
-            fPtr->store(fPtr);
-        }
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
     }
 
     return mesh.objectRegistry::lookupObjectRef<volScalarField>(name);
@@ -143,23 +190,15 @@ Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
     writeOption wo
 )
 {
+    if (ro == IOobject::MUST_READ)
+    {
+        return lookupOrConstructVector(mesh, name);
+    }
+
     if (!mesh.objectRegistry::foundObject<volVectorField>(name))
     {
         volVectorField* fPtr
         (
-            ro == IOobject::MUST_READ ?
-            new volVectorField
-            (
-                IOobject
-                (
-                    name,
-                    mesh.time().name(),
-                    mesh,
-                    ro,
-                    wo
-                ),
-                mesh
-            ) :
             new volVectorField
             (
                 IOobject
@@ -172,6 +211,42 @@ Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
                 ),
                 mesh,
                 value
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh.objectRegistry::lookupObjectRef<volVectorField>(name);
+}
+
+Foam::volVectorField& Foam::electromagneticModel::lookupOrConstructVector
+(
+    const fvMesh& mesh,
+    const char* name,
+    dimensionedVector value,
+    wordList bcs,
+    writeOption wo
+)
+{
+    if (!mesh.objectRegistry::foundObject<volVectorField>(name))
+    {
+        volVectorField* fPtr
+        (
+            new volVectorField
+            (
+                IOobject
+                (
+                    name,
+                    mesh.time().name(),
+                    mesh,
+                    IOobject::NO_READ,
+                    wo
+                ),
+                mesh,
+                value,
+                bcs
             )
         );
 
@@ -314,6 +389,31 @@ Foam::electromagneticModel::readModelDict
         registerObject
     );
     return electromagneticDict;
+}
+
+Foam::wordList Foam::electromagneticModel::JBoundaryTypes(bool imaginary) const
+{
+    const volScalarField::Boundary& tbf = PotE(imaginary).boundaryField();
+
+    wordList hbt = tbf.types();
+
+    forAll(tbf, patchi)
+    {
+        if (isA<coupledElectricPotentialFvPatchScalarField>(tbf[patchi]))
+        {
+            hbt[patchi] = coupledCurrentDensityFvPatchVectorField::typeName;
+        }
+        else if(isA<zeroGradientFvPatchScalarField>(tbf[patchi]))
+        {
+            hbt[patchi] = noSlipFvPatchVectorField::typeName;
+        }
+        else
+        {
+            hbt[patchi] = zeroGradientFvPatchVectorField::typeName;
+        }
+    }
+
+    return hbt;
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //

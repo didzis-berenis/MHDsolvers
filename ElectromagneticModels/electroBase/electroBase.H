@@ -104,6 +104,9 @@ public:
         //- Electric potential [V/m]
         virtual volScalarField& getPotE(bool imaginary=false);
 
+        //- Current density correction [A/m^2]
+        virtual volVectorField& getDeltaJ(bool imaginary=false);
+
 
     // Member Operators
 

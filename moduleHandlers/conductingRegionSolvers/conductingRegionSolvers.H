@@ -217,6 +217,8 @@ public:
 
         void evaluatePotEBfs_(const word regionName, bool imaginary=false);
 
+        void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
+
         // Get names
         List<Pair<word>> getNames();
 

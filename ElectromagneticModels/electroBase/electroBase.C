@@ -85,4 +85,9 @@ Foam::volScalarField& Foam::electroBase::getPotE(bool imaginary)
     return electroPtr_->PotE(imaginary);
 }
 
+Foam::volVectorField& Foam::electroBase::getDeltaJ(bool imaginary)
+{
+    return electroPtr_->deltaJ(imaginary);
+}
+
 // ************************************************************************* //
