@@ -27,10 +27,6 @@ License
 #include "Time.H"
 #include <set>
 #include <vector>
-#include "coupledElectricPotentialFvPatchScalarField.H"
-#include "coupledCurrentDensityFvPatchVectorField.H"
-//#include "mixedFvPatchFields.H"
-//#include "scalarField.H"
 //#include <map>
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -529,21 +525,7 @@ void Foam::conductingRegionSolvers::evaluatePotEBfs_(const word regionName, bool
 {
     if (getElectroBasePtr_(regionName))
     {
-        volScalarField& PotE = getElectroBasePtr_(regionName)->getPotE(imaginary);
-        volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
-        //Could also cast to mixedFvPatchScalarField,
-        //which is the base class of coupledElectricPotentialFvPatchScalarField,
-        //but this way it is more clear and excludes other uses of mixedFvPatchScalarField.
-        forAll(PotEBf, patchi)
-        {
-            fvPatchScalarField& pPotE = PotEBf[patchi];
-            if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
-            {
-                coupledElectricPotentialFvPatchScalarField& cpPotE =
-                refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
-                cpPotE.evaluate();
-            }
-        }
+        getElectroBasePtr_(regionName)->initPotE(imaginary);
     }
 }
 //initializes boundary conditions
@@ -551,21 +533,7 @@ void Foam::conductingRegionSolvers::evaluateDeltaJBfs_(const word regionName, bo
 {
     if (getElectroBasePtr_(regionName))
     {
-        volVectorField& deltaJ = getElectroBasePtr_(regionName)->getDeltaJ(imaginary);
-        volVectorField::Boundary& deltaJBf = deltaJ.boundaryFieldRef();
-        //Could also cast to directionMixedFvPatchVectorField,
-        //which is the base class of coupledCurrentDensityFvPatchVectorField,
-        //but this way it is more clear and excludes other uses of directionMixedFvPatchVectorField.
-        forAll(deltaJBf, patchi)
-        {
-            fvPatchVectorField& pDeltaJ = deltaJBf[patchi];
-            if (isA<coupledCurrentDensityFvPatchVectorField>(pDeltaJ) )
-            {
-                coupledCurrentDensityFvPatchVectorField& cpDeltaJ =
-                refCast<coupledCurrentDensityFvPatchVectorField>(pDeltaJ);
-                cpDeltaJ.evaluate();
-            }
-        }
+        getElectroBasePtr_(regionName)->initDeltaJ(imaginary);
     }
 }
 //Assigns fluid and solid region values from global to each region field

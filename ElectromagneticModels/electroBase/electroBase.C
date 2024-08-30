@@ -24,6 +24,8 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electroBase.H"
+#include "coupledElectricPotentialFvPatchScalarField.H"
+#include "coupledCurrentDensityFvPatchVectorField.H"
 //#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -45,7 +47,13 @@ Foam::electroBase::electroBase
     electroPtr_(electromagneticModel::New(mesh)),
     electro_(electroPtr_()),
     electro(electroPtr_)
-{}
+{
+    initJ_();
+    if (electro.isComplex())
+    {
+        initJ_(true);
+    }
+}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -80,14 +88,58 @@ Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
     return electroPtr_->B(imaginary);
 }
 
-Foam::volScalarField& Foam::electroBase::getPotE(bool imaginary)
+void Foam::electroBase::initPotE(bool imaginary)
 {
-    return electroPtr_->PotE(imaginary);
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    //Could also cast to mixedFvPatchScalarField,
+    //which is the base class of coupledElectricPotentialFvPatchScalarField,
+    //but this way it is more clear and excludes other uses of mixedFvPatchScalarField.
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            cpPotE.evaluate();
+        }
+    }
 }
 
-Foam::volVectorField& Foam::electroBase::getDeltaJ(bool imaginary)
+void Foam::electroBase::initDeltaJ(bool imaginary)
 {
-    return electroPtr_->deltaJ(imaginary);
+        volVectorField& deltaJ = electroPtr_->deltaJ(imaginary);
+        volVectorField::Boundary& deltaJBf = deltaJ.boundaryFieldRef();
+        forAll(deltaJBf, patchi)
+        {
+            fvPatchVectorField& pDeltaJ = deltaJBf[patchi];
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pDeltaJ) )//derived from directionMixedFvPatchVectorField
+            {
+                coupledCurrentDensityFvPatchVectorField& cpDeltaJ =
+                refCast<coupledCurrentDensityFvPatchVectorField>(pDeltaJ);
+                //Couple with electric potential
+                cpDeltaJ.initCoupledPotential();
+                cpDeltaJ.evaluate();
+            }
+        }
+}
+
+void Foam::electroBase::initJ_(bool imaginary)
+{
+        // Also initialize J since coupledCurrentDensity doesn't call evaluate during initialization
+        volVectorField& regionJ = electroPtr_->J(imaginary);
+        volVectorField::Boundary& regionJBf = regionJ.boundaryFieldRef();
+        forAll(regionJBf, patchi)
+        {
+            fvPatchVectorField& pJ = regionJBf[patchi];
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pJ) )
+            {
+                coupledCurrentDensityFvPatchVectorField& cpJ =
+                refCast<coupledCurrentDensityFvPatchVectorField>(pJ);
+                cpJ.evaluate();
+            }
+        }
 }
 
 // ************************************************************************* //

@@ -59,6 +59,9 @@ protected:
         //- Non-const reference to the fluid fluid electromagnetic properties
         electromagneticModel& electro_;
 
+        //- Current density [A/m^2]
+        virtual void initJ_(bool imaginary=false);
+
 public:
 
     // Public Data
@@ -102,10 +105,10 @@ public:
         virtual volVectorField& getB(bool imaginary=false);
 
         //- Electric potential [V/m]
-        virtual volScalarField& getPotE(bool imaginary=false);
+        virtual void initPotE(bool imaginary=false);
 
         //- Current density correction [A/m^2]
-        virtual volVectorField& getDeltaJ(bool imaginary=false);
+        virtual void initDeltaJ(bool imaginary=false);
 
 
     // Member Operators

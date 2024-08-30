@@ -182,7 +182,7 @@ public:
         virtual void updateCoeffs();
 
         //- Write
-        virtual void write(Ostream&) const;
+        //virtual void write(Ostream&) const;
 };
 
 

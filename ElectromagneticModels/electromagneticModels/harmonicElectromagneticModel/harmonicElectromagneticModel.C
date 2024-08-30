@@ -62,8 +62,8 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJre",
-            dimensionedVector(Jre_.internalField().dimensions(),Foam::vector(0,0,0)),
-            JBoundaryTypes(),
+            lookupOrConstructVector(mesh, "Jre"),
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         )
     ),
@@ -73,8 +73,8 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJim",
-            dimensionedVector(Jim_.internalField().dimensions(),Foam::vector(0,0,0)),
-            JBoundaryTypes(true),
+            lookupOrConstructVector(mesh, "Jim"),
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         )
     )
@@ -148,7 +148,7 @@ bool Foam::harmonicElectromagneticModel::isComplex() const
     return isComplex_;
 }
 
-const Foam::word Foam::harmonicElectromagneticModel::getCoupledPotentialName(const word Jname) const
+Foam::word Foam::harmonicElectromagneticModel::getCoupledPotentialName(const word Jname) const
 {
     word ePotName = "PotEre";
     if (Jname == "deltaJim" || Jname == "Jim")

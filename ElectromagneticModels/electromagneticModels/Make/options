@@ -3,9 +3,7 @@ EXE_INC = \
     -ItransientElectromagneticModel \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
-    -I$(LIB_SRC)/physicalProperties/lnInclude \
-    -I../coupledElectromagneticModels/coupledElectricPotential \
-    -I../coupledElectromagneticModels/coupledCurrentDensity
+    -I$(LIB_SRC)/physicalProperties/lnInclude
 
 LIB_LIBS = \
     -lmeshTools \

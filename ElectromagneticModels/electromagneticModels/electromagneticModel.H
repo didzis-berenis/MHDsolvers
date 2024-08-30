@@ -128,7 +128,8 @@ protected:
         static volScalarField& lookupOrConstructScalar
         (
             const fvMesh& mesh,
-            const char* name
+            const char* name,
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -136,7 +137,8 @@ protected:
         static volVectorField& lookupOrConstructVector
         (
             const fvMesh& mesh,
-            const char* name
+            const char* name,
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -146,7 +148,7 @@ protected:
             const fvMesh& mesh,
             const char* name,
             dimensionedScalar value,
-            readOption ro = IOobject::MUST_READ,
+            readOption ro = IOobject::NO_READ,
             writeOption wo = IOobject::AUTO_WRITE
         );
 
@@ -157,18 +159,11 @@ protected:
             const fvMesh& mesh,
             const char* name,
             dimensionedVector value,
-            readOption ro = IOobject::MUST_READ,
+            readOption ro = IOobject::NO_READ,
             writeOption wo = IOobject::AUTO_WRITE
         );
-        static volVectorField& lookupOrConstructVector
-        (
-            const fvMesh& mesh,
-            const char* name,
-            dimensionedVector value,
-            wordList JBoundaryTypes,
-            writeOption wo = IOobject::NO_WRITE
-        );
 
+        //- Lookup the named field, or construct it as a copy of the given field
         static volVectorField& lookupOrConstructVector
         (
             const fvMesh& mesh,
@@ -191,7 +186,6 @@ protected:
             const fvMesh& mesh,
             const char* name
         );
-        wordList JBoundaryTypes(bool imaginary = false) const;
 
         //- Get the constructor iterator for the given thermo dictionary and
         //  constructor iterator table
@@ -338,7 +332,7 @@ public:
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) = 0;
 
-        virtual const word getCoupledPotentialName(const word Jname) const = 0;
+        virtual word getCoupledPotentialName(const word Jname) const = 0;
         
         //- Non-const access the properties dictionary
         //virtual IOdictionary& properties() = 0;

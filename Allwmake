@@ -3,8 +3,8 @@ cd ${0%/*} || exit 1    # run from this directory
 set -x
 
 wmake ElectromagneticModels/electromagneticModels
-wmake ElectromagneticModels/electroBase
 wmake ElectromagneticModels/coupledElectromagneticModels
+wmake ElectromagneticModels/electroBase
 
 wmake modules/incompressibleConductingFluid
 wmake modules/conductingFluid

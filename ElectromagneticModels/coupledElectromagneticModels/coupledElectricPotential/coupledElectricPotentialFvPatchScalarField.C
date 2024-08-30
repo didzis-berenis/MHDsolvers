@@ -64,17 +64,14 @@ void Foam::coupledElectricPotentialFvPatchScalarField::getNbr
 }
 
 
-const Foam::scalarField& Foam::coupledElectricPotentialFvPatchScalarField::getNbr
-(
-    //tmp<scalarField>& sigmaEPotByDeltaNbr
-) const
+const Foam::scalarField& Foam::coupledElectricPotentialFvPatchScalarField::getNbr() const
 {
     const electromagneticModel& em =
         patch().boundaryMesh().mesh()
        .lookupType<electromagneticModel>();
 
-    //tmp<scalarField> sigmaEPotByDeltaNbr;
-    return em.sigma(patch().index())*patchInternalField()*patch().deltaCoeffs();
+    //normalJ = sigmaNbr * ( grad(ePotNbr) * n )
+    return em.sigma(patch().index())*snGrad();
 }
 
 
@@ -114,7 +111,7 @@ coupledElectricPotentialFvPatchScalarField
 :
     mixedFvPatchScalarField(p, iF, dict, false),
     //JName_(dict.lookupOrDefault<word>("J", "J")),
-    ePotName_(dict.lookupOrDefault<word>("PotE", "PotE"))
+    ePotName_(iF.name())
 {
    /*mappedPatchBase::validateMapForField
     (
@@ -253,14 +250,14 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 }
 
 
-void Foam::coupledElectricPotentialFvPatchScalarField::write
+/*void Foam::coupledElectricPotentialFvPatchScalarField::write
 (
     Ostream& os
 ) const
 {
     mixedFvPatchScalarField::write(os);
     writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotName_);
-}
+}*/
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

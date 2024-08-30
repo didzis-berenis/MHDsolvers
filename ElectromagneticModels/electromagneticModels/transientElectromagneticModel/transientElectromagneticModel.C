@@ -59,8 +59,8 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
         (
             mesh,
             "deltaJ",
-            dimensionedVector(Jre_.internalField().dimensions(),Foam::vector(0,0,0)),
-            JBoundaryTypes(),
+            lookupOrConstructVector(mesh, "J"),
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         )
     )
@@ -134,7 +134,7 @@ bool Foam::transientElectromagneticModel::isComplex() const
     return isComplex_;
 }
 
-const Foam::word Foam::transientElectromagneticModel::getCoupledPotentialName(const word Jname) const
+Foam::word Foam::transientElectromagneticModel::getCoupledPotentialName(const word Jname) const
 {
     word ePotName = "PotE";
     return ePotName;

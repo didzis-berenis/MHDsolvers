@@ -91,7 +91,9 @@ class coupledCurrentDensityFvPatchVectorField
         //word JName_;
 
         //- Name of field on the neighbour region
-        const word ePotName_;
+        word ePotName_ = word::null;
+
+        bool coupled_ = false;
 
 
 protected:
@@ -120,7 +122,6 @@ protected:
     ) const;
 
     
-    const word getCoupledPotentialName() const;
 
 
 public:
@@ -158,12 +159,12 @@ public:
         );
 
         //- Construct and return a clone setting internal field reference
-        /*virtual tmp<fvPatchScalarField> clone
+        virtual tmp<fvPatchVectorField> clone
         (
             const DimensionedField<vector, volMesh>& iF
         ) const
         {
-            return tmp<fvPatchScalarField>
+            return tmp<fvPatchVectorField>
             (
                 new coupledCurrentDensityFvPatchVectorField
                 (
@@ -171,16 +172,19 @@ public:
                     iF
                 )
             );
-        }*/
+        }
 
 
     // Member Functions
+
+        //- Initialize the coupled potential name
+        virtual void initCoupledPotential();
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
 
         //- Write
-        virtual void write(Ostream&) const;
+        //virtual void write(Ostream&) const;
 };
 
 
