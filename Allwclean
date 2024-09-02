@@ -3,8 +3,8 @@ cd ${0%/*} || exit 1    # run from this directory
 set -x
 
 wclean ElectromagneticModels/electromagneticModels
-wclean ElectromagneticModels/electroBase
 wclean ElectromagneticModels/coupledElectromagneticModels
+wclean ElectromagneticModels/electroBase
 
 wclean modules/incompressibleConductingFluid
 wclean modules/conductingFluid

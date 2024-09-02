@@ -26,16 +26,13 @@ License
 #include "electroBase.H"
 #include "coupledElectricPotentialFvPatchScalarField.H"
 #include "coupledCurrentDensityFvPatchVectorField.H"
-//#include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
     defineTypeNameAndDebug(electroBase, 0);
-    //defineRunTimeSelectionTable(electroBase, fvMesh);
 }
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -100,6 +97,8 @@ void Foam::electroBase::initPotE(bool imaginary)
         fvPatchScalarField& pPotE = PotEBf[patchi];
         if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
         {
+            const volScalarField::Boundary& sigmaBf =
+            electroPtr_->sigma().boundaryField();
             coupledElectricPotentialFvPatchScalarField& cpPotE =
             refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
             cpPotE.evaluate();
@@ -114,8 +113,9 @@ void Foam::electroBase::initDeltaJ(bool imaginary)
         forAll(deltaJBf, patchi)
         {
             fvPatchVectorField& pDeltaJ = deltaJBf[patchi];
-            if (isA<coupledCurrentDensityFvPatchVectorField>(pDeltaJ) )//derived from directionMixedFvPatchVectorField
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pDeltaJ) )
             {
+                //derived from directionMixedFvPatchVectorField
                 coupledCurrentDensityFvPatchVectorField& cpDeltaJ =
                 refCast<coupledCurrentDensityFvPatchVectorField>(pDeltaJ);
                 //Couple with electric potential

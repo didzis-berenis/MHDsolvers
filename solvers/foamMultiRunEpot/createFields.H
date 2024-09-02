@@ -94,34 +94,6 @@ volVectorField BimGlobal
     meshGlobal,
     dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
 );
-/*
-volScalarField GeometryIdsGlobal
-(
-    IOobject
-    (
-        "GeometryIds",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
-);
-volScalarField sigmaGlobal
-(
-    IOobject
-    (
-        "sigma",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(-1, -3, 3, 0, 0, 2, 0), 1)
-);
-*/
 volScalarField sigmaGlobalInv
 (
     IOobject
@@ -139,18 +111,17 @@ volScalarField sigmaGlobalInv
 //Region fields
 PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
 PtrList<volScalarField> alpha1Region(regionNames.size());
+
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
 word userSolidificationName = "alpha1";
-//bool solidificationGlobalEnabled = false;
 List<bool> solidificationEnabled(regionNames.size(), false);
 List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WRITE);
 
 //Initialize field names and paths
 List<List<Pair<word>>> regionPaths(regionNames.size());
-
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds",
-"sigmaInv","sigma","deltaU","deltaJ", "PotE","deltaJre", "PotEre","deltaJim", "PotEim",};//
+std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds",};
+//"sigmaInv","sigma","deltaU","deltaJ", "PotE","deltaJre", "PotEre","deltaJim", "PotEim",};//
 
 forAll(regionNames, i)
 {
@@ -186,7 +157,6 @@ forAll(regionNames, i)
             keepField[Pair<word>(fieldName,regionNames[i])] = true;
             solidificationEnabled[i] = true;
             alphaWriteOption[i] = IOobject::AUTO_WRITE;
-            //solidificationGlobalEnabled = true;
         }
     }
 
@@ -212,6 +182,7 @@ forAll(regionNames, i)
     {
         alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
     }
+    //Get inverse of sigma field
     const volScalarField& sigmaInvRegion = solvers.getElectro(regionNames[i]).sigmaInv();
     solvers.scalarFieldToGlobal(
         sigmaGlobalInv,
@@ -219,31 +190,3 @@ forAll(regionNames, i)
         regionNames[i]
     );
 }
-/*
-scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsRegion);
-
-forAll(sigmaGlobal, cellI)
-{
-    scalar sigma = sigmaRegion[cellToRegion[cellI]].value();
-    sigmaGlobal[cellI] = sigma == 0 ? ROOTVSMALL : sigma;
-    sigmaGlobalInv[cellI] = sigma == 0 ? 0 : 1/sigma;
-}
-
-volScalarField alpha1Global
-(
-    IOobject
-    (
-        userSolidificationName,
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        alphaWriteOptionGlobal
-    ),
-    meshGlobal,
-    dimensionedScalar(dimless, 0)
-);
-if (solidificationGlobalEnabled)
-{
-	scalarMultiRegionToGlobal(alpha1Global,alpha1Region);
-}
-*/

@@ -25,42 +25,29 @@ Class
     Foam::coupledElectricPotentialFvPatchScalarField
 
 Description
-    Mixed boundary condition for temperature, to be used for heat-transfer
-    with another region in a CHT case.  Optional thin wall material layer
-    resistances can be specified through thicknessLayers and kappaLayers
-    entries.
+    Boundary condition for electrical potential, to be used for electric contact
+    with another region in an electromagnetic case.
 
-    Specifies gradient and temperature such that the equations are the same
+    Specifies potential such that the equations are the same
     on both sides:
-      - refGradient = ePotByDeltaNbr*sigmaNbr/sigma
+      - refGradient = 0
       - refValue = neighbour value
-      - valueFraction = 0, but switches to 1 for small sigma
-
-    where ePotByDeltaNbr is the gradient
-    and sigmaNbr is the conductivity of neighbour patch.
-
+      - valueFraction = 1 (fixed value)
 Usage
-    \table
-        Property     | Description             | Required    | Default value
-        ePot         | name of the field       | no          | ePot
-    \endtable
 
     Example of the boundary condition specification:
     \verbatim
     <patchName>
     {
-        type            coupledTemperature;
+        type            coupledPotential;
     }
     \endverbatim
 
     Needs to be on underlying mapped(Wall)FvPatch.
 
-    The patch thermal conductivity \c kappa is obtained from the region
-    thermophysicalTransportModel so that this boundary condition can be applied
+    The patch electric conductivity sigma is obtained from the region
+    electromagneticModel so that this boundary condition can be applied
     directly to either fluid or solid regions.
-
-    Note that in order to provide an optional heat source either qs or Qs
-    should be specified, not both.
 
 SourceFiles
     coupledElectricPotentialFvPatchScalarField.C
@@ -88,29 +75,17 @@ class coupledElectricPotentialFvPatchScalarField
 {
     // Private Data
 
-        //- Name of the current density field
-        //word JName_;
-
         //- Name of field on the neighbour region
         const word ePotName_;
 
 
 protected:
 
-    //- Get the patch kappa, kappa*Tc/delta and kappa/delta and also the
-    //  heat-flux obtained from the sum heat-flux provided
-    virtual void getThis
-    (
-        tmp<scalarField>& sigma,
-        tmp<scalarField>& ePotByDelta
-    ) const;
-
-    //- Get the neighbour patch kappa*Tc/delta and kappa/delta
-    //  and the heat-flux correction
+    //- Get the neighbour patch sigma and sigma*PotE
     virtual void getNbr
     (
-        tmp<scalarField>& sigmaByDeltaNbr,
-        tmp<scalarField>& sigmaEPotByDeltaNbr
+        tmp<scalarField>& sigmaNbr,
+        tmp<scalarField>& sigmaEPotNbr
     ) const;
 
     //- Add field to result which may have not been previously set
@@ -125,14 +100,8 @@ public:
 
     //- Runtime type information
     TypeName("coupledPotential");
-    virtual const scalarField& getNbr
-    (
-        //tmp<scalarField>& sigmaEPotByDeltaNbr
-    ) const;
-
 
     // Constructors
-
 
         //- Construct as copy setting internal field reference
         coupledElectricPotentialFvPatchScalarField
@@ -160,7 +129,7 @@ public:
         );
 
         //- Construct and return a clone setting internal field reference
-        /*virtual tmp<fvPatchScalarField> clone
+        virtual tmp<fvPatchScalarField> clone
         (
             const DimensionedField<scalar, volMesh>& iF
         ) const
@@ -173,7 +142,7 @@ public:
                     iF
                 )
             );
-        }*/
+        }
 
 
     // Member Functions
@@ -181,8 +150,8 @@ public:
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
 
-        //- Write
-        //virtual void write(Ostream&) const;
+        //- Return the field from the object registry
+        virtual const scalarField& getNbr() const;
 };
 
 

@@ -71,7 +71,6 @@ SourceFiles
 #include "solver.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
-
 #include <map>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -124,16 +123,27 @@ class conductingRegionSolvers
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
 
+        //- Get pointer electroBase class from region
         electroBase* getElectroBasePtr_(const word regionName);
+
+        //- Get pointers to region solvers
         solvers::conductingFluid* getFluidPtr_(const word regionName);
         solvers::conductingSolid* getSolidPtr_(const word regionName);
+
+        // Map global cell values to region cell values
         void scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName);
         void vectorGlobalToField_(volVectorField& global,volVectorField& region,const word& regionName);
 
-        //- Region solvers
+        //- Global mesh pointer
         autoPtr<fvMesh> globalMesh_;
-
+        //- Construct new global mesh from region meshes
         autoPtr<fvMesh> globalMeshNew_();
+
+        //- Initialize electric potential boundary conditions
+        void evaluatePotEBfs_(const word regionName, bool imaginary=false);
+
+        //- Initialize current correction boundary conditions
+        void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
 
 
 public:
@@ -168,36 +178,43 @@ public:
         //- Reset the Info prefix to null
         void resetPrefix() const;
 
-        // Return region fvMesh
+        //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
+        // Return global fvMesh
         const fvMesh& globalMesh();
 
+        //- Map for region to global cell id
         std::map<std::pair<word, label>, label> regionToGlobalCellId;
 
-        void scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName);
-        void vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName);
+        //- Return region electromagneticModel
         const Foam::electromagneticModel& getElectro(const word regionName);
 
-        // Assign current density to solvers
+        //- Map region cell values to global cell values for scalar field
+        void scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName);
+
+        //- Map region cell values to global cell values for a vector field
+        void vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName);
+
+        //- Assign current density to solvers
         void setJ(volVectorField& field, bool imaginary=false);
 
-        // Assign magnetic field to solvers
+        //- Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
 
-        // save old velocity
+        //- save old velocity
         void storeU(const word regionName);
 
-        // Check if solver type is fluidSolverName_
+        //- Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);
 
-        // Check if solver type is solidSolverName_
+        //- Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
 
-        // Check if electromagnetic solver time type is harmonic
+        //- Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();
 
-        // Check if magnetic field needs updating
+        //- Check if magnetic field needs updating
         bool updateMagneticField();
 
         //- Set correctElectromagnetics switch to true for all conducting regions
@@ -209,17 +226,16 @@ public:
         //- Update electromagnetic system without solving
         void electromagneticPredictor(const word regionName);
 
+        //- Initialize temperature gradient
         void calcTemperatureGradient(const word regionName);
-        
+
+        //- Return fluid solver
         const Foam::solvers::conductingFluid& getFluid(const word regionName);
-        
+
+        //- Return solid solver
         const Foam::solvers::conductingSolid& getSolid(const word regionName);
 
-        void evaluatePotEBfs_(const word regionName, bool imaginary=false);
-
-        void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
-
-        // Get names
+        //- Get region-solver name pairs
         List<Pair<word>> getNames();
 
 

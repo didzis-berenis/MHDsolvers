@@ -25,7 +25,7 @@ Class
     Foam::harmonicElectromagneticModel
 
 Description
-    Base-class for fluid thermodynamic properties.
+    Derived-class from electromagneticModel.
 
 See also
     Foam::electromagneticModel
@@ -95,19 +95,6 @@ public:
     //- Runtime type information
     TypeName("harmonicElectromagneticModel");
 
-
-    //- Declare run-time constructor selection table
-/*
-    declareRunTimeNewSelectionTable
-    (
-        autoPtr,
-        harmonicElectromagneticModel,
-        fvMesh,
-        (const fvMesh& mesh, const word& phaseName),
-        (mesh, phaseName)
-    );
-*/
-
     // Constructors
 
         //- Construct from components
@@ -117,16 +104,6 @@ public:
             const word& phaseName
         );
 
-
-    // Selectors
-/*
-        //- Standard selection based on fvMesh
-        static autoPtr<harmonicElectromagneticModel> New
-        (
-            const fvMesh&,
-            const word& phaseName=word::null
-        );
-*/
         //- Disallow default bitwise copy construction
         harmonicElectromagneticModel(const harmonicElectromagneticModel&) = delete;
 

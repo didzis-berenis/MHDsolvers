@@ -30,15 +30,7 @@ License
 namespace Foam
 {
     defineTypeNameAndDebug(transientElectromagneticModel, 0);
-    // Add to runtime selection Table
-    /*addToRunTimeSelectionTable
-    (
-        electromagneticModel,
-        transientElectromagneticModel,
-        fvMesh
-    );*/
 }
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -59,25 +51,10 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
         (
             mesh,
             "deltaJ",
-            lookupOrConstructVector(mesh, "J"),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            lookupOrConstructVector(mesh, "J")
         )
     )
 {}
-
-
-// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
-/*
-Foam::autoPtr<Foam::transientElectromagneticModel> Foam::transientElectromagneticModel::New
-(
-    const fvMesh& mesh,
-    const word& phaseName
-)
-{
-    return electromagneticModel::New<transientElectromagneticModel>(mesh, phaseName);
-}
-*/
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 

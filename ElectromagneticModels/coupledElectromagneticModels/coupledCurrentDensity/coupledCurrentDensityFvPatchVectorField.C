@@ -35,8 +35,7 @@ License
 
 void Foam::coupledCurrentDensityFvPatchVectorField::getThis
 (
-    tmp<scalarField>& sigma//,
-    //tmp<scalarField>& ePotByDelta
+    tmp<scalarField>& sigma
 ) const
 {
     const electromagneticModel& em =
@@ -44,14 +43,10 @@ void Foam::coupledCurrentDensityFvPatchVectorField::getThis
        .lookupType<electromagneticModel>();
 
     sigma = em.sigma(patch().index());
-
-    //ePotByDelta = patchInternalField()*patch().deltaCoeffs();
 }
 
 void Foam::coupledCurrentDensityFvPatchVectorField::initCoupledPotential()
 {
-    //int oldTag = UPstream::msgType();
-    //UPstream::msgType() = oldTag + 1;
     //Allow for single initialization
     if (!coupled_)
     {
@@ -62,8 +57,6 @@ void Foam::coupledCurrentDensityFvPatchVectorField::initCoupledPotential()
         ePotName_ = em.getCoupledPotentialName(internalField().name());
         coupled_ = true;
     }
-    // Restore tag
-    //UPstream::msgType() = oldTag;
 }
 
 void Foam::coupledCurrentDensityFvPatchVectorField::add
@@ -89,7 +82,6 @@ void Foam::coupledCurrentDensityFvPatchVectorField::add
     }
 }
 
-
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::coupledCurrentDensityFvPatchVectorField::
@@ -100,10 +92,16 @@ coupledCurrentDensityFvPatchVectorField
     const dictionary& dict
 )
 :
-    directionMixedFvPatchVectorField(p, iF)//,
-    //JName_(dict.lookupOrDefault<word>("J", "J"))
-    //ePotName_(getCoupledPotentialName())
+    directionMixedFvPatchVectorField(p, iF)
 {
+   mappedPatchBase::validateMapForField
+    (
+        *this,
+        iF,
+        dict,
+        mappedPatchBase::from::differentPatch
+    );
+
     if (dict.found("refValue"))
     {
         // Full restart
@@ -115,8 +113,8 @@ coupledCurrentDensityFvPatchVectorField
     {
         //valueFraction() is symmTensorField:
         //"xx", "xy", "xz",
-        //"yy", "yz",
-        //      "zz"
+        //      "yy", "yz",
+        //            "zz"
         valueFraction() = sqr(patch().nf());//fraction set to normal direction
         // Thus, refValue() is normalCurrent
         // Act as slip condition by default
@@ -137,9 +135,7 @@ coupledCurrentDensityFvPatchVectorField
     const fvPatchFieldMapper& mapper
 )
 :
-    directionMixedFvPatchVectorField(psf, p, iF, mapper)//,
-    //JName_(psf.JName_)
-    //ePotName_(psf.ePotName_)
+    directionMixedFvPatchVectorField(psf, p, iF, mapper)
 {}
 
 
@@ -150,9 +146,7 @@ coupledCurrentDensityFvPatchVectorField
     const DimensionedField<vector, volMesh>& iF
 )
 :
-    directionMixedFvPatchVectorField(psf, iF)//,
-    //JName_(psf.JName_)
-    //ePotName_(psf.ePotName_)
+    directionMixedFvPatchVectorField(psf, iF)
 {}
 
 
@@ -169,8 +163,6 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
     {
         //Act as slip condition by default
         //Use default coefficients
-        //directionMixedFvPatchVectorField::updateCoeffs();
-        //directionMixedFvPatchVectorField::evaluate();
         return;
     }
     // Since we're inside initEvaluate/evaluate there might be processor
@@ -203,15 +195,6 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
-    //if (Js_.valid())
-    //{
-    //    sumJ += Js_();
-    //}
-    //const Field<vector>& Jp =
-    //    patch().template lookupPatchField<volVectorField, vector>(JName_);
-    //const Field<vector> nf(patch().nf());
-    //const scalarField nJp(Jp & nf);
-
     tmp<scalarField> sigma;
     // Get patch values
     getThis(sigma);
@@ -223,32 +206,16 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
         add(normalJ, mpp.fromNeighbour(normalJNbr));
     }
 
-    //const Field<vector>& JpNbr =
-    //    patchNbr.lookupPatchField<volVectorField, vector>(JName_);
-    //const Field<vector> nfNbr(mpp.nbrPolyPatch().nf());
-    //const scalarField nJpNbr(JpNbr & nfNbr);
-
-    // default: J . n = Jnbr . n = grad(ePotNbr)*sigmaNbr . n
+    // default: J . n = - Jnbr . n = grad(ePotNbr)*sigmaNbr . n
     // if sigmaNbr->0 => Jnbr . n = 0
     // if sigma->0 => sigma()/(sigma() + SMALL) = 0 => J . n = 0
-    this->refValue() = (sigma()/(sigma() + SMALL)) * normalJ() * patch().nf();
+    this->refValue() = (sigma()/(sigma() + SMALL)) * ( - normalJ() ) * patch().nf();
 
     directionMixedFvPatchVectorField::updateCoeffs();
 
     // Restore tag
     UPstream::msgType() = oldTag;
 }
-
-
-/*void Foam::coupledCurrentDensityFvPatchVectorField::write
-(
-    Ostream& os
-) const
-{
-    directionMixedFvPatchVectorField::write(os);
-    writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotName_);
-}*/
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

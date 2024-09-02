@@ -25,7 +25,7 @@ Class
     Foam::transientElectromagneticModel
 
 Description
-    Base-class for fluid thermodynamic properties.
+    Derived-class from electromagneticModel.
 
 See also
     Foam::electromagneticModel
@@ -61,11 +61,9 @@ class transientElectromagneticModel
     volVectorField& deltaJre_;
 
     //- Current density [A/m^2]
-    //const char* JName_ = "Jre";
     volVectorField& Jre_;
 
     //- Magnetic field [T]
-    //const char* BName_ = "Bre";
     volVectorField& Bre_;
 
     //- isComplex_ switch for solvers
@@ -88,16 +86,6 @@ public:
             const word& phaseName
         );
 
-
-    // Selectors
-/*
-        //- Standard selection based on fvMesh
-        static autoPtr<transientElectromagneticModel> New
-        (
-            const fvMesh&,
-            const word& phaseName=word::null
-        );
-*/
         //- Disallow default bitwise copy construction
         transientElectromagneticModel(const transientElectromagneticModel&) = delete;
 

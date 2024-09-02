@@ -87,11 +87,9 @@ class conductingRegionSolver
 {
     // Private Member Data
         const Time& runTime_;
-        //const IOdictionary& physicalProperties_;
 
         //- Solver pointer
         solver* solverPtr_;
-        //autoPtr<solver> solver_;
 
         //- Solver name
         word name_;
@@ -111,13 +109,13 @@ class conductingRegionSolver
 
         //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
-
         const word fluidSolverName_ = "conductingFluid";
-
         const word solidSolverName_ = "conductingSolid";
 
+        //- Get pointer electroBase class from region
+        electroBase* getElectroBasePtr_();
+
         //- Get pointers to derived solver class object
-        //electroBase* getElectroBasePtr_();
         solvers::incompressibleConductingFluid* getIncompressibleFluidPtr_();
         solvers::conductingFluid* getFluidPtr_();
         solvers::conductingSolid* getSolidPtr_();
@@ -177,6 +175,7 @@ public:
         //- Update electromagnetic system without solving
         void electromagneticPredictor();
 
+        //- Initialize temperature gradient
         void calcTemperatureGradient();
 
         // Read-only access
@@ -186,11 +185,14 @@ public:
 
         // Get Temperature
         const volScalarField& getTemperature();
-        
+
+        //- Return incompressible fluid solver
         const Foam::solvers::incompressibleConductingFluid& getIncompressibleFluid();
 
+        //- Return fluid solver
         const Foam::solvers::conductingFluid& getFluid();
-        
+
+        //- Return solid solver
         const Foam::solvers::conductingSolid& getSolid();
 
 

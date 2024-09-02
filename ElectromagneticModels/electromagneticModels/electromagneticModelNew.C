@@ -25,9 +25,7 @@ License
 
 #include "electromagneticModel.H"
 
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
-
 
     Foam::autoPtr<Foam::electromagneticModel> Foam::electromagneticModel::New
     (
@@ -35,13 +33,6 @@ License
         const word& phaseName
     )
     {
-        /*
-        const IOdictionary electromagneticDict
-        (
-            physicalProperties::findModelDict(mesh, phaseName)
-        );
-        const word modelType(electromagneticDict.lookup("electromagneticType"));
-        */
         const word modelType
         (
             IOdictionary

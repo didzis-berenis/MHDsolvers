@@ -104,6 +104,9 @@ namespace Foam
            Class externalElectricPotentialFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
+//NOT tested!!! Based on externalTemperatureFvPatchScalarField.H
+//Reserved for fluid or solid regions with external potentials attached to them.
+//TODO: test and finish implementation, when needed.
 class externalElectricPotentialFvPatchScalarField
 :
     public mixedFvPatchScalarField
@@ -228,6 +231,9 @@ public:
 
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
+
+            //- Return the field from the object registry
+            virtual const scalarField& getNbr() const;
 
 
         // I-O

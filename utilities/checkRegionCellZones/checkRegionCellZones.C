@@ -30,9 +30,7 @@ Description
 
 
 #include "argList.H"
-#include "Time.H"
-#include "fvMesh.H"
-#include <set>
+#include "conductingRegionSolvers.H"
 #include <fstream>
 using namespace Foam;
 
@@ -43,62 +41,29 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
 
-    std::set<word> fluidNames = {"fluid", "conductingFluid", "incompressibleConductingFluid"};
+    // Create the region meshes and solvers
+    conductingRegionSolvers solvers(runTime);
+    List<Pair<word>> solverNames = solvers.getNames();
     
-    const fvMesh meshGlobal
-    (
-        IOobject
-        (
-            fvMesh::defaultRegion,
-            runTime.timeName(),
-            runTime,
-            IOobject::MUST_READ
-        )
-    );
-    
-
-    if (runTime.controlDict().found("regionSolvers"))
+    forAll(solverNames, i)
     {
-        const dictionary& conductingRegionSolversDict =
-            runTime.controlDict().subDict("regionSolvers");
+        const word regionName = solverNames[i].first();
+        bool hasZeroCells = solvers.mesh(regionName).cells().size() == 0;
 
-        forAllConstIter(dictionary, conductingRegionSolversDict, iter)
+        if (hasZeroCells)
         {
-            const word regionName(iter().keyword());
-            const word solverName(iter().stream());
-
-            forAll(meshGlobal.cellZones(), zoneI)
-            {
-                const cellZone& cZone = meshGlobal.cellZones()[zoneI];
-
-                bool hasZeroCells = cZone.name() == regionName
-                && fluidNames.find(solverName) != fluidNames.end()
-                && cZone.size() == 0;
-
-                if (hasZeroCells)
-                {
-                    std::ofstream outFile("HAS_ZERO_CELLS", std::ofstream::out);
-                    outFile.close();
-                }
-
-                bool masterHasZeroCells = Pstream::master()
-                && hasZeroCells;
-
-                if (masterHasZeroCells)
-                {
-                    std::ofstream outFile("MASTER_HAS_ZERO_CELLS", std::ofstream::out);
-                    outFile.close();
-                }
-            }
-
+            std::ofstream outFile("HAS_ZERO_CELLS", std::ofstream::out);
+            outFile.close();
         }
-    }
-    else
-    {
-        FatalIOErrorInFunction(runTime.controlDict())
-            << "regionSolvers list missing from "
-            << runTime.controlDict().name()
-            << exit(FatalIOError);
+
+        bool masterHasZeroCells = Pstream::master()
+        && hasZeroCells;
+
+        if (masterHasZeroCells)
+        {
+            std::ofstream outFile("MASTER_HAS_ZERO_CELLS", std::ofstream::out);
+            outFile.close();
+        }
     }
 
     return 0;

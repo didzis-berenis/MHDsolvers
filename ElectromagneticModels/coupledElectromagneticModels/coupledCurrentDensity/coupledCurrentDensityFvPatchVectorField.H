@@ -87,9 +87,6 @@ class coupledCurrentDensityFvPatchVectorField
 {
     // Private Data
 
-        //- Name of the current density field
-        //word JName_;
-
         //- Name of field on the neighbour region
         word ePotName_ = word::null;
 
@@ -98,21 +95,11 @@ class coupledCurrentDensityFvPatchVectorField
 
 protected:
 
-    //- Get the patch kappa, kappa*Tc/delta and kappa/delta and also the
-    //  heat-flux obtained from the sum heat-flux provided
+    //- Get the patch sigma
     virtual void getThis
     (
-        tmp<scalarField>& sigma//,
-        //tmp<scalarField>& ePotByDelta
+        tmp<scalarField>& sigma
     ) const;
-
-    //- Get the neighbour patch kappa*Tc/delta and kappa/delta
-    //  and the heat-flux correction
-    //virtual void getNbr
-    //(
-        //tmp<scalarField>& sigmaByDeltaNbr,
-        //tmp<scalarField>& sigmaEPotByDeltaNbr
-    //) const;
 
     //- Add field to result which may have not been previously set
     void add
@@ -182,9 +169,6 @@ public:
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
-
-        //- Write
-        //virtual void write(Ostream&) const;
 };
 
 

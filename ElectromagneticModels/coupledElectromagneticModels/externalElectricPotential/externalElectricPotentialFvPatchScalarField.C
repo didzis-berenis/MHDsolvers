@@ -198,11 +198,11 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     scalarField ePotTot(ePotP.size(), 0);
     if (haveI_)
     {
-        ePotTot += sigma*I_/gSum(patch().magSf());
+        ePotTot += I_/gSum(patch().magSf())/snGrad()/sigma;
     }
     if (haveJ_)
     {
-        ePotTot += sigma*J_;
+        ePotTot += J_/snGrad()/sigma;
     }
     if (!havePot_)
     {
@@ -212,9 +212,10 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     // Evaluate
     //if (!haveh_)
     //{
-        refGrad() = ePotTot/sigma;
-        refValue() = ePotP;
-        valueFraction() = 0;
+        refValue() = ePotTot;
+        //Switch to zero gradient condition if sigma->0
+        valueFraction() = sigma/(sigma + SMALL);
+        //refGrad() = 0;
     //}
 /*
     else
@@ -280,6 +281,17 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
             << " avg:" << gAverage(*this)
             << endl;
     }
+}
+
+const Foam::scalarField& Foam::externalElectricPotentialFvPatchScalarField::getNbr() const
+{
+    const electromagneticModel& em =
+        patch().boundaryMesh().mesh()
+       .lookupType<electromagneticModel>();
+
+    // J_normal = sigma * ( grad(ePot) * n )
+    // Return patch normal current.
+    return em.sigma(patch().index())*snGrad();
 }
 
 

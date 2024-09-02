@@ -37,3 +37,9 @@
 * Removed deprecated solvers simpleFoamEpot, pimpleFoamEpot, buoyantFoamEpot, pimpleFoamEpotTransient, buoyantFoamEpotTransient, chtMultiRegionFoamEpot and chtMultiRegionFoamEpotTransient
 ## v1.0.1: Added checkRegionCellZones utility for checking if master thread has any fluid regions with zero cells. ##
 * checkRegionCellZones
+## v2.0: Added Electromagnetic models ##
+* harmonicElectromagneticModel
+* transientElectromagneticModel
+* electroBase
+* coupledElectricPotentialFvPatchScalarField
+* coupledCurrentDensityFvPatchVectorField

@@ -30,13 +30,6 @@ License
 namespace Foam
 {
     defineTypeNameAndDebug(harmonicElectromagneticModel, 0);
-    // Add to runtime selection Table
-    /*addToRunTimeSelectionTable
-    (
-        electromagneticModel,
-        harmonicElectromagneticModel,
-        fvMesh
-    );*/
 }
 
 
@@ -62,9 +55,7 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJre",
-            lookupOrConstructVector(mesh, "Jre"),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            lookupOrConstructVector(mesh, "Jre")
         )
     ),
     deltaJim_
@@ -73,25 +64,10 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJim",
-            lookupOrConstructVector(mesh, "Jim"),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            lookupOrConstructVector(mesh, "Jim")
         )
     )
 {}
-
-
-// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
-/*
-Foam::autoPtr<Foam::harmonicElectromagneticModel> Foam::harmonicElectromagneticModel::New
-(
-    const fvMesh& mesh,
-    const word& phaseName
-)
-{
-    return electromagneticModel::New<harmonicElectromagneticModel>(mesh, phaseName);
-}
-*/
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -157,6 +133,5 @@ Foam::word Foam::harmonicElectromagneticModel::getCoupledPotentialName(const wor
     }
     return ePotName;
 }
-
 
 // ************************************************************************* //

@@ -28,51 +28,13 @@ License
 #include "fvmLaplacian.H"
 #include "fvcSnGrad.H"
 
-
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 namespace Foam
 {
     defineTypeNameAndDebug(electromagneticModel, 0);
-    // define fvMeshConstructorTablePtr_
-    // constructfvMeshConstructorTables()
-    // and destroyfvMeshConstructorTables()
     defineRunTimeSelectionTable(electromagneticModel, fvMesh);
 }
-/*
-namespace Foam
-{
-    Foam::autoPtr<electromagneticModel> electromagneticModel::New
-    (
-        const fvMesh& mesh,
-        const word& phaseName
-    )
-    {
-        const IOdictionary electromagneticDict
-        (
-            physicalProperties::findModelDict(mesh, phaseName)
-        );
-        const word modelType(electromagneticDict.lookup("electromagneticType"));
 
-        Info<< "Selecting electromagnetics model " << modelType << endl;
-
-        typename electromagneticModel::fvMeshConstructorTable::iterator
-            cstrIter =
-            electromagneticModel::fvMeshConstructorTablePtr_->find(modelType);
-
-        if (cstrIter == electromagneticModel::fvMeshConstructorTablePtr_->end())
-        {
-            FatalErrorInFunction
-                << "Unknown " << electromagneticModel::typeName << " type "
-                << modelType << nl << nl
-                << "Valid " << electromagneticModel::typeName << " types are:" << nl
-                << electromagneticModel::fvMeshConstructorTablePtr_->sortedToc() << nl
-                << exit(FatalError);
-        }
-
-        return autoPtr<electromagneticModel>(cstrIter()(mesh, phaseName));
-    }
-}
-*/
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
@@ -339,21 +301,12 @@ Foam::electromagneticModel::electromagneticModel
 )
 :
     IOdictionary(readModelDict(mesh.thisDb(), phaseName, true)),
-
-    //physicalProperties(mesh, phaseName),
-
     mesh_(mesh),
-
     phaseName_(phaseName),
-
     JxB_(lookupOrConstructVector(mesh, "JxB")),
-
     JxB(JxB_),
-
     JJsigma_(lookupOrConstructScalar(mesh, "JJsigma")),
-
     JJsigma(JJsigma_),
-
     sigma_
     (
         lookupOrConstructScalar
@@ -365,7 +318,6 @@ Foam::electromagneticModel::electromagneticModel
             IOobject::AUTO_WRITE
         )
     ),
-
     sigmaConst_
     (
         IOdictionary(readModelDict(mesh.thisDb(),phaseName)).found("sigma") ?
@@ -382,48 +334,31 @@ Foam::electromagneticModel::electromagneticModel
             0
         )
     ),
-
     deltaU_
     (
         lookupOrConstructVector
         (
             mesh,
             "deltaU",
-            dimensionedVector(dimVelocity,Foam::vector(0,0,0)),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            dimensionedVector(dimVelocity,Foam::vector(0,0,0))
         )
     ),
-
     sigmaInv_
     (
         lookupOrConstructScalar
         (
             mesh,
             "sigmaInv",
-            dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0)
         )
     )
 {
-    // Update sigma patch fields
-    // TODO: Ambigous for coupled patches
-    // Maybe should be the average of the two
+    // Update sigma boundary fields
     if (sigmaConst_.value() > SMALL)
     {
-        volScalarField::Boundary& sigmaBf =
-            sigma_.boundaryFieldRef();
-        forAll(sigmaBf,patchi)
-        {
-            fvPatchScalarField& psigma = sigmaBf[patchi];
-            forAll(psigma, facei)
-            {
-                psigma[facei] = sigmaConst_.value();//NaN;//
-            }
-        }
+        patchSigmaBoundaries();
     }
-
+    // Update inverse of sigma
     forAll(sigma_, cellI)
     {
         sigmaInv_[cellI] = 
@@ -432,23 +367,24 @@ Foam::electromagneticModel::electromagneticModel
     }
 }
 
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 void Foam::electromagneticModel::updateDeltaU(volVectorField& Udiff)
 {
-    //deltaU.clear();
-    //deltaU.ref()+=Udiff;//deltaU = tmp<volVectorField>(Udiff);
     deltaU_ = Udiff;
 }
 
 void Foam::electromagneticModel::findDeltaJ(bool imaginary)
 {
+    /*---------------------------------------------------------------------------
+    Correction to update electrical currents is based on the epotFoam solver,
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    ---------------------------------------------------------------------------*/
     //Interpolating cross product u x B over mesh faces
     surfaceScalarField psiUB = fvc::interpolate(deltaU_ ^ B(imaginary)) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotE(imaginary);
-    //Const access
+    //Sigma field
     volScalarField sigma_field(sigma_);
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
@@ -470,7 +406,6 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Interpolation of current density at cell center
     JUB = sigma_field*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary conditions
-    //Assuming PotE is updated correctly, zero gradient or slip condition should be sufficient.
     JUB.correctBoundaryConditions();
 }
 
@@ -483,6 +418,7 @@ void Foam::electromagneticModel::predict()
         (J() ^ B() )
         +(J(imaginary) ^ B(imaginary) )
     );
+    JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
     JJsigma_ =
@@ -490,6 +426,7 @@ void Foam::electromagneticModel::predict()
         (J() & J())
         +(J(imaginary) & J(imaginary))
     )*sigmaInv();
+    JJsigma_.correctBoundaryConditions();
 }
 
 void Foam::electromagneticModel::correct()
@@ -511,6 +448,7 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) ^ B() )
         +((J(imaginary)+deltaJim) ^ B(imaginary) )
     );
+    JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
     JJsigma_ =
@@ -518,6 +456,7 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) & (J()+deltaJre))
         +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
     )*sigmaInv();
+    JJsigma_.correctBoundaryConditions();
     //mark as corrected
     setCorrected();
 }
@@ -537,16 +476,6 @@ Foam::volScalarField& Foam::electromagneticModel::getScalarFieldRef(const char* 
     return mesh_.objectRegistry::lookupObjectRef<volScalarField>(name);
 }
 
-const Foam::volVectorField& Foam::electromagneticModel::getVectorField(const char* name) const
-{
-    return mesh_.objectRegistry::lookupObject<volVectorField>(name);
-}
-
-const Foam::volScalarField& Foam::electromagneticModel::getScalarField(const char* name) const
-{
-    return mesh_.objectRegistry::lookupObject<volScalarField>(name);
-}
-
 void Foam::electromagneticModel::setCorrectElectromagnetics()
 {
     correctElectromagnetics_ = true;
@@ -557,38 +486,51 @@ void Foam::electromagneticModel::setCorrected()
     correctElectromagnetics_ = false;
 }
 
-bool Foam::electromagneticModel::correctElectromagnetics() const
-{
-    return correctElectromagnetics_;
-}
-
 Foam::volScalarField& Foam::electromagneticModel::sigma()
 {
     return sigma_;
 }
 
-Foam::tmp<Foam::scalarField> Foam::electromagneticModel::sigma(const label patchi) const
+void Foam::electromagneticModel::patchSigmaBoundaries()
 {
-    return sigma_.boundaryField()[patchi].patchInternalField();
+    // Update sigma boundary fields.
+    // Assign closest internal field value to boundary patch.
+    // For interface walls (patches between regions),
+    // sigma can have a different value from each side of the wall.
+    volScalarField::Boundary& sigmaBf = sigma_.boundaryFieldRef();
+    forAll(sigmaBf,patchi)
+    {
+        fvPatchScalarField& psigma = sigmaBf[patchi];
+        psigma = psigma.patchInternalField();
+    }
 }
 
 Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
 {
     return sigmaInv_;
 }
-/*
-Foam::volVectorField& Foam::electromagneticModel::JxB()
-{
-    return JxB_;
-}
 
-Foam::volScalarField& Foam::electromagneticModel::JJsigma()
-{
-    return JJsigma_;
-}
-*/
 // Read only access functions
 
+const Foam::volVectorField& Foam::electromagneticModel::getVectorField(const char* name) const
+{
+    return mesh_.objectRegistry::lookupObject<volVectorField>(name);
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::getScalarField(const char* name) const
+{
+    return mesh_.objectRegistry::lookupObject<volScalarField>(name);
+}
+
+bool Foam::electromagneticModel::correctElectromagnetics() const
+{
+    return correctElectromagnetics_;
+}
+
+Foam::tmp<Foam::scalarField> Foam::electromagneticModel::sigma(const label patchi) const
+{
+    return sigma_.boundaryField()[patchi].patchInternalField();
+}
 
 const Foam::volScalarField& Foam::electromagneticModel::sigmaInv() const
 {

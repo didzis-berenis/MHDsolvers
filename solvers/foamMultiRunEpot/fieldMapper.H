@@ -3,7 +3,6 @@
 std::map<Pair<word>, bool> keepField;
 
 std::map<std::pair<word, label>, label> regionToGlobalCellId;
-//std::map<word, label> regionID;
 List<word> regionNames;
 
 List<Pair<word>> getFieldPaths(const fvMesh& regionMesh)
@@ -63,27 +62,3 @@ List<Pair<word>> getFieldPaths(const fvMesh& regionMesh)
 
     return fieldPaths;
 }
-/*
-word getRegionPath(fvMesh& regionMesh)
-{
-    // get volScalarFields
-    List<word> volScalarFieldNames(
-        regionMesh.thisDb().names<volScalarField>()
-        );
-    HashTable<const volScalarField*> volScalarFieldTable(
-        regionMesh.thisDb().lookupClass<volScalarField>()
-        );
-    forAll(volScalarFieldTable,i)
-    {
-        int writeOption = volScalarFieldTable[volScalarFieldNames[i]]->writeOpt();
-        word thisRegionPath = volScalarFieldTable[volScalarFieldNames[i]]->path();
-        if (writeOption == 0 && thisRegionPath != "")
-        {
-            //return the first valid instance
-            return thisRegionPath;
-        }
-    }
-
-    return word::null;
-}
-*/

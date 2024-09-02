@@ -32,48 +32,19 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-void Foam::coupledElectricPotentialFvPatchScalarField::getThis
-(
-    tmp<scalarField>& sigma,
-    tmp<scalarField>& ePotByDelta
-) const
-{
-    const electromagneticModel& em =
-        patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    sigma = em.sigma(patch().index());
-
-    ePotByDelta = patchInternalField()*patch().deltaCoeffs();
-}
-
-
 void Foam::coupledElectricPotentialFvPatchScalarField::getNbr
 (
-    tmp<scalarField>& sigmaByDeltaNbr,
-    tmp<scalarField>& sigmaEPotByDeltaNbr
+    tmp<scalarField>& sigmaNbr,
+    tmp<scalarField>& sigmaEPotNbr
 ) const
 {
     const electromagneticModel& em =
         patch().boundaryMesh().mesh()
        .lookupType<electromagneticModel>();
 
-    sigmaByDeltaNbr = em.sigma(patch().index())*patch().deltaCoeffs();
-
-    sigmaEPotByDeltaNbr = sigmaByDeltaNbr()*patchInternalField();
+    sigmaNbr = em.sigma(patch().index());
+    sigmaEPotNbr = sigmaNbr()*patchInternalField();
 }
-
-
-const Foam::scalarField& Foam::coupledElectricPotentialFvPatchScalarField::getNbr() const
-{
-    const electromagneticModel& em =
-        patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    //normalJ = sigmaNbr * ( grad(ePotNbr) * n )
-    return em.sigma(patch().index())*snGrad();
-}
-
 
 void Foam::coupledElectricPotentialFvPatchScalarField::add
 (
@@ -110,16 +81,15 @@ coupledElectricPotentialFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(p, iF, dict, false),
-    //JName_(dict.lookupOrDefault<word>("J", "J")),
     ePotName_(iF.name())
 {
-   /*mappedPatchBase::validateMapForField
+   mappedPatchBase::validateMapForField
     (
         *this,
         iF,
         dict,
         mappedPatchBase::from::differentPatch
-    );*/
+    );
 
     if (dict.found("refValue"))
     {
@@ -131,9 +101,11 @@ coupledElectricPotentialFvPatchScalarField
     else
     {
         // Start from user entered data. Assume fixedValue.
-        refValue() = *this;
-        refGrad() = 0;
+        // default: valueFraction=1; (fixed value)
         valueFraction() = 1;
+        refValue() = *this;
+        // gradient condition not used
+        refGrad() = 0;
     }
     //evaluate() is called after all solvers have been constructed
 }
@@ -149,7 +121,6 @@ coupledElectricPotentialFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(psf, p, iF, mapper),
-   //JName_(psf.JName_),
     ePotName_(psf.ePotName_)
 {}
 
@@ -162,7 +133,6 @@ coupledElectricPotentialFvPatchScalarField
 )
 :
     mixedFvPatchScalarField(psf, iF),
-    //JName_(psf.JName_),
     ePotName_(psf.ePotName_)
 {}
 
@@ -204,44 +174,20 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
-    //if (Js_.valid())
-    //{
-    //    sumJ += Js_();
-    //}
-    //const Field<vector>& Jp =
-    //    patch().template lookupPatchField<volVectorField, vector>(JName_);
-    //const Field<vector> nf(patch().nf());
-    //const scalarField nJp(Jp & nf);
-
+    // Get neighbour contributions
     tmp<scalarField> sigma;
-    tmp<scalarField> ePotByDelta;
-    // Get patch values
-    getThis(sigma, ePotByDelta);
-
-    tmp<scalarField> sigmaByDelta;
-    tmp<scalarField> sigmaEPotByDelta;
-    // Add neighbour contributions
+    tmp<scalarField> sigmaEPot;
     {
-        tmp<scalarField> sigmaByDeltaNbr;
-        tmp<scalarField> sigmaEPotByDeltaNbr;
-        coupledPotentialNbr.getNbr(sigmaByDeltaNbr, sigmaEPotByDeltaNbr);
-        //
-        add(sigmaEPotByDelta, mpp.fromNeighbour(sigmaEPotByDeltaNbr));
-        add(sigmaByDelta, mpp.fromNeighbour(sigmaByDeltaNbr));
+        tmp<scalarField> sigmaNbr;
+        tmp<scalarField> sigmaEPotNbr;
+        coupledPotentialNbr.getNbr(sigmaNbr, sigmaEPotNbr);
+
+        add(sigmaEPot, mpp.fromNeighbour(sigmaEPotNbr));
+        add(sigma, mpp.fromNeighbour(sigmaNbr));
     }
 
-    //const Field<vector>& JpNbr =
-    //    patchNbr.lookupPatchField<volVectorField, vector>(JName_);
-    //const Field<vector> nfNbr(mpp.nbrPolyPatch().nf());
-    //const scalarField nJpNbr(JpNbr & nfNbr);
-
-    // default: 0; if sigma->0 => valueFraction=1
-    this->valueFraction() = 1;//1 - sigma()/(sigma() + SMALL);
     // if sigma->0: ePot = ePotNbr; if sigmaNbr->0 => ePot = 0
-    this->refValue() = sigmaEPotByDelta()/(sigmaByDelta()+SMALL);
-    // default: using gradient grad(ePot) = grad(ePotNbr)*sigmaNbr/sigma
-    // if sigmaNbr->0 => grad(ePot) = 0
-    this->refGrad() = 0;//sigmaEPotByDelta()/(sigma()+SMALL);
+    this->refValue() = sigmaEPot()/(sigma()+SMALL);
 
     mixedFvPatchScalarField::updateCoeffs();
 
@@ -249,16 +195,16 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     UPstream::msgType() = oldTag;
 }
 
-
-/*void Foam::coupledElectricPotentialFvPatchScalarField::write
-(
-    Ostream& os
-) const
+const Foam::scalarField& Foam::coupledElectricPotentialFvPatchScalarField::getNbr() const
 {
-    mixedFvPatchScalarField::write(os);
-    writeEntryIfDifferent<word>(os, "PotE", "PotE", ePotName_);
-}*/
+    const electromagneticModel& em =
+        patch().boundaryMesh().mesh()
+       .lookupType<electromagneticModel>();
 
+    // J_normal = sigma * ( grad(ePot) * n )
+    // Return patch normal current.
+    return em.sigma(patch().index())*snGrad();
+}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

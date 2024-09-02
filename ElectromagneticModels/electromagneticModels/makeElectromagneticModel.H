@@ -22,10 +22,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 InClass
-    Foam::solidThermo
+    Foam::electromagneticModel
 
 Description
-    Macros for creating solid thermo packages
+    Macros for creating electromagnetic packages
 
 \*---------------------------------------------------------------------------*/
 
