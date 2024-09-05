@@ -111,9 +111,9 @@ bool Foam::transientElectromagneticModel::isComplex() const
     return isComplex_;
 }
 
-Foam::word Foam::transientElectromagneticModel::getCoupledPotentialName(const word Jname) const
+Foam::word Foam::transientElectromagneticModel::getCoupledCurrentName(const word Jname) const
 {
-    word ePotName = "PotE";
+    word ePotName = "deltaJ";
     return ePotName;
 }
 

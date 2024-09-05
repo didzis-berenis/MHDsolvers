@@ -124,14 +124,14 @@ bool Foam::harmonicElectromagneticModel::isComplex() const
     return isComplex_;
 }
 
-Foam::word Foam::harmonicElectromagneticModel::getCoupledPotentialName(const word Jname) const
+Foam::word Foam::harmonicElectromagneticModel::getCoupledCurrentName(const word ePotName) const
 {
-    word ePotName = "PotEre";
-    if (Jname == "deltaJim" || Jname == "Jim")
+    word Jname = "deltaJre";
+    if (ePotName == "PotEim")
     {
-        ePotName = "PotEim";
+        Jname = "deltaJim";
     }
-    return ePotName;
+    return Jname;
 }
 
 // ************************************************************************* //

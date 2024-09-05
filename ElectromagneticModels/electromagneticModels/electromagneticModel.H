@@ -126,7 +126,7 @@ protected:
             const char* name,
             dimensionedScalar value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::NO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -137,7 +137,7 @@ protected:
             const char* name,
             dimensionedVector value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::NO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Lookup the named field, or construct it as a copy of the given field
@@ -147,7 +147,7 @@ protected:
             const char* name,
             const volVectorField& field,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::NO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE
         );
 
         //- Construct named field as MUST-READ if it is not found
@@ -241,7 +241,7 @@ public:
         virtual volScalarField& sigma();
 
         //- assign closest internal field values to sigma boundaries
-        virtual void patchSigmaBoundaries();
+        //virtual void patchSigmaBoundaries(volScalarField& sigma);
 
         //- return field from object registry
         virtual volScalarField& getScalarFieldRef(const char* name);
@@ -276,7 +276,7 @@ public:
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) = 0;
 
-        virtual word getCoupledPotentialName(const word Jname) const = 0;
+        virtual word getCoupledCurrentName(const word Jname) const = 0;
 
         //Read-only access
 
@@ -297,6 +297,9 @@ public:
 
         //- Electric conductivity for patch [S/m]
         virtual tmp<scalarField> sigma(const label patchi) const;
+
+        //- Inverse Electric conductivity for patch [S/m]
+        //virtual tmp<scalarField> sigmaInv(const label patchi) const;
 
         //- Inverse Electric conductivity [m/S]
         virtual const volScalarField& sigmaInv() const;

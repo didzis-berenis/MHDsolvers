@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "coupledCurrentDensityFvPatchVectorField.H"
-#include "coupledElectricPotentialFvPatchScalarField.H"
 #include "electromagneticModel.H"
 #include "volFields.H"
 #include "fvPatchFieldMapper.H"
@@ -33,7 +32,7 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-void Foam::coupledCurrentDensityFvPatchVectorField::getThis
+/*void Foam::coupledCurrentDensityFvPatchVectorField::getValues
 (
     tmp<scalarField>& sigma
 ) const
@@ -43,43 +42,41 @@ void Foam::coupledCurrentDensityFvPatchVectorField::getThis
        .lookupType<electromagneticModel>();
 
     sigma = em.sigma(patch().index());
-}
+}*/
 
 void Foam::coupledCurrentDensityFvPatchVectorField::initCoupledPotential()
 {
     //Allow for single initialization
     if (!coupled_)
     {
-        const electromagneticModel& em =
-            patch().boundaryMesh().mesh()
-        .lookupType<electromagneticModel>();
-
-        ePotName_ = em.getCoupledPotentialName(internalField().name());
-        coupled_ = true;
-    }
-}
-
-void Foam::coupledCurrentDensityFvPatchVectorField::add
-(
-    tmp<scalarField>& result,
-    const tmp<scalarField>& field
-) const
-{
-    if (result.valid())
-    {
-        result.ref() += field;
-    }
-    else
-    {
-        if (field.isTmp())
+        word Jname_ = internalField().name();
+        const word Jname("deltaJ");
+        if ( Jname_ != Jname &&
+            Jname_.size() >= Jname.size())
         {
-            result = field;
+            ePotName_ = "PotE" + Jname_.substr(Jname_.size() - Jname.size());
         }
         else
         {
-            result = field().clone();
+            ePotName_ = "PotE";
         }
+            coupled_ = true;
     }
+}
+
+void Foam::coupledCurrentDensityFvPatchVectorField::getJfromPotential
+(
+    const coupledElectricPotentialFvPatchScalarField& psf,
+    tmp<scalarField>& sigmaGradPotE
+) const
+{
+    const electromagneticModel& em =
+        psf.patch().boundaryMesh().mesh()
+       .lookupType<electromagneticModel>();
+
+    tmp<scalarField> gradPotE;
+    psf.getGradientValues(gradPotE);
+    sigmaGradPotE = em.sigma(psf.patch().index())* gradPotE();
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -122,7 +119,7 @@ coupledCurrentDensityFvPatchVectorField
         //refGrad not used
         refGrad() = Zero;
     }
-    //evaluate() is called after all solvers have been constructed
+    evaluate();// is called after all solvers have been constructed
 }
 
 
@@ -165,51 +162,39 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
         //Use default coefficients
         return;
     }
-    // Since we're inside initEvaluate/evaluate there might be processor
-    // comms underway. Change the tag we use.
+
     int oldTag = UPstream::msgType();
     UPstream::msgType() = oldTag + 1;
+    // Since we're inside initEvaluate/evaluate there might be processor
+    // comms underway. Change the tag we use.
 
-    // Get the coupling information from the mappedPatchBase
-    const mappedPatchBase& mpp = mappedPatchBase::getMap(patch().patch());
-    const label patchiNbr = mpp.nbrPolyPatch().index();
-    const fvPatch& patchNbr =
-        refCast<const fvMesh>(mpp.nbrMesh()).boundary()[patchiNbr];
+    const fvPatchScalarField& ePotPatch =
+        patch().lookupPatchField<volScalarField, scalar>(ePotName_);
 
-    const fvPatchScalarField& ePotpNbr =
-        patchNbr.lookupPatchField<volScalarField, scalar>(ePotName_);
-
-    if (!isA<coupledElectricPotentialFvPatchScalarField>(ePotpNbr))
+    if (!isA<coupledElectricPotentialFvPatchScalarField>(ePotPatch))
     {
         FatalErrorInFunction
             << "Patch field for " << internalField().name() << " on "
             << this->patch().name() << " is of type "
             << coupledCurrentDensityFvPatchVectorField::typeName
-            << endl << "The neighbouring patch field " << ePotName_
-            << " on " << patchNbr.name() << " is required to be "
+            << endl << "The patch field " << ePotName_
+            << " on " << this->patch().name() << " is required to be "
             << coupledElectricPotentialFvPatchScalarField::typeName
-            << ", but is currently of type " << ePotpNbr.type()
+            << ", but is currently of type " << ePotPatch.type()
             << exit(FatalError);
     }
 
-    const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
-        refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
+    const coupledElectricPotentialFvPatchScalarField& coupledPotential =
+        refCast<const coupledElectricPotentialFvPatchScalarField>(ePotPatch);
 
-    tmp<scalarField> sigma;
     // Get patch values
-    getThis(sigma);
+    //tmp<scalarField> sigma;
+    //getValues(sigma);
     tmp<scalarField> normalJ;
-    // Add neighbour contributions
-    {
-        tmp<scalarField> normalJNbr;
-        normalJNbr = coupledPotentialNbr.getNbr();
-        add(normalJ, mpp.fromNeighbour(normalJNbr));
-    }
+    getJfromPotential(coupledPotential,normalJ);
 
-    // default: J . n = - Jnbr . n = grad(ePotNbr)*sigmaNbr . n
-    // if sigmaNbr->0 => Jnbr . n = 0
-    // if sigma->0 => sigma()/(sigma() + SMALL) = 0 => J . n = 0
-    this->refValue() = (sigma()/(sigma() + SMALL)) * ( - normalJ() ) * patch().nf();
+    this->refValue() = normalJ() * patch().nf();
+    //(patchInternalField() & patch().nf())* patch().nf();//assign nearest normal component
 
     directionMixedFvPatchVectorField::updateCoeffs();
 

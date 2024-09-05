@@ -142,7 +142,7 @@ public:
         //- Current density correction [A/m^2]
         const virtual volVectorField& deltaJ(bool imaginary=false) const override;
 
-        virtual word getCoupledPotentialName(const word Jname) const override;
+        virtual word getCoupledCurrentName(const word Jname) const override;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

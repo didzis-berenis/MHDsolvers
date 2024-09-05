@@ -25,42 +25,14 @@ Class
     Foam::coupledCurrentDensityFvPatchVectorField
 
 Description
-    Mixed boundary condition for temperature, to be used for heat-transfer
-    with another region in a CHT case.  Optional thin wall material layer
-    resistances can be specified through thicknessLayers and kappaLayers
-    entries.
 
     Specifies gradient and temperature such that the equations are the same
     on both sides:
-      - refGradient = ePotByDeltaNbr*sigmaNbr/sigma
-      - refValue = neighbour value
-      - valueFraction = 0, but switches to 1 for small sigma
+      - valueFraction = 1 -> fixed value
+      - refValue = sigmaGradPotE,
 
-    where ePotByDeltaNbr is the gradient
-    and sigmaNbr is the conductivity of neighbour patch.
-
-Usage
-    \table
-        Property     | Description             | Required    | Default value
-        ePot         | name of the field       | no          | ePot
-    \endtable
-
-    Example of the boundary condition specification:
-    \verbatim
-    <patchName>
-    {
-        type            coupledTemperature;
-    }
-    \endverbatim
-
-    Needs to be on underlying mapped(Wall)FvPatch.
-
-    The patch thermal conductivity \c kappa is obtained from the region
-    thermophysicalTransportModel so that this boundary condition can be applied
-    directly to either fluid or solid regions.
-
-    Note that in order to provide an optional heat source either qs or Qs
-    should be specified, not both.
+    where sigmaGradPotE is the current density calculated from the electric
+    potential gradient and the electric conductivity of the region.
 
 SourceFiles
     coupledCurrentDensityFvPatchVectorField.C
@@ -71,6 +43,7 @@ SourceFiles
 #define coupledCurrentDensityFvPatchVectorField_H
 
 #include "directionMixedFvPatchFields.H"
+#include "coupledElectricPotentialFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -90,26 +63,24 @@ class coupledCurrentDensityFvPatchVectorField
         //- Name of field on the neighbour region
         word ePotName_ = word::null;
 
+        //- Coupled flag
         bool coupled_ = false;
 
 
 protected:
 
     //- Get the patch sigma
-    virtual void getThis
+    /*virtual void getValues
     (
         tmp<scalarField>& sigma
-    ) const;
+    ) const;*/
 
-    //- Add field to result which may have not been previously set
-    void add
+    //- Get current density from electric potential
+    void getJfromPotential
     (
-        tmp<scalarField>& result,
-        const tmp<scalarField>& field
+        const coupledElectricPotentialFvPatchScalarField& psf,
+        tmp<scalarField>& sigmaGradPotE
     ) const;
-
-    
-
 
 public:
 
@@ -118,7 +89,6 @@ public:
 
 
     // Constructors
-
 
         //- Construct as copy setting internal field reference
         coupledCurrentDensityFvPatchVectorField
@@ -169,6 +139,7 @@ public:
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
+
 };
 
 

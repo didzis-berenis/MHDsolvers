@@ -93,6 +93,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     //Initialize coupled boundary conditions after all solvers have been loaded,
     //because coupledElectricPotentialFvPatchScalarField constructor requires
     //also the solver of the neighbour patch to be loaded.
+    //Initialize PotE before deltaJ BCs, because deltaJ BCs require PotE BCs.
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();

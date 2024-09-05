@@ -24,6 +24,8 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electromagneticModel.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 #include "fvmDiv.H"
 #include "fvmLaplacian.H"
 #include "fvcSnGrad.H"
@@ -353,11 +355,11 @@ Foam::electromagneticModel::electromagneticModel
         )
     )
 {
-    // Update sigma boundary fields
-    if (sigmaConst_.value() > SMALL)
+    // Update sigma boundary fields if necessary
+    /*if (sigmaConst_.value() > SMALL)
     {
-        patchSigmaBoundaries();
-    }
+        patchSigmaBoundaries(sigma_);
+    }*/
     // Update inverse of sigma
     forAll(sigma_, cellI)
     {
@@ -380,12 +382,15 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     Correction to update electrical currents is based on the epotFoam solver,
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
     ---------------------------------------------------------------------------*/
+    //Get deltaJ reference (boundary conditions should come from J)
+    volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolating cross product u x B over mesh faces
     surfaceScalarField psiUB = fvc::interpolate(deltaU_ ^ B(imaginary)) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotE(imaginary);
     //Sigma field
     volScalarField sigma_field(sigma_);
+
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
@@ -401,8 +406,6 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
-    //Get deltaJ reference (boundary conditions should come from J)
-    volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolation of current density at cell center
     JUB = sigma_field*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary conditions
@@ -431,6 +434,7 @@ void Foam::electromagneticModel::predict()
 
 void Foam::electromagneticModel::correct()
 {
+
     bool imaginary = isComplex();
     //Get J difference by incorporating deltaU x B term
     findDeltaJ();
@@ -491,19 +495,19 @@ Foam::volScalarField& Foam::electromagneticModel::sigma()
     return sigma_;
 }
 
-void Foam::electromagneticModel::patchSigmaBoundaries()
+/*void Foam::electromagneticModel::patchSigmaBoundaries(Foam::volScalarField& sigma)
 {
     // Update sigma boundary fields.
     // Assign closest internal field value to boundary patch.
     // For interface walls (patches between regions),
     // sigma can have a different value from each side of the wall.
-    volScalarField::Boundary& sigmaBf = sigma_.boundaryFieldRef();
+    volScalarField::Boundary& sigmaBf = sigma.boundaryFieldRef();
     forAll(sigmaBf,patchi)
     {
         fvPatchScalarField& psigma = sigmaBf[patchi];
         psigma = psigma.patchInternalField();
     }
-}
+}*/
 
 Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
 {
@@ -529,8 +533,16 @@ bool Foam::electromagneticModel::correctElectromagnetics() const
 
 Foam::tmp<Foam::scalarField> Foam::electromagneticModel::sigma(const label patchi) const
 {
+    // Function patchInternalField() returns near-wall values mapped to the boundary.
+    // In contrast, boundaryField()[patchi] will return the values at the boundary.
     return sigma_.boundaryField()[patchi].patchInternalField();
 }
+
+/*Foam::tmp<Foam::scalarField> Foam::electromagneticModel::sigmaInv(const label patchi) const
+{
+    //Return inverse of electric conductivity for patch
+    return sigmaInv_.boundaryField()[patchi].patchInternalField();
+}*/
 
 const Foam::volScalarField& Foam::electromagneticModel::sigmaInv() const
 {

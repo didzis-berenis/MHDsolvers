@@ -32,21 +32,30 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-void Foam::coupledElectricPotentialFvPatchScalarField::getNbr
+void Foam::coupledElectricPotentialFvPatchScalarField::getValues
 (
-    tmp<scalarField>& sigmaNbr,
-    tmp<scalarField>& sigmaEPotNbr
+    tmp<scalarField>& sigmaByDelta,
+    tmp<scalarField>& sigmaEPotByDelta
 ) const
 {
     const electromagneticModel& em =
         patch().boundaryMesh().mesh()
        .lookupType<electromagneticModel>();
 
-    sigmaNbr = em.sigma(patch().index());
-    sigmaEPotNbr = sigmaNbr()*patchInternalField();
+    sigmaByDelta = em.sigma(patch().index())*patch().deltaCoeffs();
+    sigmaEPotByDelta = sigmaByDelta()*patchInternalField();
 }
 
-void Foam::coupledElectricPotentialFvPatchScalarField::add
+void Foam::coupledElectricPotentialFvPatchScalarField::getGradientValues
+(
+    tmp<scalarField>& gradEPot
+) const
+{
+    //See Foam::mixedFvPatchField<Type>::snGrad() for details
+    gradEPot = (internalField() - patchInternalField())*patch().deltaCoeffs();
+}
+
+void Foam::coupledElectricPotentialFvPatchScalarField::assign
 (
     tmp<scalarField>& result,
     const tmp<scalarField>& field
@@ -54,21 +63,18 @@ void Foam::coupledElectricPotentialFvPatchScalarField::add
 {
     if (result.valid())
     {
-        result.ref() += field;
+        result.clear();
+    }
+    
+    if (field.isTmp())
+    {
+        result = field;
     }
     else
     {
-        if (field.isTmp())
-        {
-            result = field;
-        }
-        else
-        {
-            result = field().clone();
-        }
+        result = field().clone();
     }
 }
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -104,10 +110,9 @@ coupledElectricPotentialFvPatchScalarField
         // default: valueFraction=1; (fixed value)
         valueFraction() = 1;
         refValue() = *this;
-        // gradient condition not used
         refGrad() = 0;
     }
-    //evaluate() is called after all solvers have been constructed
+    //evaluate();// is called after all solvers have been constructed
 }
 
 
@@ -170,40 +175,47 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
             << patchNbr.name() << " is required to be the same, but is "
             << "currently of type " << ePotpNbr.type() << exit(FatalError);
     }
-
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
+    tmp<scalarField> sigmaByDelta;
+    tmp<scalarField> sigmaEPotByDelta;
+    tmp<scalarField> gradEPot;
+    // Get patch values
+    getValues(sigmaByDelta, sigmaEPotByDelta);
+    //getGradientValues(gradEPot);
     // Get neighbour contributions
-    tmp<scalarField> sigma;
-    tmp<scalarField> sigmaEPot;
+    tmp<scalarField> sigmaByDeltaNbr;
+    tmp<scalarField> sigmaEPotByDeltaNbr;
+    //tmp<scalarField> gradEPotNbr;
     {
-        tmp<scalarField> sigmaNbr;
-        tmp<scalarField> sigmaEPotNbr;
-        coupledPotentialNbr.getNbr(sigmaNbr, sigmaEPotNbr);
+        tmp<scalarField> sigmaByDeltaNbrPatch;
+        tmp<scalarField> sigmaEPotByDeltaNbrPatch;
+        coupledPotentialNbr.getValues(sigmaByDeltaNbrPatch, sigmaEPotByDeltaNbrPatch);
+        assign(sigmaByDeltaNbr, mpp.fromNeighbour(sigmaByDeltaNbrPatch));
+        assign(sigmaEPotByDeltaNbr, mpp.fromNeighbour(sigmaEPotByDeltaNbrPatch));
 
-        add(sigmaEPot, mpp.fromNeighbour(sigmaEPotNbr));
-        add(sigma, mpp.fromNeighbour(sigmaNbr));
+        //tmp<scalarField> gradEPotNbrPatch;
+        //coupledPotentialNbr.getGradientValues(gradEPotNbrPatch);
+        //assign(gradEPotNbr, mpp.fromNeighbour(gradEPotNbrPatch));
     }
+    //See Foam::mixedFvPatchField<Type>::evaluate for details
 
-    // if sigma->0: ePot = ePotNbr; if sigmaNbr->0 => ePot = 0
-    this->refValue() = sigmaEPot()/(sigma()+SMALL);
+    this->valueFraction() = 1;//Fixed value
+
+    this->refValue() =
+    //sigma_nbr*ePot_nbr/delta_nbr + sigma*ePot/delta
+    (sigmaEPotByDeltaNbr()+sigmaEPotByDelta())
+    /
+    //sigma_nbr/delta_nbr + sigma/delta
+    (sigmaByDeltaNbr()+sigmaByDelta());
+
+    //this->refGrad() = -gradEPotNbr();
 
     mixedFvPatchScalarField::updateCoeffs();
 
     // Restore tag
     UPstream::msgType() = oldTag;
-}
-
-const Foam::scalarField& Foam::coupledElectricPotentialFvPatchScalarField::getNbr() const
-{
-    const electromagneticModel& em =
-        patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    // J_normal = sigma * ( grad(ePot) * n )
-    // Return patch normal current.
-    return em.sigma(patch().index())*snGrad();
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -216,6 +228,5 @@ namespace Foam
         coupledElectricPotentialFvPatchScalarField
     );
 }
-
 
 // ************************************************************************* //

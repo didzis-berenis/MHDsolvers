@@ -57,9 +57,6 @@ protected:
         //- Non-const reference to the fluid fluid electromagnetic properties
         electromagneticModel& electro_;
 
-        //- Current density [A/m^2]
-        virtual void initJ_(bool imaginary=false);
-
 public:
 
     // Public Data

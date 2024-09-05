@@ -24,8 +24,8 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electroBase.H"
-#include "coupledElectricPotentialFvPatchScalarField.H"
 #include "coupledCurrentDensityFvPatchVectorField.H"
+#include "coupledElectricPotentialFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -44,13 +44,7 @@ Foam::electroBase::electroBase
     electroPtr_(electromagneticModel::New(mesh)),
     electro_(electroPtr_()),
     electro(electroPtr_)
-{
-    initJ_();
-    if (electro.isComplex())
-    {
-        initJ_(true);
-    }
-}
+{}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -97,8 +91,6 @@ void Foam::electroBase::initPotE(bool imaginary)
         fvPatchScalarField& pPotE = PotEBf[patchi];
         if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
         {
-            const volScalarField::Boundary& sigmaBf =
-            electroPtr_->sigma().boundaryField();
             coupledElectricPotentialFvPatchScalarField& cpPotE =
             refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
             cpPotE.evaluate();
@@ -121,23 +113,6 @@ void Foam::electroBase::initDeltaJ(bool imaginary)
                 //Couple with electric potential
                 cpDeltaJ.initCoupledPotential();
                 cpDeltaJ.evaluate();
-            }
-        }
-}
-
-void Foam::electroBase::initJ_(bool imaginary)
-{
-        // Also initialize J since coupledCurrentDensity doesn't call evaluate during initialization
-        volVectorField& regionJ = electroPtr_->J(imaginary);
-        volVectorField::Boundary& regionJBf = regionJ.boundaryFieldRef();
-        forAll(regionJBf, patchi)
-        {
-            fvPatchVectorField& pJ = regionJBf[patchi];
-            if (isA<coupledCurrentDensityFvPatchVectorField>(pJ) )
-            {
-                coupledCurrentDensityFvPatchVectorField& cpJ =
-                refCast<coupledCurrentDensityFvPatchVectorField>(pJ);
-                cpJ.evaluate();
             }
         }
 }

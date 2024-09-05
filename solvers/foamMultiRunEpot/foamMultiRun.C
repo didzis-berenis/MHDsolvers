@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
         {
             solvers.setCorrectElectromagnetics();
         }
+
         forAll(regionNames, i)
         {
             solvers.solveElectromagnetics(regionNames[i]);

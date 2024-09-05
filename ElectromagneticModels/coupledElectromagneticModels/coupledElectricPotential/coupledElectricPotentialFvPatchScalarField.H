@@ -31,7 +31,11 @@ Description
     Specifies potential such that the equations are the same
     on both sides:
       - refGradient = 0
-      - refValue = neighbour value
+      - refValue = calculated as patch_value from
+        sigma_1*grad(PotE_1) = sigma_2*grad(PotE_2) where sigma_1 and sigma_2
+        are the electric conductivities of the two regions and
+        grad(PotE_1) = (pot_1 - patch_value)/delta_1 and
+        grad(PotE_2) = (patch_value - pot_2)/delta_2
       - valueFraction = 1 (fixed value)
 Usage
 
@@ -78,18 +82,26 @@ class coupledElectricPotentialFvPatchScalarField
         //- Name of field on the neighbour region
         const word ePotName_;
 
+        bool coupled_ = false;
+
 
 protected:
 
-    //- Get the neighbour patch sigma and sigma*PotE
-    virtual void getNbr
+    //- Get useful values from patch
+    virtual void getValues
     (
-        tmp<scalarField>& sigmaNbr,
-        tmp<scalarField>& sigmaEPotNbr
+        tmp<scalarField>& sigmaByDelta,
+        tmp<scalarField>& sigmaEPotByDelta
     ) const;
 
-    //- Add field to result which may have not been previously set
-    void add
+    //- Get gradient values from patch
+    virtual void getGradientValues
+    (
+        tmp<scalarField>& gradEPot
+    ) const;
+
+    //- Assign field to result which may have not been previously set
+    void assign
     (
         tmp<scalarField>& result,
         const tmp<scalarField>& field
@@ -150,8 +162,11 @@ public:
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
 
-        //- Return the field from the object registry
-        virtual const scalarField& getNbr() const;
+    // Friend class
+    //- Allow coupledCurrentDensityFvPatchVectorField to access private data
+    //- and member functions to update current density from electric potential
+    friend class coupledCurrentDensityFvPatchVectorField;
+
 };
 
 
