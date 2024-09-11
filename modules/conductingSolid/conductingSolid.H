@@ -86,6 +86,9 @@ public:
         //non-const Temperature access for initialization purposes
         volScalarField& getTemperature();
 
+        //- Correct the momentum and thermophysical transport modelling
+        virtual void postCorrector();
+
         //- Solve electromagnetic system
         virtual void solveElectromagnetics() override;
 

@@ -32,7 +32,7 @@ License
 
 // * * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * //
 
-/*void Foam::coupledCurrentDensityFvPatchVectorField::getValues
+void Foam::coupledCurrentDensityFvPatchVectorField::getValues
 (
     tmp<scalarField>& sigma
 ) const
@@ -42,41 +42,22 @@ License
        .lookupType<electromagneticModel>();
 
     sigma = em.sigma(patch().index());
-}*/
+}
 
 void Foam::coupledCurrentDensityFvPatchVectorField::initCoupledPotential()
 {
-    //Allow for single initialization
-    if (!coupled_)
-    {
-        word Jname_ = internalField().name();
-        const word Jname("deltaJ");
-        if ( Jname_ != Jname &&
-            Jname_.size() >= Jname.size())
-        {
-            ePotName_ = "PotE" + Jname_.substr(Jname_.size() - Jname.size());
-        }
-        else
-        {
-            ePotName_ = "PotE";
-        }
-            coupled_ = true;
-    }
+    coupled_ = true;
 }
 
-void Foam::coupledCurrentDensityFvPatchVectorField::getJfromPotential
-(
-    const coupledElectricPotentialFvPatchScalarField& psf,
-    tmp<scalarField>& sigmaGradPotE
-) const
+Foam::word Foam::coupledCurrentDensityFvPatchVectorField::suffix() const
 {
-    const electromagneticModel& em =
-        psf.patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    tmp<scalarField> gradPotE;
-    psf.getGradientValues(gradPotE);
-    sigmaGradPotE = em.sigma(psf.patch().index())* gradPotE();
+    const word Jname = internalField().name();
+    if ( Jname != Jname_ &&
+        Jname.size() >= Jname_.size())
+    {
+        return Jname.substr(Jname_.size());
+    }
+    return "";
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -167,34 +148,34 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
     UPstream::msgType() = oldTag + 1;
     // Since we're inside initEvaluate/evaluate there might be processor
     // comms underway. Change the tag we use.
-
-    const fvPatchScalarField& ePotPatch =
-        patch().lookupPatchField<volScalarField, scalar>(ePotName_);
-
-    if (!isA<coupledElectricPotentialFvPatchScalarField>(ePotPatch))
-    {
-        FatalErrorInFunction
-            << "Patch field for " << internalField().name() << " on "
-            << this->patch().name() << " is of type "
-            << coupledCurrentDensityFvPatchVectorField::typeName
-            << endl << "The patch field " << ePotName_
-            << " on " << this->patch().name() << " is required to be "
-            << coupledElectricPotentialFvPatchScalarField::typeName
-            << ", but is currently of type " << ePotPatch.type()
-            << exit(FatalError);
-    }
-
-    const coupledElectricPotentialFvPatchScalarField& coupledPotential =
-        refCast<const coupledElectricPotentialFvPatchScalarField>(ePotPatch);
-
     // Get patch values
-    //tmp<scalarField> sigma;
-    //getValues(sigma);
-    tmp<scalarField> normalJ;
-    getJfromPotential(coupledPotential,normalJ);
+    tmp<scalarField> sigma;
+    getValues(sigma);
 
-    this->refValue() = normalJ() * patch().nf();
-    //(patchInternalField() & patch().nf())* patch().nf();//assign nearest normal component
+    // Get coupled electric potential patch field from this patch
+    const fvPatchScalarField& ePotp =
+        patch().lookupPatchField<volScalarField, scalar>(ePotName_ + suffix());
+
+    tmp<scalarField> ePotPatch;
+    tmp<scalarField> ePotInternal;
+    ePotPatch = ePotp;//Returns patch value
+    ePotInternal = ePotp.patchInternalField();//Returns nearest internal field value
+
+    // Get velocity contribution field from this patch
+    const fvPatchVectorField& deltaUxBp =
+        patch().lookupPatchField<volVectorField, vector>(UxBname_+suffix());
+
+    tmp<scalarField> deltaUxB;
+    deltaUxB = deltaUxBp.patchInternalField() & patch().nf();
+
+    this->refValue() =
+        (
+        -(ePotPatch() - ePotInternal()) * patch().deltaCoeffs()//Potential gradient
+        +
+        deltaUxB()
+        ) * sigma() * patch().nf();
+
+    //this->refValue() = patchInternalField();//assign nearest value
 
     directionMixedFvPatchVectorField::updateCoeffs();
 

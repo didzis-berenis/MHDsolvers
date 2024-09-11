@@ -123,27 +123,31 @@ void Foam::solvers::conductingFluid::postCorrector()
     {
         thermophysicalTransport->correct();
     }
+    if (electro.correctElectromagnetics())
+    {
+        //Correct current density
+        electro_.correct();
+    }
 }
 
 
 void Foam::solvers::conductingFluid::solveElectromagnetics()
 {
-    if (electro.correctElectromagnetics())
-    {
-        // Update deltaU
-        volVectorField deltaU = U_ - U_old_;
-        electro_.updateDeltaU(deltaU);
-        //Correct current density
-        electro_.correct();
-        //Store old velocity for next update
-        storeU();
-    }
+    //Solve potential equation
+    electro_.solve();
 }
 
 
 void Foam::solvers::conductingFluid::storeU()
 {
     U_old_ = U_;
+    /*volVectorField::Boundary& U_oldBf = U_old_.boundaryFieldRef();
+    const volVectorField::Boundary& UBf = U_.boundaryField();
+    forAll(U_oldBf, patchi)
+    {
+        fvPatchVectorField& pU_old = U_oldBf[patchi];
+        pU_old = UBf[patchi];
+    }*/
 }
 
 //non-const access for initialization purposes

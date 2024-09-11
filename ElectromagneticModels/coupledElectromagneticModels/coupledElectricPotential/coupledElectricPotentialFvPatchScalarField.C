@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "coupledElectricPotentialFvPatchScalarField.H"
+//#include "coupledCurrentDensityFvPatchVectorField.H"
 #include "electromagneticModel.H"
 #include "volFields.H"
 #include "fvPatchFieldMapper.H"
@@ -34,16 +35,18 @@ License
 
 void Foam::coupledElectricPotentialFvPatchScalarField::getValues
 (
+    tmp<scalarField>& sigma,
     tmp<scalarField>& sigmaByDelta,
-    tmp<scalarField>& sigmaEPotByDelta
+    tmp<scalarField>& EPot
 ) const
 {
     const electromagneticModel& em =
         patch().boundaryMesh().mesh()
        .lookupType<electromagneticModel>();
 
-    sigmaByDelta = em.sigma(patch().index())*patch().deltaCoeffs();
-    sigmaEPotByDelta = sigmaByDelta()*patchInternalField();
+    sigma = em.sigma(patch().index());
+    sigmaByDelta = sigma()*patch().deltaCoeffs();
+    EPot = patchInternalField();
 }
 
 void Foam::coupledElectricPotentialFvPatchScalarField::getGradientValues
@@ -65,7 +68,7 @@ void Foam::coupledElectricPotentialFvPatchScalarField::assign
     {
         result.clear();
     }
-    
+
     if (field.isTmp())
     {
         result = field;
@@ -74,6 +77,17 @@ void Foam::coupledElectricPotentialFvPatchScalarField::assign
     {
         result = field().clone();
     }
+}
+
+Foam::word Foam::coupledElectricPotentialFvPatchScalarField::suffix() const
+{
+    const word ePotName = internalField().name();
+    if ( ePotName != ePotName_ &&
+        ePotName.size() >= ePotName_.size())
+    {
+        return ePotName.substr(ePotName_.size());
+    }
+    return "";
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -86,8 +100,7 @@ coupledElectricPotentialFvPatchScalarField
     const dictionary& dict
 )
 :
-    mixedFvPatchScalarField(p, iF, dict, false),
-    ePotName_(iF.name())
+    mixedFvPatchScalarField(p, iF, dict, false)
 {
    mappedPatchBase::validateMapForField
     (
@@ -125,8 +138,7 @@ coupledElectricPotentialFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    mixedFvPatchScalarField(psf, p, iF, mapper),
-    ePotName_(psf.ePotName_)
+    mixedFvPatchScalarField(psf, p, iF, mapper)
 {}
 
 
@@ -137,8 +149,7 @@ coupledElectricPotentialFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mixedFvPatchScalarField(psf, iF),
-    ePotName_(psf.ePotName_)
+    mixedFvPatchScalarField(psf, iF)
 {}
 
 
@@ -146,6 +157,7 @@ coupledElectricPotentialFvPatchScalarField
 
 void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 {
+    //See Foam::mixedFvPatchField<Type>::evaluate for details
     if (updated())
     {
         return;
@@ -162,7 +174,7 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
         refCast<const fvMesh>(mpp.nbrMesh()).boundary()[patchiNbr];
 
     const fvPatchScalarField& ePotpNbr =
-        patchNbr.lookupPatchField<volScalarField, scalar>(ePotName_);
+        patchNbr.lookupPatchField<volScalarField, scalar>(ePotName_+suffix());
 
     if (!isA<coupledElectricPotentialFvPatchScalarField>(ePotpNbr))
     {
@@ -178,39 +190,54 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
-    tmp<scalarField> sigmaByDelta;
-    tmp<scalarField> sigmaEPotByDelta;
-    tmp<scalarField> gradEPot;
     // Get patch values
-    getValues(sigmaByDelta, sigmaEPotByDelta);
-    //getGradientValues(gradEPot);
+    tmp<scalarField> sigma;
+    tmp<scalarField> sigmaByDelta;
+    tmp<scalarField> EPot;
+    getValues(sigma, sigmaByDelta, EPot);
+
+    // Get patch values from deltaUxB field
+    tmp<scalarField> deltaUxB;
+    const fvPatchVectorField& deltaUxBp =
+        patch().lookupPatchField<volVectorField, vector>(UxBname_+suffix());
+    deltaUxB = deltaUxBp.patchInternalField() & patch().nf();
+
     // Get neighbour contributions
+    tmp<scalarField> sigmaNbr;
     tmp<scalarField> sigmaByDeltaNbr;
-    tmp<scalarField> sigmaEPotByDeltaNbr;
-    //tmp<scalarField> gradEPotNbr;
+    tmp<scalarField> EPotNbr;
     {
+        tmp<scalarField> sigmaNbrPatch;
         tmp<scalarField> sigmaByDeltaNbrPatch;
-        tmp<scalarField> sigmaEPotByDeltaNbrPatch;
-        coupledPotentialNbr.getValues(sigmaByDeltaNbrPatch, sigmaEPotByDeltaNbrPatch);
+        tmp<scalarField> EPotNbrPatch;
+        coupledPotentialNbr.getValues(sigmaNbrPatch,sigmaByDeltaNbrPatch, EPotNbrPatch);
+        assign(sigmaNbr, mpp.fromNeighbour(sigmaNbrPatch));
         assign(sigmaByDeltaNbr, mpp.fromNeighbour(sigmaByDeltaNbrPatch));
-        assign(sigmaEPotByDeltaNbr, mpp.fromNeighbour(sigmaEPotByDeltaNbrPatch));
-
-        //tmp<scalarField> gradEPotNbrPatch;
-        //coupledPotentialNbr.getGradientValues(gradEPotNbrPatch);
-        //assign(gradEPotNbr, mpp.fromNeighbour(gradEPotNbrPatch));
+        assign(EPotNbr, mpp.fromNeighbour(EPotNbrPatch));
     }
-    //See Foam::mixedFvPatchField<Type>::evaluate for details
 
-    this->valueFraction() = 1;//Fixed value
+    // Get neighbour contributions from deltaUxB field
+    tmp<scalarField> deltaUxBNbr;
+    const fvPatchVectorField& deltaUxBpNbr =
+        patchNbr.lookupPatchField<volVectorField, vector>(UxBname_+suffix());
+    {
+        tmp<scalarField> deltaUxBNbrPatch;
+        deltaUxBNbrPatch =
+        deltaUxBpNbr.patchInternalField()
+        &
+        ( -deltaUxBpNbr.patch().nf() );//this->patch().nf() == -nbr.patch().nf()
+        assign(deltaUxBNbr, mpp.fromNeighbour(deltaUxBNbrPatch));
+    }
+    this->valueFraction() = 1;//sigma()/(sigma()+sigmaNbr());//0.5;//Fixed value
 
     this->refValue() =
     //sigma_nbr*ePot_nbr/delta_nbr + sigma*ePot/delta
-    (sigmaEPotByDeltaNbr()+sigmaEPotByDelta())
+    (sigmaByDeltaNbr()*EPotNbr()+sigmaByDelta()*EPot()+sigma()*deltaUxB()+sigmaNbr()*deltaUxBNbr()
+    + SMALL*EPotNbr()//For the case of zero sigma in both regions
+    )
     /
     //sigma_nbr/delta_nbr + sigma/delta
-    (sigmaByDeltaNbr()+sigmaByDelta());
-
-    //this->refGrad() = -gradEPotNbr();
+    (sigmaByDeltaNbr()+sigmaByDelta()+SMALL);
 
     mixedFvPatchScalarField::updateCoeffs();
 

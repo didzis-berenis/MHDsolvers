@@ -64,11 +64,6 @@ void Foam::electroBase::electromagneticPredictor()
     electroPtr_->predict();
 }
 
-void Foam::electroBase::setCorrectElectromagnetics()
-{
-    electroPtr_->setCorrectElectromagnetics();
-}
-
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 {
     return electroPtr_->J(imaginary);

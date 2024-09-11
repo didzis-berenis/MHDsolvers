@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
 
     // Create the outer PIMPLE loop and control structure
     pimpleMultiRegionControl pimple(runTime, solvers);
+    // Set the potential correctors
+    solvers.setPotentialCorrectors(pimple.dict());
     
     // Set the initial time-step
     setDeltaT(runTime, solvers);
@@ -140,7 +142,6 @@ int main(int argc, char *argv[])
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
-
         // Multi-region PIMPLE corrector loop
         while (pimple.loop())
         {
@@ -177,6 +178,15 @@ int main(int argc, char *argv[])
                 solvers[i].pressureCorrector();
             }
 
+            // Update electromagnetics by calculating electric potential.
+            while (solvers.correctElectroPotential())
+            {
+                forAll(regionNames, i)
+                {
+                    solvers.solveElectromagnetics(regionNames[i]);
+                }
+            }
+
             forAll(solvers, i)
             {
                 solvers[i].postCorrector();
@@ -194,37 +204,6 @@ int main(int argc, char *argv[])
             {
                 alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
             }
-        }
-
-        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        // Update electromagnetics with Elmer if magnetic field is
-        // significantly disturbed and needs to be updated.
-        // Otherwise, update electromagnetics locally by calculating electric potential.
-        bool doElmer = solvers.updateMagneticField();
-
-        // Calculate electric potential if current density will not be updated
-        if (!doElmer)
-        {
-            solvers.setCorrectElectromagnetics();
-        }
-
-        forAll(regionNames, i)
-        {
-            solvers.solveElectromagnetics(regionNames[i]);
-            const volVectorField& JxBRegion = solvers.getElectro(regionNames[i]).JxB;
-            solvers.vectorFieldToGlobal(
-                JxBGlobal,
-                JxBRegion,
-                regionNames[i]
-            );
-            const volScalarField& JJsigmaRegion = solvers.getElectro(regionNames[i]).JJsigma;
-            solvers.scalarFieldToGlobal(
-                JJsigmaGlobal,
-                JJsigmaRegion,
-                regionNames[i]
-            );
         }
 
         solvers.setGlobalPrefix();
@@ -257,10 +236,11 @@ int main(int argc, char *argv[])
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        // Update electromagnetic stuff with Elmer
-
-        if(doElmer && runTime.run())
+        // Check whether we need to update electromagnetic stuff with Elmer
+        if(solvers.updateMagneticField() && runTime.run())
         {
+            // Update electromagnetics with Elmer if magnetic field is
+            // significantly disturbed and needs to be updated.
             #include "runElmerUpdate.H"
         }
         elmerClock = runTime.clockTimeIncrement();

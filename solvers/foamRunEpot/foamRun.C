@@ -139,6 +139,8 @@ int main(int argc, char *argv[])
             solver.momentumPredictor();
             solver.thermophysicalPredictor();
             solver.pressureCorrector();
+            // Update electromagnetics by calculating electric potential.
+            regionSolver.solveElectromagnetics();
             solver.postCorrector();
         }
 
@@ -148,25 +150,6 @@ int main(int argc, char *argv[])
         {
 		    alpha1 = mesh().lookupObject<volScalarField>(solverSolidificationName);
         }
-
-        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        // Check whether we need to update electromagnetic stuff with Elmer
-        // Update electromagnetics with Elmer if magnetic field is
-        // significantly disturbed and needs to be updated.
-        // Otherwise, update electromagnetics locally by calculating electric potential.
-        bool doElmer = regionSolver.updateMagneticField();
-
-        // Calculate electric potential if current density will not be updated
-        if (!doElmer)
-        {
-            regionSolver.setCorrectElectromagnetics();
-        }
-        regionSolver.solveElectromagnetics();
-        const volVectorField& JxBRegion = regionSolver.getElectro().JxB;
-        JxB = JxBRegion;
-        const volScalarField& JJsigmaRegion = regionSolver.getElectro().JJsigma;
-        JJsigma = JJsigmaRegion;
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
         // Write last time step even if not write time
@@ -194,10 +177,11 @@ int main(int argc, char *argv[])
 			
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-        // Update electromagnetic stuff with Elmer
-
-        if(doElmer && runTime.run())
+        // Check whether we need to update electromagnetic stuff with Elmer
+        if(regionSolver.updateMagneticField() && runTime.run())
         {
+            // Update electromagnetics with Elmer if magnetic field is
+            // significantly disturbed and needs to be updated.
             #include "runElmerUpdate.H"
         }
         elmerClock = runTime.clockTimeIncrement();

@@ -54,6 +54,9 @@ void Foam::solvers::incompressibleConductingFluid::momentumPredictor()
 
         fvConstraints().constrain(U);
     }
+    // Update deltaU for electromagnetic model
+    volVectorField deltaU = U_ - U_old_;
+    electro_.updateDeltaU(deltaU);
 }
 
 

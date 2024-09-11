@@ -43,7 +43,7 @@ SourceFiles
 #define coupledCurrentDensityFvPatchVectorField_H
 
 #include "directionMixedFvPatchFields.H"
-#include "coupledElectricPotentialFvPatchScalarField.H"
+//#include "coupledElectricPotentialFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,8 +60,14 @@ class coupledCurrentDensityFvPatchVectorField
 {
     // Private Data
 
-        //- Name of field on the neighbour region
-        word ePotName_ = word::null;
+        //- Default name of field on this region
+        const word Jname_ = "deltaJ";
+
+        //- Default name of electric potential
+        const word ePotName_ = "PotE";
+
+        //- Default name of velocity contribution
+        const word UxBname_ = "deltaUxB";
 
         //- Coupled flag
         bool coupled_ = false;
@@ -70,17 +76,12 @@ class coupledCurrentDensityFvPatchVectorField
 protected:
 
     //- Get the patch sigma
-    /*virtual void getValues
+    virtual void getValues
     (
         tmp<scalarField>& sigma
-    ) const;*/
-
-    //- Get current density from electric potential
-    void getJfromPotential
-    (
-        const coupledElectricPotentialFvPatchScalarField& psf,
-        tmp<scalarField>& sigmaGradPotE
     ) const;
+
+    word suffix() const;
 
 public:
 

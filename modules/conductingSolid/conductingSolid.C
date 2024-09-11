@@ -85,6 +85,18 @@ Foam::solvers::conductingSolid::~conductingSolid()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
+void Foam::solvers::conductingSolid::postCorrector()
+{
+    if (pimple.correctTransport())
+    {
+        thermophysicalTransport->correct();
+    }
+    if (electro.correctElectromagnetics())
+    {
+        //Correct current density
+        electro_.correct();
+    }
+}
 //non-const access for initialization purposes
 Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()
 {   
@@ -93,10 +105,7 @@ Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()
 
 void Foam::solvers::conductingSolid::solveElectromagnetics()
 {
-    if (electro.correctElectromagnetics())
-    {
-        electro_.correct();
-    }
+    electro_.solve();
 }
 
 // ************************************************************************* //

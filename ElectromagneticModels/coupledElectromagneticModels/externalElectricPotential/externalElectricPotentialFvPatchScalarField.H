@@ -106,7 +106,7 @@ namespace Foam
 
 //NOT tested!!! Based on externalTemperatureFvPatchScalarField.H
 //Reserved for fluid or solid regions with external potentials attached to them.
-//TODO: test and finish implementation, when needed.
+//TODO: test and finish implementation, as/when needed.
 class externalElectricPotentialFvPatchScalarField
 :
     public mixedFvPatchScalarField

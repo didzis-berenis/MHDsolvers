@@ -13,34 +13,6 @@ volVectorField UGlobal
     meshGlobal,
     dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
-Info<< "Initializing field JJsigmaGlobal\n" << endl;
-volScalarField JJsigmaGlobal
-(
-    IOobject
-    (
-        "JJsigma",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
-);
-Info<< "Initializing field JxBGlobal\n" << endl;
-volVectorField JxBGlobal
-(
-    IOobject
-    (
-        "JxB",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
-);
 
 volVectorField JreGlobal
 (
@@ -94,19 +66,6 @@ volVectorField BimGlobal
     meshGlobal,
     dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
 );
-volScalarField sigmaGlobalInv
-(
-    IOobject
-    (
-        "sigmaInv",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
-);
 
 //Region fields
 PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
@@ -121,7 +80,8 @@ List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WR
 //Initialize field names and paths
 List<List<Pair<word>>> regionPaths(regionNames.size());
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds",//};
-"sigmaInv","sigma","deltaU","deltaJ", "PotE","deltaJre", "PotEre","deltaJim", "PotEim",};//
+//uncomment for debugging (See also ElectromagneticModels/electromagneticModels/electromagneticModel.H)
+"sigmaInv","sigma","deltaU","deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",};
 
 forAll(regionNames, i)
 {
@@ -182,11 +142,4 @@ forAll(regionNames, i)
     {
         alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
     }
-    //Get inverse of sigma field
-    const volScalarField& sigmaInvRegion = solvers.getElectro(regionNames[i]).sigmaInv();
-    solvers.scalarFieldToGlobal(
-        sigmaGlobalInv,
-        sigmaInvRegion,
-        regionNames[i]
-    );
 }

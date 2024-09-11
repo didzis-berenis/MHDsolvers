@@ -31,30 +31,6 @@ if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(BimGlobal);
 }
-/*
-//Update sigmaInv if sigma is not constant
-forAll(regionNames, i)
-{
-    const volScalarField& sigmaInvRegion = solvers.getElectro(regionNames[i]).sigmaInv();
-    solvers.scalarFieldToGlobal(
-        sigmaGlobalInv,
-        sigmaInvRegion,
-        regionNames[i]
-    );
-}
-*/
-
-//Lorentz force term
-if (solvers.isElectroHarmonic())
-{
-    JxBGlobal =  0.5*((JreGlobal ^ BreGlobal)+(JimGlobal^ BimGlobal));
-    JJsigmaGlobal =  0.5*((JreGlobal & JreGlobal)+(JimGlobal & JimGlobal))*sigmaGlobalInv;
-}
-else
-{
-    JxBGlobal = (JreGlobal ^ BreGlobal);
-    JJsigmaGlobal = (JreGlobal & JreGlobal)*sigmaGlobalInv;
-}
 //convert global field to regions
 solvers.setJ(JreGlobal);
 solvers.setB(BreGlobal);

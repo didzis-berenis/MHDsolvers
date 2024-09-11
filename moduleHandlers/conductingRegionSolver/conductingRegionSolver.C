@@ -346,14 +346,6 @@ bool Foam::conductingRegionSolver::isSolid()
     return name_ == solidSolverName_;
 }
 
-void Foam::conductingRegionSolver::setCorrectElectromagnetics()
-{
-    if (getElectroBasePtr_())
-    {
-        getElectroBasePtr_()->setCorrectElectromagnetics();
-    }
-}
-
 bool Foam::conductingRegionSolver::isElectroHarmonic()
 {
     if (isFluid() || isSolid() || isIncompressibleFluid())

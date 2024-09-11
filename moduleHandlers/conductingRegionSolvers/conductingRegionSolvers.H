@@ -123,6 +123,9 @@ class conductingRegionSolvers
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
 
+        //- Number of potential corrections
+        int nPotEcorr_ = 3;//Optimal value for minimizing error and avoiding too many PIMPLE iterations
+        int PotEcorr_ = 0;
         //- Get pointer electroBase class from region
         electroBase* getElectroBasePtr_(const word regionName);
 
@@ -165,7 +168,6 @@ public:
 
 
     // Member Functions
-
         //- Return the number of region solvers
         inline label size() const;
 
@@ -217,14 +219,17 @@ public:
         //- Check if magnetic field needs updating
         bool updateMagneticField();
 
-        //- Set correctElectromagnetics switch to true for all conducting regions
-        void setCorrectElectromagnetics();
-
         //- solve electromagnetics for region
         void solveElectromagnetics(const word regionName);
 
         //- Update electromagnetic system without solving
         void electromagneticPredictor(const word regionName);
+
+        //- Set number of potential correctors
+        void setPotentialCorrectors(const dictionary& dict);
+
+        //- Check if potential corrector is needed
+        bool correctElectroPotential();
 
         //- Initialize temperature gradient
         void calcTemperatureGradient(const word regionName);

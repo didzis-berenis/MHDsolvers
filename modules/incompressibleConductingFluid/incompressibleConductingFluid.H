@@ -100,6 +100,9 @@ public:
         // update transport properties
         virtual void momentumPredictor();
 
+        //- Correct the momentum and electromagnetic modelling
+        virtual void postCorrector();
+
         //- Solve electromagnetic modelling
         virtual void solveElectromagnetics();
 

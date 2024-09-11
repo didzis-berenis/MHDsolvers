@@ -416,16 +416,22 @@ bool Foam::conductingRegionSolvers::isSolid(const word regionName)
     return names_[regionIdx_[regionName]].second() == solidSolverName_;
 }
 
-void Foam::conductingRegionSolvers::setCorrectElectromagnetics()
+void Foam::conductingRegionSolvers::setPotentialCorrectors(const dictionary& dict)
 {
-    forAll(names_, i)
+    nPotEcorr_ = dict.lookupOrDefault<label>("nPotECorrectors", nPotEcorr_);
+}
+
+bool Foam::conductingRegionSolvers::correctElectroPotential()
+{
+    if (PotEcorr_ >= nPotEcorr_)
     {
-        const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName))
-        {
-            getElectroBasePtr_(regionName)->setCorrectElectromagnetics();
-        }
+        PotEcorr_ = 0;
+        return false;
     }
+
+    PotEcorr_++;
+
+    return true;
 }
 
 bool Foam::conductingRegionSolvers::isElectroHarmonic()

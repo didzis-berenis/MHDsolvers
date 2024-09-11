@@ -217,6 +217,9 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
         valueFraction() = sigma/(sigma + SMALL);
         //refGrad() = 0;
     //}
+    /*********************************************************
+    Could introduce resistive layers here analogous to kappaLayers.
+    *********************************************************/
 /*
     else
     {

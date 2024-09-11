@@ -95,7 +95,7 @@ protected:
         volScalarField& sigmaInv_;
 
         //- Velocity difference
-        volVectorField& deltaU_;
+        //volVectorField& deltaU_;
 
 
     // Protected Static Member Functions
@@ -126,7 +126,7 @@ protected:
             const char* name,
             dimensionedScalar value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -137,7 +137,7 @@ protected:
             const char* name,
             dimensionedVector value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
         );
 
         //- Lookup the named field, or construct it as a copy of the given field
@@ -147,7 +147,7 @@ protected:
             const char* name,
             const volVectorField& field,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE
+            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
         );
 
         //- Construct named field as MUST-READ if it is not found
@@ -232,6 +232,12 @@ public:
         virtual bool correctElectromagnetics() const;
 
         //- calculate and return J correction difference
+        virtual void solve();
+
+        //- calculate and return J correction difference
+        virtual void findPotE(bool imaginary=false);
+
+        //- calculate and return J correction difference
         virtual void findDeltaJ(bool imaginary=false);
 
         //- Inverse Electric conductivity [m/S]
@@ -257,7 +263,7 @@ public:
         //- Update properties
         virtual void correct();
 
-        virtual void updateDeltaU(volVectorField& Udiff);
+        virtual void updateDeltaU(volVectorField& Udiff) = 0;
 
         //Template functions for derived classes
 
@@ -315,6 +321,9 @@ public:
 
         //- Magnetic field [T]
         virtual const volVectorField& B(bool imaginary=false) const = 0;
+
+        //- Magnetic field [T]
+        virtual const volVectorField& deltaUxB(bool imaginary=false) const = 0;
 
         //- Current density correction [A/m^2]
         virtual const volVectorField& deltaJ(bool imaginary=false) const = 0;

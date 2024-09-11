@@ -166,9 +166,6 @@ public:
         // Check if magnetic field needs updating
         bool updateMagneticField();
 
-        //- Set correctElectromagnetics switch to true for all conducting regions
-        void setCorrectElectromagnetics();
-
         //- solve electromagnetics for region
         void solveElectromagnetics();
 

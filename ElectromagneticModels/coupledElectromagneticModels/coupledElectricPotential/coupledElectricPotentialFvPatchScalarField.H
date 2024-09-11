@@ -79,8 +79,14 @@ class coupledElectricPotentialFvPatchScalarField
 {
     // Private Data
 
-        //- Name of field on the neighbour region
-        const word ePotName_;
+        //- Default name of field on this region
+        const word ePotName_ = "PotE";
+
+        //- Default name of current density field
+        const word Jname_ = "deltaJ";
+
+        //- Default name of velocity contribution
+        const word UxBname_ = "deltaUxB";
 
         bool coupled_ = false;
 
@@ -90,8 +96,9 @@ protected:
     //- Get useful values from patch
     virtual void getValues
     (
+        tmp<scalarField>& sigma,
         tmp<scalarField>& sigmaByDelta,
-        tmp<scalarField>& sigmaEPotByDelta
+        tmp<scalarField>& EPot
     ) const;
 
     //- Get gradient values from patch
@@ -107,6 +114,7 @@ protected:
         const tmp<scalarField>& field
     ) const;
 
+    word suffix() const;
 
 public:
 
@@ -165,7 +173,7 @@ public:
     // Friend class
     //- Allow coupledCurrentDensityFvPatchVectorField to access private data
     //- and member functions to update current density from electric potential
-    friend class coupledCurrentDensityFvPatchVectorField;
+    //friend class coupledCurrentDensityFvPatchVectorField;
 
 };
 

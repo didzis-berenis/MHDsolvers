@@ -25,7 +25,7 @@ if (regionSolver.isElectroHarmonic())
 //const volScalarField& sigmaInv = regionSolver.getElectro().sigmaInv();
 
 //Lorentz force term
-if (regionSolver.isElectroHarmonic())
+/*if (regionSolver.isElectroHarmonic())
 {
     JxB =  0.5*((Jre ^ Bre)+(Jim ^ Bim));
     JJsigma =  0.5*((Jre & Jre)+(Jim & Jim))*sigmaInv;
@@ -34,7 +34,7 @@ else
 {
     JxB = (Jre ^ Bre);
     JJsigma = (Jre & Jre)*sigmaInv;
-}
+}*/
 //update solver fields
 regionSolver.setJ(Jre);
 regionSolver.setB(Bre);

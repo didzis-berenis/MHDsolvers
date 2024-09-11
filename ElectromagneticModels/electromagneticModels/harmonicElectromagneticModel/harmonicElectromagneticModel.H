@@ -66,6 +66,12 @@ class harmonicElectromagneticModel
         //imaginary
         volVectorField& deltaJim_;
 
+    //- Velocity contribution [T*m/s]
+        //real
+        volVectorField& deltaUxBre_;
+        //imaginary
+        volVectorField& deltaUxBim_;
+
     //- Current density [A/m^2]
         //- real
         //const char* JreName_ = "Jre";
@@ -122,6 +128,9 @@ public:
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) override;
 
+        //- Update velocity contribution
+        virtual void updateDeltaU(volVectorField& Udiff) override;
+
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) override;
 
@@ -138,6 +147,9 @@ public:
 
         //- Magnetic field [T]
         const virtual volVectorField& B(bool imaginary=false) const override;
+
+        //- Velocity contribution [T*m/s]
+        const virtual volVectorField& deltaUxB(bool imaginary=false) const override;
 
         //- Current density correction [A/m^2]
         const virtual volVectorField& deltaJ(bool imaginary=false) const override;

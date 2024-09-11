@@ -66,6 +66,24 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
             "deltaJim",
             lookupOrConstructVector(mesh, "Jim")
         )
+    ),
+    deltaUxBre_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaUxBre",
+            lookupOrConstructVector(mesh, "Bre")*dimensionedScalar(dimVelocity,0)
+        )
+    ),
+    deltaUxBim_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaUxBim",
+            lookupOrConstructVector(mesh, "Bim")*dimensionedScalar(dimVelocity,0)
+        )
     )
 {}
 
@@ -112,6 +130,17 @@ const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const
 {
     return imaginary ? Bim_ : Bre_;
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaUxB(bool imaginary) const
+{
+    return imaginary ? deltaUxBim_ : deltaUxBre_;
+}
+
+void Foam::harmonicElectromagneticModel::updateDeltaU(volVectorField& Udiff)
+{
+    deltaUxBre_ = Udiff ^ Bre_;
+    deltaUxBim_ = Udiff ^ Bim_;
 }
 
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary) const

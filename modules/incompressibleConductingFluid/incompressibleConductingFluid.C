@@ -116,20 +116,21 @@ Foam::solvers::incompressibleConductingFluid::~incompressibleConductingFluid()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
+void Foam::solvers::incompressibleConductingFluid::postCorrector()
 {
+    incompressibleFluid::postCorrector();
     if (electro.correctElectromagnetics())
     {
-        // Update deltaU
-        volVectorField deltaU = U_ - U_old_;
-        electro_.updateDeltaU(deltaU);
         //Correct current density
         electro_.correct();
-        //Store old velocity for next update
-        U_old_ = U_;
     }
 }
 
+void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
+{
+    //Solve potential equation
+    electro_.solve();
+}
 
 void Foam::solvers::incompressibleConductingFluid::storeU()
 {

@@ -53,6 +53,15 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
             "deltaJ",
             lookupOrConstructVector(mesh, "J")
         )
+    ),
+    deltaUxBre_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "deltaUxBre",
+            lookupOrConstructVector(mesh, "Bre")*dimensionedScalar(dimVelocity,0)
+        )
     )
 {}
 
@@ -99,6 +108,16 @@ const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginar
 const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
 {
     return Bre_;
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::deltaUxB(bool imaginary) const
+{
+    return deltaUxBre_;
+}
+
+void Foam::transientElectromagneticModel::updateDeltaU(volVectorField& Udiff)
+{
+    deltaUxBre_ = Udiff ^ Bre_;
 }
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::deltaJ(bool imaginary) const

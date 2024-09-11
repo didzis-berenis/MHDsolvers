@@ -90,9 +90,6 @@ public:
         //- Update electromagnetic system without solving
         virtual void electromagneticPredictor();
 
-        //- Set correctElectromagnetics switch to true
-        virtual void setCorrectElectromagnetics();
-
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
 

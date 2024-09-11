@@ -66,6 +66,9 @@ class transientElectromagneticModel
     //- Magnetic field [T]
     volVectorField& Bre_;
 
+    //- Velocity contribution [T*m/s]
+    volVectorField& deltaUxBre_;
+
     //- isComplex_ switch for solvers
     // false for transient models
     const bool isComplex_ = false;
@@ -105,6 +108,9 @@ public:
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) override;
 
+        //- Update velocity contribution
+        virtual void updateDeltaU(volVectorField& Udiff) override;
+
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) override;
 
@@ -121,6 +127,9 @@ public:
 
         //- Magnetic field [T]
         const virtual volVectorField& B(bool imaginary=false) const override;
+
+        //- Velocity contribution [T*m/s]
+        const virtual volVectorField& deltaUxB(bool imaginary=false) const override;
 
         //- Current density correction [A/m^2]
         const virtual volVectorField& deltaJ(bool imaginary=false) const override;

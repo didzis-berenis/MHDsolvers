@@ -336,7 +336,7 @@ Foam::electromagneticModel::electromagneticModel
             0
         )
     ),
-    deltaU_
+    /*deltaU_
     (
         lookupOrConstructVector
         (
@@ -344,7 +344,7 @@ Foam::electromagneticModel::electromagneticModel
             "deltaU",
             dimensionedVector(dimVelocity,Foam::vector(0,0,0))
         )
-    ),
+    ),*/
     sigmaInv_
     (
         lookupOrConstructScalar
@@ -364,16 +364,55 @@ Foam::electromagneticModel::electromagneticModel
     forAll(sigma_, cellI)
     {
         sigmaInv_[cellI] = 
-        sigma_[cellI] == 0 ? 
+        sigma_[cellI] == 0 ? //Perhaps better to use "< SMALL" instead of "== 0"
         0 : 1/sigma_[cellI];
     }
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::electromagneticModel::updateDeltaU(volVectorField& Udiff)
+/*void Foam::electromagneticModel::updateDeltaU(volVectorField& Udiff)
 {
     deltaU_ = Udiff;
+}*/
+
+void Foam::electromagneticModel::solve()
+{
+    findPotE();
+    if (isComplex())
+    {
+        findPotE(true);
+    }
+    setCorrectElectromagnetics();
+}
+void Foam::electromagneticModel::findPotE(bool imaginary)
+{
+    /*---------------------------------------------------------------------------
+    Correction to update electrical currents is based on the epotFoam solver,
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    ---------------------------------------------------------------------------*/
+    //Interpolating cross product u x B over mesh faces
+    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
+    //Get reference for modification
+    volScalarField& PotE = this->PotE(imaginary);
+    //Sigma field
+    //volScalarField sigma_field(sigma_);
+    //Poisson equation for electric potential
+    fvScalarMatrix PotEEqn
+    (
+        fvm::laplacian(sigma_,PotE)
+        ==
+        sigma_*fvc::div(psiUB)
+    );
+    //const Foam::dictionary& PotEDict = PotE.mesh().solution().solverDict(PotE.internalField().name());
+    //int nPotEcorr_ = PotEDict.lookupOrDefault<int>("nOuterCorrectors", 1);
+    //Pout << "nOuterCorrectors: " << nPotEcorr_ << endl;
+    //Implement outer corrections if necessary
+    //int nPotEcorr_ = 100;
+    //for (int corrI = 0; corrI <= nPotEcorr_; corrI++){
+    //Solving Poisson equation
+    PotEEqn.solve();
+    //}
 }
 
 void Foam::electromagneticModel::findDeltaJ(bool imaginary)
@@ -385,29 +424,14 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Get deltaJ reference (boundary conditions should come from J)
     volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(deltaU_ ^ B(imaginary)) & mesh_.Sf();
-    //Get reference for modification
-    volScalarField& PotE = this->PotE(imaginary);
-    //Sigma field
-    volScalarField sigma_field(sigma_);
-
-    //Poisson equation for electric potential
-    fvScalarMatrix PotEEqn
-    (
-        fvm::laplacian(sigma_field,PotE)
-        ==
-        sigma_field*fvc::div(psiUB)
-    );
-    //Solving Poisson equation
-    PotEEqn.solve();
-
+    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
     //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(PotE) * mesh_.magSf()) + psiUB;
+    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
     //Interpolation of current density at cell center
-    JUB = sigma_field*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    JUB = sigma_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary conditions
     JUB.correctBoundaryConditions();
 }
@@ -434,7 +458,6 @@ void Foam::electromagneticModel::predict()
 
 void Foam::electromagneticModel::correct()
 {
-
     bool imaginary = isComplex();
     //Get J difference by incorporating deltaU x B term
     findDeltaJ();
