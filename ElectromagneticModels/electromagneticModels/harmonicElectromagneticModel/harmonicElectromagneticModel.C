@@ -153,14 +153,4 @@ bool Foam::harmonicElectromagneticModel::isComplex() const
     return isComplex_;
 }
 
-Foam::word Foam::harmonicElectromagneticModel::getCoupledCurrentName(const word ePotName) const
-{
-    word Jname = "deltaJre";
-    if (ePotName == "PotEim")
-    {
-        Jname = "deltaJim";
-    }
-    return Jname;
-}
-
 // ************************************************************************* //

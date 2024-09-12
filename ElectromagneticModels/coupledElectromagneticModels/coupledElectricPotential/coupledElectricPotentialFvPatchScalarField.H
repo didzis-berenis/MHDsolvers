@@ -32,10 +32,11 @@ Description
     on both sides:
       - refGradient = 0
       - refValue = calculated as patch_value from
-        sigma_1*grad(PotE_1) = sigma_2*grad(PotE_2) where sigma_1 and sigma_2
+        sigma_1*( -grad(PotE_1) + UxB_1 ) = sigma_2*( -grad(PotE_2) + UxB_2 ) where sigma_1 and sigma_2
         are the electric conductivities of the two regions and
-        grad(PotE_1) = (pot_1 - patch_value)/delta_1 and
-        grad(PotE_2) = (patch_value - pot_2)/delta_2
+        grad(PotE_1) = (pot_1 - patch_value)/delta_1,
+        grad(PotE_2) = (patch_value - pot_2)/delta_2 and
+        UxB_1 and UxB_2 are the velocity contributions from the two regions.
       - valueFraction = 1 (fixed value)
 Usage
 
@@ -99,12 +100,6 @@ protected:
         tmp<scalarField>& sigma,
         tmp<scalarField>& sigmaByDelta,
         tmp<scalarField>& EPot
-    ) const;
-
-    //- Get gradient values from patch
-    virtual void getGradientValues
-    (
-        tmp<scalarField>& gradEPot
     ) const;
 
     //- Assign field to result which may have not been previously set

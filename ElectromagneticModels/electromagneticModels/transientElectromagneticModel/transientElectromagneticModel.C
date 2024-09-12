@@ -59,8 +59,8 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
         lookupOrConstructVector
         (
             mesh,
-            "deltaUxBre",
-            lookupOrConstructVector(mesh, "Bre")*dimensionedScalar(dimVelocity,0)
+            "deltaUxB",
+            lookupOrConstructVector(mesh, "B")*dimensionedScalar(dimVelocity,0)
         )
     )
 {}
@@ -128,12 +128,6 @@ const Foam::volVectorField& Foam::transientElectromagneticModel::deltaJ(bool ima
 bool Foam::transientElectromagneticModel::isComplex() const
 {
     return isComplex_;
-}
-
-Foam::word Foam::transientElectromagneticModel::getCoupledCurrentName(const word Jname) const
-{
-    word ePotName = "deltaJ";
-    return ePotName;
 }
 
 // ************************************************************************* //

@@ -24,8 +24,9 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "electromagneticModel.H"
-#include "fvModels.H"
-#include "fvConstraints.H"
+//#include "fvModels.H"
+//#include "fvConstraints.H"
+//#include "findRefCell.H"
 #include "fvmDiv.H"
 #include "fvmLaplacian.H"
 #include "fvcSnGrad.H"
@@ -371,11 +372,6 @@ Foam::electromagneticModel::electromagneticModel
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-/*void Foam::electromagneticModel::updateDeltaU(volVectorField& Udiff)
-{
-    deltaU_ = Udiff;
-}*/
-
 void Foam::electromagneticModel::solve()
 {
     findPotE();
@@ -383,6 +379,7 @@ void Foam::electromagneticModel::solve()
     {
         findPotE(true);
     }
+    //Set as needs correction
     setCorrectElectromagnetics();
 }
 void Foam::electromagneticModel::findPotE(bool imaginary)
@@ -392,11 +389,9 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
     ---------------------------------------------------------------------------*/
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
+    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotE(imaginary);
-    //Sigma field
-    //volScalarField sigma_field(sigma_);
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
@@ -404,15 +399,12 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
         ==
         sigma_*fvc::div(psiUB)
     );
-    //const Foam::dictionary& PotEDict = PotE.mesh().solution().solverDict(PotE.internalField().name());
-    //int nPotEcorr_ = PotEDict.lookupOrDefault<int>("nOuterCorrectors", 1);
-    //Pout << "nOuterCorrectors: " << nPotEcorr_ << endl;
-    //Implement outer corrections if necessary
-    //int nPotEcorr_ = 100;
-    //for (int corrI = 0; corrI <= nPotEcorr_; corrI++){
+    //Will add reference if needed
+    label PotERefCell = 0;
+    scalar PotERefValue = 0;
+    PotEEqn.setReference(PotERefCell, PotERefValue);
     //Solving Poisson equation
     PotEEqn.solve();
-    //}
 }
 
 void Foam::electromagneticModel::findDeltaJ(bool imaginary)
@@ -484,7 +476,7 @@ void Foam::electromagneticModel::correct()
         +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
     )*sigmaInv();
     JJsigma_.correctBoundaryConditions();
-    //mark as corrected
+    // Mark as corrected
     setCorrected();
 }
 

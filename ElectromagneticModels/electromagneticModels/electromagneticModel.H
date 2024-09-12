@@ -66,9 +66,11 @@ class electromagneticModel
         //- Reference to the mesh
         const fvMesh& mesh_;
 
-        // Switch for updating electromagnetics
-
+        //- Switch for updating electromagnetics
         bool correctElectromagnetics_ = false;
+
+        //- Change to AUTO_WRITE for debugging
+        static constexpr writeOption defaultWriteOption_ = IOobject::NO_WRITE;
 
 protected:
 
@@ -93,9 +95,6 @@ protected:
 
         //- Inverse Electric conductivity [m/S]
         volScalarField& sigmaInv_;
-
-        //- Velocity difference
-        //volVectorField& deltaU_;
 
 
     // Protected Static Member Functions
@@ -126,7 +125,7 @@ protected:
             const char* name,
             dimensionedScalar value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
+            writeOption wo = defaultWriteOption_
         );
 
         //- Lookup and the named field, or construct it as MUST-READ if it is
@@ -137,7 +136,7 @@ protected:
             const char* name,
             dimensionedVector value,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
+            writeOption wo = defaultWriteOption_
         );
 
         //- Lookup the named field, or construct it as a copy of the given field
@@ -147,7 +146,7 @@ protected:
             const char* name,
             const volVectorField& field,
             readOption ro = IOobject::NO_READ,
-            writeOption wo = IOobject::AUTO_WRITE//Change to AUTO_WRITE for debugging
+            writeOption wo = defaultWriteOption_
         );
 
         //- Construct named field as MUST-READ if it is not found
@@ -281,8 +280,6 @@ public:
 
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) = 0;
-
-        virtual word getCoupledCurrentName(const word Jname) const = 0;
 
         //Read-only access
 

@@ -105,8 +105,8 @@ void Foam::electroBase::initDeltaJ(bool imaginary)
                 //derived from directionMixedFvPatchVectorField
                 coupledCurrentDensityFvPatchVectorField& cpDeltaJ =
                 refCast<coupledCurrentDensityFvPatchVectorField>(pDeltaJ);
-                //Couple with electric potential
-                cpDeltaJ.initCoupledPotential();
+                //Switch to coupling mode
+                cpDeltaJ.initCoupling();
                 cpDeltaJ.evaluate();
             }
         }

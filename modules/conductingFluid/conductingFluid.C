@@ -141,6 +141,7 @@ void Foam::solvers::conductingFluid::solveElectromagnetics()
 void Foam::solvers::conductingFluid::storeU()
 {
     U_old_ = U_;
+    //Store U_old_ boundary field values if needed
     /*volVectorField::Boundary& U_oldBf = U_old_.boundaryFieldRef();
     const volVectorField::Boundary& UBf = U_.boundaryField();
     forAll(U_oldBf, patchi)

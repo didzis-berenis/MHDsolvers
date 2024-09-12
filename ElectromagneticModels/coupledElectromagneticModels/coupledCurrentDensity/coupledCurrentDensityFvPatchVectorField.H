@@ -29,10 +29,10 @@ Description
     Specifies gradient and temperature such that the equations are the same
     on both sides:
       - valueFraction = 1 -> fixed value
-      - refValue = sigmaGradPotE,
+      - refValue = sigma * ( -grad(PotE) + UxB ),
 
-    where sigmaGradPotE is the current density calculated from the electric
-    potential gradient and the electric conductivity of the region.
+    where sigma is the electric conductivity of the region, PotE is the
+    electric potential and UxB is the velocity contribution from the region.
 
 SourceFiles
     coupledCurrentDensityFvPatchVectorField.C
@@ -135,8 +135,8 @@ public:
 
     // Member Functions
 
-        //- Initialize the coupled potential name
-        virtual void initCoupledPotential();
+        //- One way switch to coupled boundary condition
+        virtual void initCoupling();
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();

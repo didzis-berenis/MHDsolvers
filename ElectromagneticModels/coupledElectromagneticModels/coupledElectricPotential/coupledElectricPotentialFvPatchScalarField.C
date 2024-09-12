@@ -49,15 +49,6 @@ void Foam::coupledElectricPotentialFvPatchScalarField::getValues
     EPot = patchInternalField();
 }
 
-void Foam::coupledElectricPotentialFvPatchScalarField::getGradientValues
-(
-    tmp<scalarField>& gradEPot
-) const
-{
-    //See Foam::mixedFvPatchField<Type>::snGrad() for details
-    gradEPot = (internalField() - patchInternalField())*patch().deltaCoeffs();
-}
-
 void Foam::coupledElectricPotentialFvPatchScalarField::assign
 (
     tmp<scalarField>& result,
@@ -228,7 +219,6 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
         ( -deltaUxBpNbr.patch().nf() );//this->patch().nf() == -nbr.patch().nf()
         assign(deltaUxBNbr, mpp.fromNeighbour(deltaUxBNbrPatch));
     }
-    this->valueFraction() = 1;//sigma()/(sigma()+sigmaNbr());//0.5;//Fixed value
 
     this->refValue() =
     //sigma_nbr*ePot_nbr/delta_nbr + sigma*ePot/delta

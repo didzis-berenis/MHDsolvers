@@ -79,9 +79,12 @@ List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WR
 
 //Initialize field names and paths
 List<List<Pair<word>>> regionPaths(regionNames.size());
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds",//};
-//uncomment for debugging (See also ElectromagneticModels/electromagneticModels/electromagneticModel.H)
-"sigmaInv","sigma","deltaU","deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",};
+std::set<word> fieldsToKeep = {"U","p","JxB","JJsigma","T","GeometryIds",userSolidificationName,
+// Uncomment for debugging
+//"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
+//"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
+};
+// See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H
 
 forAll(regionNames, i)
 {

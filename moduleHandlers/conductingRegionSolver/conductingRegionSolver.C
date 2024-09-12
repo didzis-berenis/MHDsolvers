@@ -152,49 +152,17 @@ Foam::solvers::conductingSolid* Foam::conductingRegionSolver::getSolidPtr_()
 
 void Foam::conductingRegionSolver::solveElectromagnetics()
 {
-    if (getFluidPtr_())
+    if (getElectroBasePtr_())
     {
-        getFluidPtr_()->solveElectromagnetics();
-    }
-    else if (getIncompressibleFluidPtr_())
-    {
-        getIncompressibleFluidPtr_()->solveElectromagnetics();
-    }
-    else if (getSolidPtr_())
-    {
-        getSolidPtr_()->solveElectromagnetics();
-    }
-    else
-    {
-        FatalIOError
-        << " region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << " or " << incompressibleFluidSolverName_ 
-        << "!\n" << "Cannot get solveElectromagnetics!\n"
-        << exit(FatalIOError);
+        getElectroBasePtr_()->solveElectromagnetics();
     }
 }
 
 void Foam::conductingRegionSolver::electromagneticPredictor()
 {
-    if (getFluidPtr_())
+    if (getElectroBasePtr_())
     {
-        getFluidPtr_()->electromagneticPredictor();
-    }
-    else if (getIncompressibleFluidPtr_())
-    {
-        getIncompressibleFluidPtr_()->electromagneticPredictor();
-    }
-    else if (getSolidPtr_())
-    {
-        getSolidPtr_()->electromagneticPredictor();
-    }
-    else
-    {
-        FatalIOError
-        << " region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << " or " << incompressibleFluidSolverName_ 
-        << "!\n" << "Cannot get electromagneticPredictor!\n"
-        << exit(FatalIOError);
+        getElectroBasePtr_()->electromagneticPredictor();
     }
 }
 

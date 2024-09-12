@@ -74,20 +74,16 @@ class harmonicElectromagneticModel
 
     //- Current density [A/m^2]
         //- real
-        //const char* JreName_ = "Jre";
         volVectorField& Jre_;
 
         //- imaginary
-        //const char* JimName_ = "Jim";
         volVectorField& Jim_;
 
     //- Magnetic field [T]
         //- real
-        //const char* BreName_ = "Bre";
         volVectorField& Bre_;
 
         //- imaginary
-        //const char* BimName_ = "Bim";
         volVectorField& Bim_;
 
     //- isComplex_ switch for solvers
@@ -153,8 +149,6 @@ public:
 
         //- Current density correction [A/m^2]
         const virtual volVectorField& deltaJ(bool imaginary=false) const override;
-
-        virtual word getCoupledCurrentName(const word Jname) const override;
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

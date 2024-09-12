@@ -44,7 +44,7 @@ void Foam::coupledCurrentDensityFvPatchVectorField::getValues
     sigma = em.sigma(patch().index());
 }
 
-void Foam::coupledCurrentDensityFvPatchVectorField::initCoupledPotential()
+void Foam::coupledCurrentDensityFvPatchVectorField::initCoupling()
 {
     coupled_ = true;
 }
@@ -158,8 +158,10 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
 
     tmp<scalarField> ePotPatch;
     tmp<scalarField> ePotInternal;
-    ePotPatch = ePotp;//Returns patch value
-    ePotInternal = ePotp.patchInternalField();//Returns nearest internal field value
+    ePotPatch = ePotp;//Returns value at the boundary.
+    // Get boundary field from *this instead of this->internalField(),
+    // because internalField() is not available in this context.
+    ePotInternal = ePotp.patchInternalField();//Returns nearest field value inside the volume
 
     // Get velocity contribution field from this patch
     const fvPatchVectorField& deltaUxBp =
