@@ -1,92 +1,23 @@
-
-volScalarField& p = regionSolver.getPressure();
-
-Info<< "Initializing field U\n" << endl;
-volVectorField& U = regionSolver.getVelocity();
-
-Info<< "Initializing field U_old\n" << endl;
-volVectorField U_old
-(
-    IOobject
-    (
-        "U_old",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    U
-);
-
-IOdictionary physicalProperties
-(
-    IOobject
-    (
-        "physicalProperties",
-        runTime.constant(),
-        mesh,
-        IOobject::MUST_READ_IF_MODIFIED,
-        IOobject::NO_WRITE
-    )
-);
-
-//Electrical conductivity
-dimensionedScalar sigma
-(
-    "sigma",
-    dimensionSet(-1, -3, 3, 0, 0, 2, 0),
-    0
-);
-
-if (regionSolver.isFluid())
-{
-    sigma = dimensionedScalar
-    (
-        "sigma",
-        dimensionSet(-1, -3, 3, 0, 0, 2, 0),
-        physicalProperties
-    );
-}
-
-Info<< "Initializing field JxB\n" << endl;
-volVectorField JxB
-(
-    IOobject
-    (
-        "JxB",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
-);
-
-Info<< "Initializing field JJsigma\n" << endl;
-volScalarField JJsigma
-(
-    IOobject
-    (
-        "JJsigma",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
-);
-
-#if (ELMER_TIME == HARMONIC_TIME)
-    #include "createHarmonicFields.H"
-#elif (ELMER_TIME == TRANSIENT_TIME)
-    #include "createTransientFields.H"
-#endif
+// Initialize fields
+//volVectorField JxB = regionSolver.getElectro().JxB;
+//volScalarField JJsigma = regionSolver.getElectro().JJsigma;
+volVectorField Jre = regionSolver.getElectro().J();
+volVectorField Jim = regionSolver.getElectro().J(true);
+volVectorField Bre = regionSolver.getElectro().B();
+volVectorField Bim = regionSolver.getElectro().B(true);
+const volVectorField& U = regionSolver.getVelocity();
+// Cannot use const reference for Elmer functions,
+// so preparing designated field for sending velocity to Elmer.
+volVectorField Usent = U;
 
 //Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T"};
+std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T",
+// Uncomment for debugging
+//"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
+//"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
+};
+// See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H};
 
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
@@ -127,4 +58,4 @@ forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();
     keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
-}
+}   

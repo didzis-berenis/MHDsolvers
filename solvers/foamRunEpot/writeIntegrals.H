@@ -26,9 +26,10 @@ if (velocityFile.is_open())
 }
 else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " for writing!\n" << abort(FatalError);
 
-if (regionSolver.isFluid())
+if (regionSolver.isFluid())//fluid == hydro + thermo
 {
-    volScalarField& T = regionSolver.getTemperature();
+    const volScalarField& JJsigma = regionSolver.getElectro().JJsigma;
+    const volScalarField& T = regionSolver.getTemperature();
     scalar TIntegral = 0;
     scalar JJsigmaIntegral = 0;
 

@@ -2,6 +2,10 @@
 cd ${0%/*} || exit 1    # run from this directory
 set -x
 
+wmake ElectromagneticModels/electromagneticModels
+wmake ElectromagneticModels/coupledElectromagneticModels
+wmake ElectromagneticModels/electroBase
+
 wmake modules/incompressibleConductingFluid
 wmake modules/conductingFluid
 wmake modules/conductingSolid
@@ -14,8 +18,6 @@ wmake utilities/initializeMultiRegionTemperature
 wmake utilities/checkRegionCellZones
 
 wmake solvers/foamRunEpot
-wmake solvers/foamRunEpotTransient
 wmake solvers/foamMultiRunEpot
-wmake solvers/foamMultiRunEpotTransient
 
 # ----------------------------------------------------------------- end-of-file

@@ -25,6 +25,7 @@ License
 
 #include "incompressibleConductingFluid.H"
 #include "addToRunTimeSelectionTable.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -47,19 +48,23 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
 :
     incompressibleFluid(mesh),
 
-    JxB_
+    electroBase(mesh),
+
+    U_old_
     (
         IOobject
         (
-            "JxB",
-            runTime.name(),
+            "U_old",
+            mesh.time().name(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        mesh,
-        dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
+        U_
     ),
+
+    U_old(U_old_),
+
     rho_
     (
         "rho",
@@ -76,9 +81,30 @@ Foam::solvers::incompressibleConductingFluid::incompressibleConductingFluid
             )
         )
     ),
-    JxB(JxB_),
+
     rho(rho_)
 {
+
+label PotERefCell = 0;
+scalar PotERefValue = 0.0;
+setRefCell
+( 
+    electro.PotE(),
+    pimple.dict(),
+    PotERefCell,
+    PotERefValue
+);
+
+if (electro.isComplex())
+{
+    setRefCell
+    ( 
+        electro.PotE(true),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+}
 }
 
 
@@ -90,20 +116,25 @@ Foam::solvers::incompressibleConductingFluid::~incompressibleConductingFluid()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-void Foam::solvers::incompressibleConductingFluid::setJxB(volVectorField& JxB)
-{   
-    JxB_=JxB;
+void Foam::solvers::incompressibleConductingFluid::postCorrector()
+{
+    incompressibleFluid::postCorrector();
+    if (electro.correctElectromagnetics())
+    {
+        //Correct current density
+        electro_.correct();
+    }
 }
 
-Foam::volVectorField& Foam::solvers::incompressibleConductingFluid::getVelocity()
-{   
-    return U_;
+void Foam::solvers::incompressibleConductingFluid::solveElectromagnetics()
+{
+    //Solve potential equation
+    electro_.solve();
 }
 
-Foam::volScalarField& Foam::solvers::incompressibleConductingFluid::getPressure()
-{   
-    return p_;
+void Foam::solvers::incompressibleConductingFluid::storeU()
+{
+    U_old_ = U_;
 }
-
 
 // ************************************************************************* //

@@ -31,9 +31,6 @@ Description
 
 #include "argList.H"
 #include "conductingRegionSolvers.H"
-//#include "fluidThermo.H"
-//#include "compressibleMomentumTransportModels.H"
-//#include "fluidThermophysicalTransportModel.H"
 
 using namespace Foam;
 
@@ -47,50 +44,11 @@ int main(int argc, char *argv[])
     // Create the region meshes and solvers
     conductingRegionSolvers solvers(runTime);
     List<Pair<word>> solverNames = solvers.getNames();
-	
+
     forAll(solverNames, i)
     {
         const word& regionName = solverNames[i].first();
-        //const word& solverName = solverNames[i].second();
-        if (solvers.isFluid(regionName))
-        {
-            Info<< "*** Reading fluid properties for region "
-                << regionName << nl << endl;
-
-            fvMesh& fluidMesh = solvers.mesh(regionName);
-
-            IOdictionary physicalProperties
-                (
-                    IOobject
-                    (
-                        "physicalProperties",
-                        runTime.constant(),
-                        fluidMesh,
-                        IOobject::MUST_READ,
-                        IOobject::NO_WRITE
-                    )
-                );
-
-            dimensionedVector temperature_multiplier
-            (
-                "temperature_multiplier",
-                dimensionSet(0, -1, 0, 1, 0, 0, 0),
-                physicalProperties
-            );
-            dimensionedScalar temperature_addition
-            (
-                "temperature_addition",
-                dimensionSet(0, 0, 0, 1, 0, 0, 0),
-                physicalProperties
-            );
-            
-            Info<< "Reading field T\n" << endl;
-            volScalarField& T = solvers.getTemperature(regionName);
-            
-            T = (fluidMesh.C() & temperature_multiplier) +  temperature_addition;
-            T.write();
-
-        }
+        solvers.calcTemperatureGradient(regionName);
     }
 
     Info<< "End\n" << endl;

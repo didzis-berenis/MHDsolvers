@@ -32,8 +32,6 @@ License
 void Foam::solvers::conductingFluid::thermophysicalPredictor()
 {
     volScalarField& he = thermo_.he();
-    volScalarField& JJsigma(JJsigma_);
-    volVectorField& JxB(JxB_);
 
     fvScalarMatrix EEqn
     (
@@ -51,7 +49,7 @@ void Foam::solvers::conductingFluid::thermophysicalPredictor()
             buoyancy.valid()
           ? fvModels().source(rho, he) + rho*(U & buoyancy->g)
           : fvModels().source(rho, he)
-        )+ (U & JxB) + JJsigma
+        )+ (U & electro.JxB()) + electro.JJsigma()
     );
 
     EEqn.relax();

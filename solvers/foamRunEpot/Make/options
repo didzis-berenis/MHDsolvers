@@ -5,8 +5,6 @@ FOAM_MAJOR_VERSION=$(firstword $(subst ., ,$(WM_PROJECT_VERSION)))
 EOF_INC = -I$(EOF_SRC)/coupleElmer/lnInclude \
               -I$(EOF_SRC)/commSplit/lnInclude
 
-ELMER_TIME = 3
-
 EXE_INC = \
     -I. \
     -IelectromagneticControls \
@@ -29,6 +27,8 @@ EXE_INC = \
     -I$(LIB_SRC)/ThermophysicalTransportModels/fluidThermo/lnInclude \
     -I$(LIB_SRC)/finiteVolume/cfdTools \
     -I$(LIB_SRC)/sampling/lnInclude \
+    -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/electroBase/lnInclude \
     -I../../moduleHandlers/conductingRegionSolver \
     -I../../modules/incompressibleConductingFluid/lnInclude \
     -I../../modules/conductingFluid/lnInclude \

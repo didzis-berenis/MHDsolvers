@@ -65,57 +65,9 @@ int main(int argc, char *argv[])
     #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
-    conductingRegionSolver regionSolver(runTime, mesh);
-	
-    IOdictionary physicalProperties
-    (
-        IOobject
-        (
-            "physicalProperties",
-            runTime.constant(),
-            mesh,
-            IOobject::MUST_READ_IF_MODIFIED,
-            IOobject::NO_WRITE
-        )
-    );
 
-    dimensionedVector temperature_multiplier
-    (
-        "temperature_multiplier",
-        dimensionSet(0, -1, 0, 1, 0, 0, 0),
-        physicalProperties
-    );
-    dimensionedScalar temperature_addition
-    (
-        "temperature_addition",
-        dimensionSet(0, 0, 0, 1, 0, 0, 0),
-        physicalProperties
-    );
-	/*
-	Info<< "Reading field T\n" << endl;
-	volScalarField T
-	(
-		IOobject
-		(
-			"T",
-			runTime.timeName(),
-			mesh,
-			IOobject::NO_READ,
-			IOobject::NO_WRITE
-		),
-		mesh,
-        dimensionedScalar(dimTemperature,0)
-	);*/
-    volScalarField& T = regionSolver.getTemperature();
-	/*
-	forAll (T, cellI)
-	{
-		vector coords = mesh.C()[cellI];
-		T[cellI] = (coords & temperature_multiplier).value() + temperature_addition.value();
-	}
-	*/
-	T = (mesh.C() & temperature_multiplier) +  temperature_addition;
-	T.write();
+    conductingRegionSolver regionSolver(runTime, mesh);
+    regionSolver.calcTemperatureGradient();
 
     Info<< "End\n" << endl;
 

@@ -25,6 +25,7 @@ License
 
 #include "conductingFluid.H"
 #include "addToRunTimeSelectionTable.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -53,37 +54,45 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
         )
     ),
 
-    JxB_
+    U_old_
     (
         IOobject
         (
-            "JxB",
-            runTime.name(),
+            "U_old",
+            mesh.time().name(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
-        mesh,
-        dimensionedVector(dimensionSet(1, -2, -2, 0, 0, 0, 0), Foam::vector(0,0,0))
+        U_
     ),
 
-    JJsigma_
-    (
-        IOobject
-        (
-            "JJsigma",
-            runTime.name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
-    ),
-    JxB(JxB_),
-    JJsigma(JJsigma_)
+    U_old(U_old_),
+
+    electroBase(mesh)
 {
     thermo.validate(type(), "h", "e");
+
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    setRefCell
+    ( 
+        electro.PotE(),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+
+    if (electro_.isComplex())
+    {
+        setRefCell
+        ( 
+            electro.PotE(true),
+            pimple.dict(),
+            PotERefCell,
+            PotERefValue
+        );
+    }
 }
 
 
@@ -94,32 +103,6 @@ Foam::solvers::conductingFluid::~conductingFluid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-
-
-void Foam::solvers::conductingFluid::setJJsigma(volScalarField& JJsigma)
-{
-    JJsigma_=JJsigma;
-}
-
-void Foam::solvers::conductingFluid::setJxB(volVectorField& JxB)
-{   
-    JxB_=JxB;
-}
-
-Foam::volVectorField& Foam::solvers::conductingFluid::getVelocity()
-{   
-    return U_;
-}
-
-Foam::volScalarField& Foam::solvers::conductingFluid::getPressure()
-{   
-    return thermo_.p();
-}
-
-Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
-{   
-    return thermo_.T();
-}
 
 void Foam::solvers::conductingFluid::prePredictor()
 {
@@ -140,7 +123,38 @@ void Foam::solvers::conductingFluid::postCorrector()
     {
         thermophysicalTransport->correct();
     }
+    if (electro.correctElectromagnetics())
+    {
+        //Correct current density
+        electro_.correct();
+    }
 }
 
+
+void Foam::solvers::conductingFluid::solveElectromagnetics()
+{
+    //Solve potential equation
+    electro_.solve();
+}
+
+
+void Foam::solvers::conductingFluid::storeU()
+{
+    U_old_ = U_;
+    //Store U_old_ boundary field values if needed
+    /*volVectorField::Boundary& U_oldBf = U_old_.boundaryFieldRef();
+    const volVectorField::Boundary& UBf = U_.boundaryField();
+    forAll(U_oldBf, patchi)
+    {
+        fvPatchVectorField& pU_old = U_oldBf[patchi];
+        pU_old = UBf[patchi];
+    }*/
+}
+
+//non-const access for initialization purposes
+Foam::volScalarField& Foam::solvers::conductingFluid::getTemperature()
+{   
+    return thermo_.T();
+}
 
 // ************************************************************************* //

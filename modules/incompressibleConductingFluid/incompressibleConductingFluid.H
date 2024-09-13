@@ -38,6 +38,7 @@ SourceFiles
 #define incompressibleConductingFluid_H
 
 #include "incompressibleFluid.H"
+#include "electroBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,24 +53,20 @@ namespace solvers
 
 class incompressibleConductingFluid
 :
-    public incompressibleFluid
+    public incompressibleFluid,
+    public electroBase
 {
 
 protected:
 
-    // Lorentz force
-
-        volVectorField JxB_;
+    //- Store old velocity field
+        volVectorField U_old_;
 
     // density
 
         dimensionedScalar rho_;
 
 public:
-
-    // Lorentz force
-
-        const volVectorField& JxB;
 
     // density
 
@@ -95,17 +92,19 @@ public:
 
     // Member Functions
 
-        // Assign volume force to the solver
-        virtual void setJxB(volVectorField&);
-
-        // Get velocity from solver
-        virtual volVectorField& getVelocity();
-
-        // Get pressure from solver
-        virtual volScalarField& getPressure();
+    //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
 
         // update transport properties
         virtual void momentumPredictor();
+
+        //- Correct the momentum and electromagnetic modelling
+        virtual void postCorrector();
+
+        //- Solve electromagnetic modelling
+        virtual void solveElectromagnetics();
 
 
     // Member Operators

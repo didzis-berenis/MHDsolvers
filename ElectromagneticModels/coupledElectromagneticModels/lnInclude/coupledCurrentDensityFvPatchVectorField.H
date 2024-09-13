@@ -1,0 +1,1 @@
+../coupledCurrentDensity/coupledCurrentDensityFvPatchVectorField.H

@@ -25,6 +25,7 @@ License
 
 #include "conductingSolid.H"
 #include "addToRunTimeSelectionTable.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -47,21 +48,32 @@ Foam::solvers::conductingSolid::conductingSolid
 :
     solid(mesh),
 
-    JJsigma_
-    (
-        IOobject
-        (
-            "JJsigma",
-            runTime.name(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar(dimensionSet(1, -1, -3, 0, 0, 0, 0), 0)
-    ),
-    JJsigma(JJsigma_)
+    electroBase(mesh)
 {
+
+label PotERefCell = 0;
+scalar PotERefValue = 0.0;
+setRefCell
+( 
+    electro.PotE(),
+    pimple.dict(),
+    PotERefCell,
+    PotERefValue
+);
+mesh.schemes().setFluxRequired(electro.PotE().name());
+
+if (electro.isComplex())
+{
+    setRefCell
+    ( 
+        electro.PotE(true),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+    mesh.schemes().setFluxRequired(electro.PotE(true).name());
+}
+
 }
 
 
@@ -73,16 +85,27 @@ Foam::solvers::conductingSolid::~conductingSolid()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-
-void Foam::solvers::conductingSolid::setJJsigma(volScalarField& JJsigma)
+void Foam::solvers::conductingSolid::postCorrector()
 {
-    JJsigma_=JJsigma;
+    if (pimple.correctTransport())
+    {
+        thermophysicalTransport->correct();
+    }
+    if (electro.correctElectromagnetics())
+    {
+        //Correct current density
+        electro_.correct();
+    }
 }
-
-Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()//volScalarField& T_external)
+//non-const access for initialization purposes
+Foam::volScalarField& Foam::solvers::conductingSolid::getTemperature()
 {   
     return thermo_.T();
 }
 
+void Foam::solvers::conductingSolid::solveElectromagnetics()
+{
+    electro_.solve();
+}
 
 // ************************************************************************* //

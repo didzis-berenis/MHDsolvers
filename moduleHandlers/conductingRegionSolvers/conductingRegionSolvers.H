@@ -85,6 +85,7 @@ namespace Foam
 class conductingRegionSolvers
 {
     // Private Member Data
+        const Time& runTime_;
 
         //- Region meshes
         PtrList<fvMesh> regions_;
@@ -103,15 +104,55 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        //- Region characteristic geometric size
+        List<scalar> characteristicSizes_;
+        
+        //- Magnetic field update controls
+        scalar maxRemDiff_ = 0;
+        scalar maxRelDiff_ = 1;
+
+        //- Write controls
+        int writeMultiplier_ = 1;
+        long long int writeCounter_ = 0;
+        word writeControlDict_ = word::null;
+        bool adjustableRunTime_ = false;
+
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
+        //Perhaps better to construct set, if more solvers are implemented.
+        //std::set<word> conductingFluidNames_;
+        //std::set<word> conductingSolidNames_;
 
+        //- Number of potential corrections
+        int nPotEcorr_ = 3;//Optimal value for minimizing error and avoiding too many PIMPLE iterations
+        int PotEcorr_ = 0;
+        //- Get pointer electroBase class from region
+        electroBase* getElectroBasePtr_(const word regionName);
+
+        //- Get pointers to region solvers
         solvers::conductingFluid* getFluidPtr_(const word regionName);
-
         solvers::conductingSolid* getSolidPtr_(const word regionName);
+
+        // Map global cell values to region cell values
+        void scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName);
+        void vectorGlobalToField_(volVectorField& global,volVectorField& region,const word& regionName);
+
+        //- Global mesh pointer
+        autoPtr<fvMesh> globalMesh_;
+        //- Construct new global mesh from region meshes
+        autoPtr<fvMesh> globalMeshNew_();
+
+        //- Initialize electric potential boundary conditions
+        void evaluatePotEBfs_(const word regionName, bool imaginary=false);
+
+        //- Initialize current correction boundary conditions
+        void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
 
 
 public:
+    //constants
+        const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
+        static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
 
     // Constructors
 
@@ -127,7 +168,6 @@ public:
 
 
     // Member Functions
-
         //- Return the number of region solvers
         inline label size() const;
 
@@ -140,31 +180,67 @@ public:
         //- Reset the Info prefix to null
         void resetPrefix() const;
 
-        // Return region fvMesh
+        //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
-        // Assign volume force to the solver
-        void setJxB(const word regionName, volVectorField& field);
+        // Return global fvMesh
+        const fvMesh& globalMesh();
 
-        // Assign volume heating to the solver
-        void setJJsigma(const word regionName, volScalarField& field);
+        //- Map for region to global cell id
+        std::map<std::pair<word, label>, label> regionToGlobalCellId;
 
-        // Get velocity from solver
-        volVectorField& getVelocity(const word regionName);
+        //- Return region electromagneticModel
+        const Foam::electromagneticModel& getElectro(const word regionName);
 
-        // Get pressure from solver
-        volScalarField& getPressure(const word regionName);
+        //- Map region cell values to global cell values for scalar field
+        void scalarFieldToGlobal(volScalarField& global,const volScalarField& region,const word& regionName);
 
-        // Get temperature from solver
-        volScalarField& getTemperature(const word regionName);
+        //- Map region cell values to global cell values for a vector field
+        void vectorFieldToGlobal(volVectorField& global,const volVectorField& region,const word& regionName);
 
-        // Check if solver type is fluidSolverName_
+        //- Assign current density to solvers
+        void setJ(volVectorField& field, bool imaginary=false);
+
+        //- Assign magnetic field to solvers
+        void setB(volVectorField& field, bool imaginary=false);
+
+        //- save old velocity
+        void storeU(const word regionName);
+
+        //- Check if solver type is fluidSolverName_
         bool isFluid(const word regionName);
 
-        // Check if solver type is solidSolverName_
+        //- Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
 
-        // Get names
+        //- Check if electromagnetic solver time type is harmonic
+        bool isElectroHarmonic();
+
+        //- Check if magnetic field needs updating
+        bool updateMagneticField();
+
+        //- solve electromagnetics for region
+        void solveElectromagnetics(const word regionName);
+
+        //- Update electromagnetic system without solving
+        void electromagneticPredictor(const word regionName);
+
+        //- Set number of potential correctors
+        void setPotentialCorrectors(const dictionary& dict);
+
+        //- Check if potential corrector is needed
+        bool correctElectroPotential();
+
+        //- Initialize temperature gradient
+        void calcTemperatureGradient(const word regionName);
+
+        //- Return fluid solver
+        const Foam::solvers::conductingFluid& getFluid(const word regionName);
+
+        //- Return solid solver
+        const Foam::solvers::conductingSolid& getSolid(const word regionName);
+
+        //- Get region-solver name pairs
         List<Pair<word>> getNames();
 
 
@@ -220,6 +296,7 @@ public:
 
         //- Set the region i prefix and return the corresponding solver
         solver& operator[](const label i);
+        solver& operator()(const word regionName);
         //solver* operator()(const label i);
 
         //- Disallow default bitwise assignment

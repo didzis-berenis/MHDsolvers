@@ -1,0 +1,4 @@
+electromagneticModel.C
+electromagneticModels.C
+
+LIB = $(FOAM_USER_LIBBIN)/libelectromagneticModels

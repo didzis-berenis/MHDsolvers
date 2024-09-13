@@ -18,7 +18,10 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/cfdTools \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
-    -I../../modules/conductingSolid/lnInclude 
+    -I../../modules/conductingSolid/lnInclude \
+    -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/coupledElectromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/electroBase/lnInclude
 
 EXE_LIBS = \
     -lfiniteVolume \

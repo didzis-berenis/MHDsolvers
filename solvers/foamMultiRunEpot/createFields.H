@@ -1,9 +1,5 @@
-//Solidification configurations
-word solverSolidificationName = "solidification:alpha1";
-word userSolidificationName = "alpha1";
-bool solidificationGlobalEnabled = false;
 
-#include "createRegionFields.H"
+Info<< "Initializing field UGlobal\n" << endl;
 volVectorField UGlobal
 (
     IOobject
@@ -11,185 +7,142 @@ volVectorField UGlobal
         "U",
         runTime.timeName(),
         meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
-);
-volVectorField U_oldGlobal
-(
-    IOobject
-    (
-        "U_old",
-        runTime.timeName(),
-        meshGlobal,
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    UGlobal
-);
-volScalarField pGlobal
-(
-    IOobject
-    (
-        "p",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
-);
-volScalarField TGlobal
-(
-    IOobject
-    (
-        "T",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal
-    //read to get boundary conditions
-    //that will be set before writing global field
-);
-volScalarField JJsigmaGlobal
-(
-    IOobject
-    (
-        "JJsigma",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal
+    meshGlobal,
+    dimensionedVector(dimensionSet(0, 1, -1, 0, 0, 0, 0), Foam::vector(0,0,0))
 );
 
-volVectorField JxBGlobal
+volVectorField JreGlobal
 (
     IOobject
     (
-        "JxB",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal
-);
-volScalarField GeometryIdsGlobal
-(
-    IOobject
-    (
-        "GeometryIds",
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    meshGlobal,
-    dimensionedScalar(dimensionSet(0, 0, 0, 0, 0, 0, 0), 0)
-);
-volScalarField sigmaGlobal
-(
-    IOobject
-    (
-        "sigma",
+        "Jre",
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
     meshGlobal,
-    dimensionedScalar(dimensionSet(-1, -3, 3, 0, 0, 2, 0), 1)
+    dimensionedVector(dimensionSet(0, -2, 0, 0, 0, 1, 0), Foam::vector(0,0,0))
 );
-volScalarField sigmaGlobalInv
+volVectorField JimGlobal
 (
     IOobject
     (
-        "sigmaInv",
+        "Jim",
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
     meshGlobal,
-    dimensionedScalar(dimensionSet(1, 3, -3, 0, 0, -2, 0), 1)
+    dimensionedVector(dimensionSet(0, -2, 0, 0, 0, 1, 0), Foam::vector(0,0,0))
 );
-surfaceScalarField phi
+volVectorField BreGlobal
 (
     IOobject
     (
-        "phi",
+        "Bre",
         runTime.timeName(),
         meshGlobal,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE
+        IOobject::NO_WRITE
     ),
     meshGlobal,
-    dimensionedScalar(dimensionSet(1, 0, -1, 0, 0, 0, 0), 0)
+    dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
 );
-scalarMultiRegionToGlobal(GeometryIdsGlobal,GeometryIdsRegion);
+volVectorField BimGlobal
+(
+    IOobject
+    (
+        "Bim",
+        runTime.timeName(),
+        meshGlobal,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    meshGlobal,
+    dimensionedVector(dimensionSet(1, 0, -2, 0, 0, -1, 0), Foam::vector(0,0,0))
+);
 
-forAll(sigmaGlobal, cellI)
-{
-    scalar sigma = sigmaRegion[cellToRegion[cellI]].value();
-    sigmaGlobal[cellI] = sigma == 0 ? ROOTVSMALL : sigma;
-    sigmaGlobalInv[cellI] = sigma == 0 ? 0 : 1/sigma;
-}
+//Region fields
+PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
+PtrList<volScalarField> alpha1Region(regionNames.size());
 
-#if (ELMER_TIME == HARMONIC_TIME)
-    #include "createHarmonicFields.H"
-#elif (ELMER_TIME == TRANSIENT_TIME)
-    #include "createTransientFields.H"
-#endif
+//Solidification configurations
+word solverSolidificationName = "solidification:alpha1";
+word userSolidificationName = "alpha1";
+List<bool> solidificationEnabled(regionNames.size(), false);
+List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WRITE);
 
 //Initialize field names and paths
-List<word> regionPaths(regionNames.size());
+List<List<Pair<word>>> regionPaths(regionNames.size());
+std::set<word> fieldsToKeep = {"U","p","JxB","JJsigma","T","GeometryIds",userSolidificationName,
+// Uncomment for debugging
+//"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
+//"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
+};
+// See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H
 
 forAll(regionNames, i)
 {
-    regionPaths[i] = getRegionPath(solvers.mesh(regionNames[i]));
-}
-List<Pair<word>> fieldPaths = getFieldPaths(meshGlobal);
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T", "GeometryIds"};
+// Populate field pointer lists
+    Info<< "*** Reading mesh thermophysical properties for region "
+        << regionNames[i] << nl << endl;
 
-auto alphaWriteOptionGlobal = IOobject::NO_WRITE;
-if (solidificationGlobalEnabled)
-{
-    fieldsToKeep.insert(userSolidificationName);
-    alphaWriteOptionGlobal = IOobject::AUTO_WRITE;
-}
-volScalarField alpha1Global
-(
-    IOobject
+    Info<< "    Adding to GeometryIdsRegion\n" << endl;
+    GeometryIdsRegion.set
     (
-        userSolidificationName,
-        runTime.timeName(),
-        meshGlobal,
-        IOobject::NO_READ,
-        alphaWriteOptionGlobal
-    ),
-    meshGlobal,
-    dimensionedScalar(dimless, 0)
-);
-if (solidificationGlobalEnabled)
-{
-	scalarMultiRegionToGlobal(alpha1Global,alpha1Region);
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                "GeometryIds",
+                runTime.timeName(),
+                solvers.mesh(regionNames[i]),
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            solvers.mesh(regionNames[i])
+        )
+    );
+
+    regionPaths[i] = getFieldPaths(solvers.mesh(regionNames[i]));
+    forAll(regionPaths[i], j)
+    {
+        word fieldName = regionPaths[i][j].first();
+        keepField[Pair<word>(fieldName,regionNames[i])] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
+        if (fieldName == solverSolidificationName)
+        {
+            keepField[Pair<word>(fieldName,regionNames[i])] = true;
+            solidificationEnabled[i] = true;
+            alphaWriteOption[i] = IOobject::AUTO_WRITE;
+        }
+    }
+
+    alpha1Region.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                userSolidificationName,
+                runTime.constant(),
+                solvers.mesh(regionNames[i]),
+                IOobject::NO_READ,
+                alphaWriteOption[i]
+            ),
+            solvers.mesh(regionNames[i]),
+            dimensionedScalar(dimless, 0)
+        )
+    );
+    //Get alpha1 field from registry
+    if (solidificationEnabled[i])
+    {
+        alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
+    }
 }
-
-//Update field paths to include alpha1
-fieldPaths = getFieldPaths(meshGlobal);
-
-forAll(fieldPaths, i)
-{
-    word fieldName = fieldPaths[i].first();
-    keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
-}
-

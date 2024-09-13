@@ -1,5 +1,5 @@
 # About
-* MHD solvers are modified OpenFOAM v10 solvers (See [OpenFOAM GitHub repository](https://github.com/OpenFOAM/OpenFOAM-11)).
+* MHD solvers are based on OpenFOAM v11 solvers (See [OpenFOAM GitHub repository](https://github.com/OpenFOAM/OpenFOAM-11)).
 * The solvers are to be used with [EOF-Library](https://github.com/jvencels/EOF-Library). Prerequisites are [OpenFOAM v11](https://openfoam.org/version/11/) and [Elmer FEM](https://www.csc.fi/web/elmer) software.
 * To install all solvers, just execute ./Allwmake in a bash terminal of a properly prepared Linux environment.
 

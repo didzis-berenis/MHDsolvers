@@ -38,6 +38,7 @@ SourceFiles
 #define conductingSolid_H
 
 #include "solid.H"
+#include "electroBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -52,21 +53,15 @@ namespace solvers
 
 class conductingSolid
 :
-    public solid
+    public solid,
+    public electroBase
 {
 
-protected:
-
-    // Joule heating
-
-        volScalarField JJsigma_;
+//protected:
 
 public:
 
     // Public Data
-
-        // Joule heating
-        const volScalarField& JJsigma;
 
 
     //- Runtime type information
@@ -87,13 +82,15 @@ public:
 
 
     // Member Functions
+    
+        //non-const Temperature access for initialization purposes
+        volScalarField& getTemperature();
 
-        // Assign volume heating to the solver
-        virtual void setJJsigma(volScalarField&);
+        //- Correct the momentum and thermophysical transport modelling
+        virtual void postCorrector();
 
-        // Get temperature from solver
-        virtual volScalarField& getTemperature();
-
+        //- Solve electromagnetic system
+        virtual void solveElectromagnetics() override;
 
     // Member Operators
 

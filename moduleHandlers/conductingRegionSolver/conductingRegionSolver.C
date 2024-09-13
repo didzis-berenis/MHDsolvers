@@ -29,6 +29,8 @@ License
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh& mesh)
+:
+    runTime_(runTime)
 {
 
     if (runTime.controlDict().found("solver"))
@@ -54,6 +56,51 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
     Foam::autoPtr<solver> solverAutoPtr(solver::New(name_, mesh));
     // get pointer to solver
     solverPtr_ = solverAutoPtr.ptr();
+    
+    IOdictionary physicalProperties
+    (
+        IOobject
+        (
+            "physicalProperties",
+            runTime.constant(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+    //get region characteristic size
+    characteristicSize_ =
+    (
+        physicalProperties.found("Lchar") ?
+        dimensionedScalar("Lchar",dimLength,physicalProperties) :
+        dimensionedScalar("Lchar",dimLength,0)
+    ).value();
+    
+    // get write controls / magnetic field update controls
+    if (isElectroHarmonic())
+    {
+        // Maximum allowable magnetic Reynolds number difference comparing
+        // to last magnetic field update.
+        // This option controls frequency magnetic field updating is called.
+        //     (0,inf) - when relative difference in any cell exceeds given value
+        //     0     - every iteration
+        maxRemDiff_ = readScalar(runTime.controlDict().lookup("maxRemDiff"));
+
+        // Maximum allowable relative field difference in any cell comparing
+        // to last magnetic field update.
+        // This option controls frequency magnetic field updating is called.
+        //     >1  - once
+        //     1 - magnetic Reynolds number is used instead
+        //     (0,1) - when relative difference in any cell exceeds given value
+        //     0     - every iteration
+        maxRelDiff_ = readScalar(runTime.controlDict().lookup("maxRelDiff"));
+    }
+    else
+    {
+        writeMultiplier_ = readScalar(runTime.controlDict().lookup("writeMultiplier"));
+        writeControlDict_ = word(runTime.controlDict().lookup("writeControl"));
+        adjustableRunTime_ = (writeControlDict_=="adjustableRunTime");
+    }
 }
 
 
@@ -63,11 +110,20 @@ Foam::conductingRegionSolver::~conductingRegionSolver()
 {}
 
 
-// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * * //
+
+Foam::electroBase* Foam::conductingRegionSolver::getElectroBasePtr_()
+{
+    if (isFluid() || isSolid() || isIncompressibleFluid())
+    {
+        return dynamic_cast<Foam::electroBase*>(solverPtr_);
+    }
+    return nullptr;
+}
 
 Foam::solvers::incompressibleConductingFluid* Foam::conductingRegionSolver::getIncompressibleFluidPtr_()
 {
-    if (name_ == incompressibleFluidSolverName_)
+    if (isIncompressibleFluid())
     {
         return dynamic_cast<Foam::solvers::incompressibleConductingFluid*>(solverPtr_);
     }
@@ -76,7 +132,7 @@ Foam::solvers::incompressibleConductingFluid* Foam::conductingRegionSolver::getI
 
 Foam::solvers::conductingFluid* Foam::conductingRegionSolver::getFluidPtr_()
 {
-    if (name_ == fluidSolverName_)
+    if (isFluid())
     {
         return dynamic_cast<Foam::solvers::conductingFluid*>(solverPtr_);
     }
@@ -85,65 +141,41 @@ Foam::solvers::conductingFluid* Foam::conductingRegionSolver::getFluidPtr_()
 
 Foam::solvers::conductingSolid* Foam::conductingRegionSolver::getSolidPtr_()
 {
-    if (name_ == solidSolverName_)
+    if (isSolid())
     {
         return dynamic_cast<Foam::solvers::conductingSolid*>(solverPtr_);
     }
     return nullptr;
 }
 
-// Return region fvMesh
-void Foam::conductingRegionSolver::setJxB(Foam::volVectorField& field)
+// * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
+
+void Foam::conductingRegionSolver::solveElectromagnetics()
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
-    Foam::solvers::incompressibleConductingFluid* incompressibleFluidPtr = getIncompressibleFluidPtr_();
-    if (fluidPtr)
+    if (getElectroBasePtr_())
     {
-        fluidPtr->setJxB(field);
-    }
-    else if (incompressibleFluidPtr)
-    {
-        incompressibleFluidPtr->setJxB(field);
-    }
-    else
-    {
-        Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot set JxB field!\n"; 
+        getElectroBasePtr_()->solveElectromagnetics();
     }
 }
 
-// Return region fvMesh
-void Foam::conductingRegionSolver::setJJsigma(Foam::volScalarField& field)
+void Foam::conductingRegionSolver::electromagneticPredictor()
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
-    Foam::solvers::conductingSolid* solidPtr = getSolidPtr_();
-    if (fluidPtr)
+    if (getElectroBasePtr_())
     {
-        fluidPtr->setJJsigma(field);
-    }
-    else if (solidPtr)
-    {
-        solidPtr->setJJsigma(field);
-    }
-    else
-    {
-        Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << solidSolverName_ << "!\n" << "Cannot set JJsigma field!\n"; 
+        getElectroBasePtr_()->electromagneticPredictor();
     }
 }
 
-// Return region fvMesh
-Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
+// GetVelocity
+const Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
-    Foam::solvers::incompressibleConductingFluid* incompressibleFluidPtr = getIncompressibleFluidPtr_();
-    if (fluidPtr)
+    if (isFluid())
     {
-        return fluidPtr->getVelocity();
+        return getFluid().U;
     }
-    else if (incompressibleFluidPtr)
+    else if (isIncompressibleFluid())
     {
-        return incompressibleFluidPtr->getVelocity();
+        return getIncompressibleFluid().U;
     }
     else
     {
@@ -154,40 +186,16 @@ Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
     }
 }
 
-// Return region fvMesh
-Foam::volScalarField& Foam::conductingRegionSolver::getPressure()
+// Get temperature
+const Foam::volScalarField& Foam::conductingRegionSolver::getTemperature()
 {
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
-    Foam::solvers::incompressibleConductingFluid* incompressibleFluidPtr = getIncompressibleFluidPtr_();
-    if (fluidPtr)
+    if (isFluid())
     {
-        return fluidPtr->getPressure();
+        return getFluid().thermo.T();
     }
-    else if (incompressibleFluidPtr)
+    else if (isSolid())
     {
-        return incompressibleFluidPtr->getPressure();
-    }
-    else
-    {
-        FatalIOError
-        << " region " << name_ << " solver is not " << fluidSolverName_
-        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Pressure field!\n"
-        << exit(FatalIOError);
-    }
-}
-
-// Return region fvMesh
-Foam::volScalarField& Foam::conductingRegionSolver::getTemperature()
-{
-    Foam::solvers::conductingFluid* fluidPtr = getFluidPtr_();
-    Foam::solvers::conductingSolid* solidPtr = getSolidPtr_();
-    if (fluidPtr)
-    {
-        return fluidPtr->getTemperature();
-    }
-    else if (solidPtr)
-    {
-        return solidPtr->getTemperature();
+        return getSolid().thermo.T();
     }
     else
     {
@@ -198,31 +206,233 @@ Foam::volScalarField& Foam::conductingRegionSolver::getTemperature()
     }
 }
 
+//Assigns fluid and solid region values from global to each region field
+void Foam::conductingRegionSolver::setJ(volVectorField& globalField, bool imaginary)
+{
+    if (getElectroBasePtr_())
+    {
+        volVectorField& regionField = getElectroBasePtr_()->getJ(imaginary);
+        forAll(regionField, cellI)
+        {
+            regionField[cellI] = globalField[cellI];
+        }
+        regionField.correctBoundaryConditions();
+    }
+}
+//Assigns fluid and solid region values from global to each region field
+void Foam::conductingRegionSolver::setB(volVectorField& globalField, bool imaginary)
+{
+    if (getElectroBasePtr_())
+    {
+        volVectorField& regionField = getElectroBasePtr_()->getB(imaginary);
+        forAll(regionField, cellI)
+        {
+            regionField[cellI] = globalField[cellI];
+        }
+        regionField.correctBoundaryConditions();
+    }
+}
+//Assigns U_old = U
+void Foam::conductingRegionSolver::storeU()
+{
+    if (getFluidPtr_())
+    {
+        getFluidPtr_()->storeU();
+    }
+}
+//returns read-only access to electro module
+const Foam::electromagneticModel& Foam::conductingRegionSolver::getElectro()
+{
+    if (getElectroBasePtr_())
+    {
+        return getElectroBasePtr_()->electro;
+    }
+    else
+    {
+        FatalIOError << " electroBase class not found for region "
+        << name_ << "!\n" << "Cannot get electromagnetic model!\n" << exit(FatalIOError);
+    }
+}
+const Foam::solvers::incompressibleConductingFluid& Foam::conductingRegionSolver::getIncompressibleFluid()
+{
+    if (getIncompressibleFluidPtr_())
+    {
+        const Foam::solvers::incompressibleConductingFluid& fluidRef(*getIncompressibleFluidPtr_());
+        return fluidRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not "
+        << incompressibleFluidSolverName_ << "!\n" << "Cannot get reference!\n"
+        << exit(FatalIOError);
+    }
+}
+const Foam::solvers::conductingFluid& Foam::conductingRegionSolver::getFluid()
+{
+    if (getFluidPtr_())
+    {
+        const Foam::solvers::conductingFluid& fluidRef(*getFluidPtr_());
+        return fluidRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not " << fluidSolverName_
+        << "!\n" << "Cannot get reference!\n"
+        << exit(FatalIOError);
+    }
+}
+const Foam::solvers::conductingSolid& Foam::conductingRegionSolver::getSolid()
+{
+    if (getSolidPtr_())
+    {
+        const Foam::solvers::conductingSolid& solidRef(*getSolidPtr_());
+        return solidRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not "
+        << solidSolverName_ << "!\n" << "Cannot get reference!\n"
+        << exit(FatalIOError);
+    }
+}
+
 bool Foam::conductingRegionSolver::isIncompressibleFluid()
 {
-    if (name_ == incompressibleFluidSolverName_)
-    {
-        return true;
-    }
-    return false;
+    return name_ == incompressibleFluidSolverName_;
 }
 
 bool Foam::conductingRegionSolver::isFluid()
 {
-    if (name_ == fluidSolverName_)
-    {
-        return true;
-    }
-    return false;
+    return name_ == fluidSolverName_;
 }
 
 bool Foam::conductingRegionSolver::isSolid()
 {
-    if (name_ == solidSolverName_)
+    return name_ == solidSolverName_;
+}
+
+bool Foam::conductingRegionSolver::isElectroHarmonic()
+{
+    if (isFluid() || isSolid() || isIncompressibleFluid())
     {
-        return true;
+        return getElectro().isComplex();
     }
     return false;
+}
+
+bool Foam::conductingRegionSolver::updateMagneticField()
+{
+    bool doUpdate = false;
+    if (isElectroHarmonic())
+    {
+        scalar maxRemDiff_local = SMALL;        
+        scalar maxRelDiff_local = SMALL;
+
+        if (isFluid())
+        {
+            const volVectorField& U = getFluid().U;
+            const volVectorField& U_old = getFluid().U_old;
+            maxRemDiff_local = max(
+                mu_0 * characteristicSize_ *
+                max(getElectro().sigmaInv()*mag(U_old-U)).value(),
+                maxRemDiff_local);        
+
+            maxRelDiff_local = max(
+                (max(mag(U_old-U)/(average(mag(U))+smallU))).value(),
+                maxRemDiff_local);
+        }
+
+        if((maxRelDiff_local>maxRelDiff_ || maxRelDiff_<SMALL) && maxRelDiff_+SMALL<=1.0) {
+            doUpdate = true;
+        }
+        else if(maxRemDiff_local>maxRemDiff_ && maxRelDiff_-SMALL<=1.0) {
+            doUpdate = true;
+        }
+    }
+    else
+    {
+        if (adjustableRunTime_)
+        {
+            if (runTime_.writeTime()) doUpdate = true;
+        }
+        else
+        {
+            writeCounter_++;
+            if ( (writeCounter_ % writeMultiplier_) == 0 && runTime_.run()) doUpdate = true;
+        }
+    }
+    return doUpdate;
+}
+
+void Foam::conductingRegionSolver::calcTemperatureGradient()
+{
+    
+    IOdictionary physicalProperties
+    (
+        IOobject
+        (
+            "physicalProperties",
+            runTime_.constant(),
+            solverPtr_->mesh(),
+            IOobject::MUST_READ,
+            IOobject::NO_WRITE
+        )
+    );
+    if
+    ( 
+        physicalProperties.found("temperature_multiplier") &&
+        physicalProperties.found("temperature_addition")
+    )
+    {
+        dimensionedVector temperature_multiplier
+        (
+            "temperature_multiplier",
+            dimTemperature/dimLength,
+            physicalProperties
+        );
+        dimensionedScalar temperature_addition
+        (
+            "temperature_addition",
+            dimTemperature,
+            physicalProperties
+        );
+
+        if (getSolidPtr_())
+        {
+            volScalarField& T = getSolidPtr_()->getTemperature();
+            const volVectorField& coords = T.mesh().C();
+            T = (coords & temperature_multiplier) +  temperature_addition;
+            /*
+            // If more advanced function is necessary, where
+            // coordinate dependent function is applied,
+            // then iterate through cells.
+            forAll (T, cellI)
+            {
+                vector point = coords[cellI];//x,y,z at cellI
+                T[cellI] = temperature_function(coords).value();
+            }
+            */
+            T.write();
+        }
+        else if (getFluidPtr_())
+        {
+            volScalarField& T = getFluidPtr_()->getTemperature();
+            const volVectorField& coords = T.mesh().C();
+            T = (coords & temperature_multiplier) +  temperature_addition;
+            T.write();
+        }
+        /*
+        // Display warning message if solver is not fluid or solid
+        else
+        {
+            Info << "Warning: region " << name_ << " solver is not " << fluidSolverName_
+            << " or " << solidSolverName_ << "!\n" << "Cannot set temperature gradient!\n"; 
+        }
+        */
+    }
 }
 
 Foam::word Foam::conductingRegionSolver::getName()

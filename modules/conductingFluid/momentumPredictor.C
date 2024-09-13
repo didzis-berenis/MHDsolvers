@@ -32,7 +32,6 @@ License
 void Foam::solvers::conductingFluid::momentumPredictor()
 {
     volVectorField& U(U_);
-    volVectorField& JxB(JxB_);
 
     tUEqn =
     (
@@ -40,7 +39,7 @@ void Foam::solvers::conductingFluid::momentumPredictor()
       + MRF.DDt(rho, U)
       + momentumTransport->divDevTau(U)
      ==
-        fvModels().source(rho, U)+JxB
+        fvModels().source(rho, U)+electro.JxB()
     );
     fvVectorMatrix& UEqn = tUEqn.ref();
 
@@ -67,6 +66,9 @@ void Foam::solvers::conductingFluid::momentumPredictor()
         fvConstraints().constrain(U);
         K = 0.5*magSqr(U);
     }
+    // Update deltaU for electromagnetic model
+    volVectorField deltaU = U_ - U_old_;
+    electro_.updateDeltaU(deltaU);
 }
 
 

@@ -52,6 +52,7 @@ SourceFiles
 #define conductingFluid_H
 
 #include "isothermalFluid.H"
+#include "electroBase.H"
 #include "fluidThermoThermophysicalTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -67,34 +68,21 @@ namespace solvers
 
 class conductingFluid
 :
-    public isothermalFluid
+    public isothermalFluid,
+    public electroBase
 {
 
 protected:
-
-    // Lorentz force
-
-        volVectorField JxB_;
-
-    // Joule heating
-
-        volScalarField JJsigma_;
 
     // Thermophysical transport
 
         autoPtr<fluidThermoThermophysicalTransportModel>
             thermophysicalTransport;
 
+    //- Store old velocity field
+        volVectorField U_old_;
 
 public:
-
-    // Lorentz force
-
-        const volVectorField& JxB;
-
-    // Joule heating
-
-        const volScalarField& JJsigma;
         
 
     //- Runtime type information
@@ -115,21 +103,14 @@ public:
 
 
     // Member Functions
+    
+        //non-const Temperature access for initialization purposes
+        volScalarField& getTemperature();
 
-        // Assign volume force to the solver
-        virtual void setJJsigma(volScalarField&);
-
-        // Assign volume heating to the solver
-        virtual void setJxB(volVectorField&);
-
-        // Get velocity from solver
-        virtual volVectorField& getVelocity();
-
-        // Get pressure from solver
-        virtual volScalarField& getPressure();
-
-        // Get temperature from solver
-        virtual volScalarField& getTemperature();
+    //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
 
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
@@ -143,6 +124,8 @@ public:
         //- Correct the momentum and thermophysical transport modelling
         virtual void postCorrector();
 
+        //- Solve electromagnetic modelling
+        virtual void solveElectromagnetics() override;
 
     // Member Operators
 
