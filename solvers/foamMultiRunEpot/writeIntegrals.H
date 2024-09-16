@@ -16,7 +16,7 @@ forAll(regionNames, i)
         scalar UyIntegral = 0;
         scalar UzIntegral = 0;
 
-        const volScalarField& T = solvers.getFluid(regionNames[i]).thermo.T();
+        volScalarField T = solvers.getFluid(regionNames[i]).thermo.T() + absoluteZero;
         const volScalarField& JJsigma = solvers.getElectro(regionNames[i]).JJsigma;
         scalar TIntegral = 0;
         scalar JJsigmaIntegral = 0;
@@ -65,7 +65,7 @@ forAll(regionNames, i)
     if (solvers.isSolid(regionName))
     {
         scalarField V = solvers.mesh(regionNames[i]).V();
-        const volScalarField& T = solvers.getSolid(regionNames[i]).thermo.T();
+        volScalarField T = solvers.getSolid(regionNames[i]).thermo.T() + absoluteZero;
         const volScalarField& JJsigma = solvers.getElectro(regionNames[i]).JJsigma;
         scalar TIntegral = 0;
         scalar JJsigmaIntegral = 0;

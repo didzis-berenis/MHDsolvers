@@ -29,7 +29,7 @@ else FatalErrorInFunction << "ERROR: Couldn't open " << velocityFileName << " fo
 if (regionSolver.isFluid())//fluid == hydro + thermo
 {
     const volScalarField& JJsigma = regionSolver.getElectro().JJsigma;
-    const volScalarField& T = regionSolver.getTemperature();
+    volScalarField T = regionSolver.getTemperature() + absoluteZero;
     scalar TIntegral = 0;
     scalar JJsigmaIntegral = 0;
 

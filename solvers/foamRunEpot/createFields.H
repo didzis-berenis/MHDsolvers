@@ -58,4 +58,6 @@ forAll(fieldPaths, i)
 {
     word fieldName = fieldPaths[i].first();
     keepField[fieldName] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
-}   
+}
+
+const dimensionedScalar absoluteZero(dimTemperature,-273.15);

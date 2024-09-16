@@ -146,3 +146,5 @@ forAll(regionNames, i)
         alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
     }
 }
+
+const dimensionedScalar absoluteZero(dimTemperature,-273.15);
