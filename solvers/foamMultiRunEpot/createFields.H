@@ -117,7 +117,7 @@ forAll(regionNames, i)
         keepField[Pair<word>(fieldName,regionNames[i])] = fieldsToKeep.find(fieldName) != fieldsToKeep.end();
         if (fieldName == solverSolidificationName)
         {
-            keepField[Pair<word>(fieldName,regionNames[i])] = true;
+            keepField[Pair<word>(userSolidificationName,regionNames[i])] = true;
             solidificationEnabled[i] = true;
             alphaWriteOption[i] = IOobject::AUTO_WRITE;
         }
@@ -131,7 +131,7 @@ forAll(regionNames, i)
             IOobject
             (
                 userSolidificationName,
-                runTime.constant(),
+                runTime.timeName(),
                 solvers.mesh(regionNames[i]),
                 IOobject::NO_READ,
                 alphaWriteOption[i]
