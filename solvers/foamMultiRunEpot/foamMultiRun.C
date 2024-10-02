@@ -45,6 +45,7 @@ using namespace Foam;
 #include "Elmer.H"
 #include <fstream>
 #include "fieldMapper.H"
+const scalar ALMOST_ONE = 1.0 - 1e-6;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
         // Adjust the time-step according to the solver maxDeltaT
         adjustDeltaT(runTime, solvers);
         // Adjust time step so that last step is at end time.
-        if (runTime.userTimeValue() + runTime.deltaTValue() > runTime.endTime().value())
+        if (runTime.userTimeValue() + runTime.deltaTValue() > ALMOST_ONE*runTime.endTime().value())
         {
             const scalar lastDeltaT = runTime.endTime().value() - runTime.userTimeValue();
             runTime.setDeltaT(lastDeltaT);
@@ -249,9 +250,9 @@ int main(int argc, char *argv[])
             // Loop has been stopped.
             !runTime.run() &&
             // End time has not been reached.
-            runTime.userTimeValue() < runTime.endTime().value() &&
+            runTime.userTimeValue() <  ALMOST_ONE*runTime.endTime().value() &&
             // Next step reaches end time.
-            runTime.userTimeValue() + runTime.deltaTValue() >= runTime.endTime().value()
+            (runTime.userTimeValue() + runTime.deltaTValue()) > ALMOST_ONE*runTime.endTime().value()
             )
         {
             lastTimeStep = true;
