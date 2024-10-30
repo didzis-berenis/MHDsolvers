@@ -79,6 +79,7 @@ List<IOobject::writeOption> alphaWriteOption(regionNames.size(), IOobject::NO_WR
 
 //Initialize field names and paths
 List<List<Pair<word>>> regionPaths(regionNames.size());
+bool needsCleanup = false;
 std::set<word> fieldsToKeep = {"U","p","JxB","JJsigma","T","GeometryIds",userSolidificationName,
 // Uncomment for debugging
 //"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",

@@ -30,7 +30,8 @@ License
 
 Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
 :
-    runTime_(runTime)
+    runTime_(runTime),
+    restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0))
 {
 
     if (runTime.controlDict().found("regionSolvers"))
@@ -493,6 +494,25 @@ bool Foam::conductingRegionSolvers::updateMagneticField()
         }
     }
     return doUpdate;
+}
+
+bool Foam::conductingRegionSolvers::needsCleanup()
+{
+    bool doCleanup = true;
+    if (restartInterval_ > 0 && cleanupCounter_ % restartInterval_ == 0)
+    {
+        if (runTime_.startTime().value() > 0 || cleanupCounter_ > 0 )
+        {
+            // Do not clean initial time step when calculation restarted.
+            doCleanup = false;
+        }
+    }
+    return doCleanup;
+}
+
+void Foam::conductingRegionSolvers::countToCleanup()
+{
+    cleanupCounter_++;
 }
 
 void Foam::conductingRegionSolvers::calcTemperatureGradient(const word regionName)

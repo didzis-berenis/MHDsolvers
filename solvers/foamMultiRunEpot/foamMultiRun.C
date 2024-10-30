@@ -140,6 +140,7 @@ int main(int argc, char *argv[])
             regionPaths[i] = getFieldPaths(solvers.mesh(regionNames[i]));
         }
 
+        needsCleanup = solvers.needsCleanup();
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
@@ -213,21 +214,25 @@ int main(int argc, char *argv[])
         if(runTime.writeTime() || lastTimeStep)
         {
             runTime.writeNow();
+            //write integral values for all time steps
+            #include "writeIntegrals.H"
             // Cleanup
-            forAll(regionNames, i)
+            solvers.countToCleanup();
+            if (needsCleanup)
             {
-                forAll(regionPaths[i], j)
+                forAll(regionNames, i)
                 {
-                    if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
+                    forAll(regionPaths[i], j)
                     {
-                        //Pout << "Deleting file " << regionPaths[i][j].first() <<" was " <<
-                        fileHandler().rm(regionPaths[i][j].second());// << endl;
+                        if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
+                        {
+                            //Pout << "Deleting file " << regionPaths[i][j].first() <<" was " <<
+                            fileHandler().rm(regionPaths[i][j].second());// << endl;
+                        }
                     }
                 }
             }
         }
-        //write integral values for all time steps
-        #include "writeIntegrals.H"
         OFClock = runTime.clockTimeIncrement();
 
         Info<< "ExecutionTime : " << "Hydrodynamics step = " << OFClock << " s"

@@ -106,6 +106,8 @@ class conductingRegionSolver
         long long int writeCounter_ = 0;
         word writeControlDict_ = word::null;
         bool adjustableRunTime_ = false;
+        long long int cleanupCounter_ = 0;
+        int restartInterval_;
 
         //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
@@ -174,6 +176,12 @@ public:
 
         //- Initialize temperature gradient
         void calcTemperatureGradient();
+
+        //- Check if cleanup of time directories is needed
+        bool needsCleanup();
+
+        //- Increment counter, which controls cleanup
+        void countToCleanup();
 
         // Read-only access
 

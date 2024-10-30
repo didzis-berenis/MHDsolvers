@@ -12,6 +12,7 @@ volVectorField Usent = U;
 
 //Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
+bool needsCleanup = false;
 std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T",
 // Uncomment for debugging
 //"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",

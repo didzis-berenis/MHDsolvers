@@ -116,6 +116,8 @@ class conductingRegionSolvers
         long long int writeCounter_ = 0;
         word writeControlDict_ = word::null;
         bool adjustableRunTime_ = false;
+        long long int cleanupCounter_ = 0;
+        int restartInterval_;
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
@@ -233,6 +235,12 @@ public:
 
         //- Initialize temperature gradient
         void calcTemperatureGradient(const word regionName);
+
+        //- Check if cleanup of time directories is needed
+        bool needsCleanup();
+
+        //- Increment counter, which controls cleanup
+        void countToCleanup();
 
         //- Return fluid solver
         const Foam::solvers::conductingFluid& getFluid(const word regionName);
