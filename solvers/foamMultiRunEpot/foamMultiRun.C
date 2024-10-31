@@ -102,8 +102,15 @@ int main(int argc, char *argv[])
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
+    Info<< "Initializing electromagnetic solver" << nl << endl;
     #include "runElmerUpdate.H"
     initialize_elmer = false;
+    // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
+    // This is done to avoid the initial oscillations in the solution
+    for (int i = 0; i < solvers.waitInterval; i++)
+    {
+        #include "runElmerUpdate.H"
+    }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

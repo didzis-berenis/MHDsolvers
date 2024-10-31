@@ -31,7 +31,8 @@ License
 Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh& mesh)
 :
     runTime_(runTime),
-    restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0))
+    restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0)),
+    waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0))
 {
 
     if (runTime.controlDict().found("solver"))

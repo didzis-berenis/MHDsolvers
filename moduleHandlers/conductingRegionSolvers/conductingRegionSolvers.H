@@ -155,6 +155,8 @@ public:
     //constants
         const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
         static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
+        //- Magnetic field update controls
+        const int waitInterval;
 
     // Constructors
 
