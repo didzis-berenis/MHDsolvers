@@ -214,7 +214,7 @@ void Foam::conductingRegionSolvers::vectorGlobalToField_(volVectorField& global,
 
 Foam::electroBase* Foam::conductingRegionSolvers::getElectroBasePtr_(const word regionName)
 {
-    if (isFluid(regionName) || isSolid(regionName))
+    if (isFluid(regionName) || isSolid(regionName) || isElectric(regionName))
     {
     Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
         return dynamic_cast<Foam::electroBase*>(basePtr);
@@ -322,7 +322,7 @@ void Foam::conductingRegionSolvers::setJ(volVectorField& globalField, bool imagi
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName))
+        if (getElectroBasePtr_(regionName) && !isElectric(regionName))
         {
             volVectorField& regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
             vectorGlobalToField_(globalField,regionField,regionName);
@@ -418,6 +418,11 @@ bool Foam::conductingRegionSolvers::isSolid(const word regionName)
     return names_[regionIdx_[regionName]].second() == solidSolverName_;
 }
 
+bool Foam::conductingRegionSolvers::isElectric(const word regionName)
+{
+    return names_[regionIdx_[regionName]].second() == electricSolverName_;
+}
+
 void Foam::conductingRegionSolvers::setPotentialCorrectors(const dictionary& dict)
 {
     nPotEcorr_ = dict.lookupOrDefault<label>("nPotECorrectors", nPotEcorr_);
@@ -441,7 +446,7 @@ bool Foam::conductingRegionSolvers::isElectroHarmonic()
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        if (isFluid(regionName) || isSolid(regionName))
+        if (isFluid(regionName) || isSolid(regionName) || isElectric(regionName))
         {
             return getElectro(regionName).isComplex();
         }

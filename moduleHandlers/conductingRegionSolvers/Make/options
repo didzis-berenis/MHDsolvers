@@ -17,7 +17,6 @@ EXE_INC = \
     -I$(LIB_SRC)/ThermophysicalTransportModels/fluidThermo/lnInclude \
     -I$(LIB_SRC)/finiteVolume/cfdTools \
     -I$(LIB_SRC)/sampling/lnInclude \
-    -I../../modules/conductingMaterial/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
     -I../../ElectromagneticModels/electromagneticModels/lnInclude \
@@ -27,6 +26,5 @@ EXE_INC = \
 EXE_LIBS = \
     -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
-    -lconductingMaterial \
     -lconductingFluid \
     -lconductingSolid

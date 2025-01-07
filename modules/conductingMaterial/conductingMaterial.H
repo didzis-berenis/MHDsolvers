@@ -109,17 +109,11 @@ public:
         //- Construct and solve the pressure equation in the PISO loop
         virtual void pressureCorrector();
 
-        //- Correct the thermophysical transport modelling
+        //- Correct the momentum and thermophysical transport modelling
         virtual void postCorrector();
 
         //- Called after the PIMPLE loop at the end of the time-step
         virtual void postSolve();
-    
-        //non-const Temperature access for initialization purposes
-        //volScalarField& getTemperature();
-
-        //- Correct the momentum and thermophysical transport modelling
-        //virtual void postCorrector();
 
         //- Solve electromagnetic system
         virtual void solveElectromagnetics() override;

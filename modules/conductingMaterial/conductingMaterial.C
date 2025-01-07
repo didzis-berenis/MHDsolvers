@@ -50,7 +50,7 @@ Foam::solvers::conductingMaterial::conductingMaterial
     electroBase(mesh)
 {
 
-/*label PotERefCell = 0;
+label PotERefCell = 0;
 scalar PotERefValue = 0.0;
 setRefCell
 ( 
@@ -71,7 +71,7 @@ if (electro.isComplex())
         PotERefValue
     );
     mesh.schemes().setFluxRequired(electro.PotE(true).name());
-}*/
+}
 
 }
 
@@ -117,30 +117,23 @@ void Foam::solvers::conductingMaterial::pressureCorrector()
 
 
 void Foam::solvers::conductingMaterial::postCorrector()
-{}
-
-
-void Foam::solvers::conductingMaterial::postSolve()
-{}
-
-
-/*void Foam::solvers::conductingMaterial::postCorrector()
 {
-    if (pimple.correctTransport())
-    {
-        thermophysicalTransport->correct();
-    }
     if (electro.correctElectromagnetics())
     {
         //Correct current density
-        electro_.correct();
+        //electro_.correct();
+        electro_.findJ();
+        bool imaginary = electro.isComplex();
+        if (imaginary)
+        {
+            electro_.findJ(imaginary);
+        }
+        electro_.predict();
     }
-}*/
-//non-const access for initialization purposes
-/*Foam::volScalarField& Foam::solvers::conductingMaterial::getTemperature()
-{   
-    return thermo_.T();
-}*/
+}
+
+void Foam::solvers::conductingMaterial::postSolve()
+{}
 
 void Foam::solvers::conductingMaterial::solveElectromagnetics()
 {

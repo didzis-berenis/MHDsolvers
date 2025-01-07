@@ -428,6 +428,25 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     JUB.correctBoundaryConditions();
 }
 
+void Foam::electromagneticModel::findJ(bool imaginary)
+{
+    /*---------------------------------------------------------------------------
+    Correction to update electrical currents is based on the epotFoam solver,
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    ---------------------------------------------------------------------------*/
+    //Get J reference (boundary conditions should come from J)
+    volVectorField& Jcorrect = this->J(imaginary);
+    //Computation of current density at cell faces
+    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf());
+    //Current density at face center
+    surfaceVectorField Env = En * mesh_.Cf();
+
+    //Interpolation of current density at cell center
+    Jcorrect = sigma_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    //Update current density distribution and boundary conditions
+    Jcorrect.correctBoundaryConditions();
+}
+
 void Foam::electromagneticModel::predict()
 {
     bool imaginary = isComplex();

@@ -232,9 +232,6 @@ public:
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
 
-            //- Return the field from the object registry
-            virtual const scalarField& getNbr() const;
-
 
         // I-O
 

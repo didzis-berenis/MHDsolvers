@@ -43,7 +43,8 @@ externalElectricPotentialFvPatchScalarField
     I_(haveI_ ? dict.lookup<scalar>("I") : NaN),
     haveJ_(dict.found("J")),
     J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
-    ePotExt_(havePot_ ? Function1<scalar>::New("PotEa", dict).ptr() : nullptr)
+    havePot_(dict.found("PotE")),
+    ePotExt_(havePot_ ? Function1<scalar>::New("PotE", dict).ptr() : nullptr)
     /*,
     thicknessLayers_
     (
@@ -192,31 +193,38 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
        .lookupType<electromagneticModel>();
 
     const scalarField sigma(em.sigma(patch().index()));
-    const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
 
     // Compute the total non-convective heat flux
-    scalarField ePotTot(ePotP.size(), 0);
+    scalarField gradPotE(ePotP.size(), 0);
+    scalarField potE(ePotP.size(), 0);
     if (haveI_)
     {
-        ePotTot += I_/gSum(patch().magSf())/snGrad()/sigma;
+        gradPotE += I_/gSum(patch().magSf())/(sigma + SMALL);
     }
     if (haveJ_)
     {
-        ePotTot += J_/snGrad()/sigma;
+        gradPotE += J_/(sigma + SMALL);
     }
-    if (!havePot_)
+    if (havePot_)
     {
-        ePotTot += ePotExt;
+        const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
+        potE += ePotExt;
     }
 
     // Evaluate
-    //if (!haveh_)
-    //{
-        refValue() = ePotTot;
+    if (haveI_ || haveJ_)
+    {
+        refValue() = 0;
+        valueFraction() = 0;
+        refGrad() = gradPotE;
+    }
+    if (havePot_)
+    {
+        refValue() = potE;
         //Switch to zero gradient condition if sigma->0
         valueFraction() = sigma/(sigma + SMALL);
-        //refGrad() = 0;
-    //}
+        refGrad() = 0;
+    }
     /*********************************************************
     Could introduce resistive layers here analogous to kappaLayers.
     *********************************************************/
@@ -284,17 +292,6 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
             << " avg:" << gAverage(*this)
             << endl;
     }
-}
-
-const Foam::scalarField& Foam::externalElectricPotentialFvPatchScalarField::getNbr() const
-{
-    const electromagneticModel& em =
-        patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    // J_normal = sigma * ( grad(ePot) * n )
-    // Return patch normal current.
-    return em.sigma(patch().index())*snGrad();
 }
 
 
