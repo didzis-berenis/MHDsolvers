@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     // Write initial values
     #include "writeIntegrals.H"
     bool lastTimeStep = false;
-
+    bool handleLastWrite = false;
     double OFClock = 0;
 
     Info<< nl << "Starting time loop\n" << endl;
@@ -217,6 +217,9 @@ int main(int argc, char *argv[])
 
         solvers.setGlobalPrefix();
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+        // Set flag for handling last write time for steady-state cases,
+        // where pimple uses writeAndEnd(), thus ending the simulation without setting writeTime() to true.
+        handleLastWrite = true;
         // Write last time step even if not write time
         if(runTime.writeTime() || lastTimeStep)
         {
@@ -239,6 +242,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
+            handleLastWrite = false;
         }
         OFClock = runTime.clockTimeIncrement();
 
@@ -258,14 +262,14 @@ int main(int argc, char *argv[])
         }
         elmerClock = runTime.clockTimeIncrement();
         // If run loop exited just before end time, schedule one more iteration.
-        if (
+        bool oneMoreIteration =
             // Loop has been stopped.
             !runTime.run() &&
             // End time has not been reached.
-            runTime.userTimeValue() <  ALMOST_ONE*runTime.endTime().value() &&
+            runTime.userTimeValue() < ALMOST_ONE*runTime.endTime().value() &&
             // Next step reaches end time.
-            (runTime.userTimeValue() + runTime.deltaTValue()) > ALMOST_ONE*runTime.endTime().value()
-            )
+            (runTime.userTimeValue() + runTime.deltaTValue()) > ALMOST_ONE*runTime.endTime().value();
+        if (oneMoreIteration)
         {
             lastTimeStep = true;
         }
@@ -273,6 +277,28 @@ int main(int argc, char *argv[])
         else if (lastTimeStep)
         {
             lastTimeStep = false;
+        }
+    }
+    // Handle last write time for steady-state cases
+    if(handleLastWrite)
+    {
+        //write integral values for all time steps
+        #include "writeIntegrals.H"
+        // Cleanup
+        solvers.countToCleanup();
+        if (needsCleanup)
+        {
+            forAll(regionNames, i)
+            {
+                forAll(regionPaths[i], j)
+                {
+                    if (!keepField[Pair<word>(regionPaths[i][j].first(),regionNames[i])])
+                    {
+                        //Pout << "Deleting file " << regionPaths[i][j].first() <<" was " <<
+                        fileHandler().rm(regionPaths[i][j].second());// << endl;
+                    }
+                }
+            }
         }
     }
 

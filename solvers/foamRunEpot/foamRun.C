@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     // Write initial values
     #include "writeIntegrals.H"
     bool lastTimeStep = false;
-
+    bool handleLastWrite = false;
     double OFClock = 0;
     //elmerClock = runTime.clockTimeIncrement();
 
@@ -160,11 +160,14 @@ int main(int argc, char *argv[])
         }
 
         // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+        // Set flag for handling last write time for steady-state cases,
+        // where pimple uses writeAndEnd(), thus ending the simulation without setting writeTime() to true.
+        handleLastWrite = true;
         // Write last time step even if not write time
         if(runTime.writeTime() || lastTimeStep)
         {
             runTime.writeNow();
-            //write integral values for all time steps
+            // Write integral values for all time steps
             #include "writeIntegrals.H"
             // Cleanup
             regionSolver.countToCleanup();
@@ -179,6 +182,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
+            handleLastWrite = false;
         }
         OFClock = runTime.clockTimeIncrement();
 
@@ -198,14 +202,14 @@ int main(int argc, char *argv[])
         }
         elmerClock = runTime.clockTimeIncrement();
         // If run loop exited just before end time, schedule one more iteration.
-        if (
+        bool oneMoreIteration =
             // Loop has been stopped.
             !runTime.run() &&
             // End time has not been reached.
             runTime.userTimeValue() < ALMOST_ONE*runTime.endTime().value() &&
             // Next step reaches end time.
-            runTime.userTimeValue() + runTime.deltaTValue() > ALMOST_ONE*runTime.endTime().value()
-            )
+            (runTime.userTimeValue() + runTime.deltaTValue()) > ALMOST_ONE*runTime.endTime().value();
+        if (oneMoreIteration)
         {
             lastTimeStep = true;
         }
@@ -213,6 +217,25 @@ int main(int argc, char *argv[])
         else if (lastTimeStep)
         {
             lastTimeStep = false;
+        }
+    }
+    // Handle last write time for steady-state cases
+    if(handleLastWrite)
+    {
+        // Write integral values for all time steps
+        #include "writeIntegrals.H"
+        // Cleanup
+        regionSolver.countToCleanup();
+        if (needsCleanup)
+        {
+            forAll(fieldPaths, i)
+            {
+                if (!keepField[fieldPaths[i].first()])
+                {
+                    //Pout << "Deleting file " << fieldPaths[i].first() <<" was " <<
+                    fileHandler().rm(fieldPaths[i].second());//<< endl;
+                }
+            }
         }
     }
 
