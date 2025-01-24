@@ -81,6 +81,21 @@ Foam::word Foam::coupledElectricPotentialFvPatchScalarField::suffix() const
     return "";
 }
 
+Foam::word Foam::coupledElectricPotentialFvPatchScalarField::getTerminalRole() const
+{
+    return terminalRole_;
+}
+
+bool Foam::coupledElectricPotentialFvPatchScalarField::
+isValidSource(Foam::word nbrRole) const
+{
+    if (terminalRole_ == "terminal" && nbrRole == "ground" )
+        return true;
+    if (nbrRole == "terminal" && terminalRole_ == "ground" )
+        return true;
+    return false;
+}
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::coupledElectricPotentialFvPatchScalarField::
@@ -91,7 +106,8 @@ coupledElectricPotentialFvPatchScalarField
     const dictionary& dict
 )
 :
-    mixedFvPatchScalarField(p, iF, dict, false)
+    mixedFvPatchScalarField(p, iF, dict, false),
+    terminalRole_(dict.lookupOrDefault<word>("terminalRole",""))
 {
    mappedPatchBase::validateMapForField
     (
@@ -101,7 +117,7 @@ coupledElectricPotentialFvPatchScalarField
         mappedPatchBase::from::differentPatch
     );
 
-    if (dict.found("refValue"))
+    if (dict.found("terminalRole"))
     {
         // Full restart
         refValue() = scalarField("refValue", dict, p.size());
@@ -180,6 +196,43 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     }
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
+
+    // Patch serves as an electric source
+    if (terminalRole_ != "")
+    {
+        Foam::word nbrRole = coupledPotentialNbr.getTerminalRole();
+        if (!isValidSource(nbrRole))
+        {
+            FatalErrorInFunction
+                << "Patch field for " << internalField().name() << " on "
+                << this->patch().name() << " has terminalRole "
+                << terminalRole_
+                << endl << "The neighbouring patch field "
+                << internalField().name() << " on "
+                << patchNbr.name() << " is required to be "
+                << (terminalRole_ == "terminal" ? "ground" : "terminal")
+                << ", but is currently " << nbrRole << endl
+                << "Valid patch role pairs are terminal-ground " << exit(FatalError);
+        }
+
+        if (terminalRole_ == "terminal")
+        {
+            // This side sets current or voltage
+        }
+        else
+        {
+            // This side acts as a reference or ground
+        }
+
+        mixedFvPatchScalarField::updateCoeffs();
+
+        // Restore tag
+        UPstream::msgType() = oldTag;
+
+        return;
+    }
+
+    // Patch is interface
 
     // Get patch values
     tmp<scalarField> sigma;
