@@ -44,7 +44,7 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(dict.found("J")),
     J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
     havePot_(dict.found("PotE")),
-    ePotExt_(havePot_ ? Function1<scalar>::New("PotE", dict).ptr() : nullptr)
+    ePotExt_(havePot_ ? scalarField("PotE", dict, p.size()) : scalarField())
     /*,
     thicknessLayers_
     (
@@ -105,7 +105,7 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(ptf.haveJ_),
     J_(haveJ_ ? mapper(ptf.J_)() : scalarField()),
     havePot_(ptf.havePot_),
-    ePotExt_(ptf.ePotExt_, false)
+    ePotExt_(ptf.ePotExt_)
     //thicknessLayers_(ptf.thicknessLayers_),
     //kappaLayers_(ptf.kappaLayers_)
 {}
@@ -124,7 +124,7 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(tppsf.haveJ_),
     J_(tppsf.J_),
     havePot_(tppsf.havePot_),
-    ePotExt_(tppsf.ePotExt_, false)
+    ePotExt_(tppsf.ePotExt_)
     //thicknessLayers_(tppsf.thicknessLayers_),
     //kappaLayers_(tppsf.kappaLayers_)
 {}
@@ -147,12 +147,12 @@ void Foam::externalElectricPotentialFvPatchScalarField::map
     {
         mapper(J_, tiptf.J_);
     }
-/*
+
     if (havePot_)
     {
         mapper(ePotExt_, tiptf.ePotExt_);
     }
-*/
+
 }
 
 
@@ -170,12 +170,12 @@ void Foam::externalElectricPotentialFvPatchScalarField::reset
     {
         J_.reset(tiptf.J_);
     }
-/*
+
     if (havePot_)
     {
         ePotExt_.reset(tiptf.ePotExt_);
     }
-*/
+
 }
 
 
@@ -207,8 +207,8 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     }
     if (havePot_)
     {
-        const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
-        potE += ePotExt;
+        //const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
+        potE += ePotExt_;
     }
 
     // Evaluate
@@ -314,7 +314,7 @@ void Foam::externalElectricPotentialFvPatchScalarField::write
 
     if (havePot_)
     {
-        writeEntry(os, ePotExt_());
+        writeEntry(os, "PotE", ePotExt_);
 /*
         writeEntry(os, "h", h_);
         writeEntryIfDifferent
