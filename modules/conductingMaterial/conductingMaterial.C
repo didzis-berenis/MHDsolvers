@@ -120,8 +120,7 @@ void Foam::solvers::conductingMaterial::postCorrector()
 {
     if (electro.correctElectromagnetics())
     {
-        //Correct current density
-        //electro_.correct();
+        //Calculate current density
         electro_.findJ();
         bool imaginary = electro.isComplex();
         if (imaginary)
@@ -129,6 +128,7 @@ void Foam::solvers::conductingMaterial::postCorrector()
             electro_.findJ(imaginary);
         }
         electro_.predict();
+        electro_.setCorrected();
     }
 }
 

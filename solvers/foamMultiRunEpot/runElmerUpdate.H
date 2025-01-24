@@ -1,5 +1,6 @@
 
 // Save old U field
+hasElectricSources = false;
 forAll(regionNames, i)
 {
     if (solvers.isFluid(regionNames[i]))
@@ -11,12 +12,40 @@ forAll(regionNames, i)
             regionNames[i]
         );
     }
-    solvers.storeU(regionNames[i]);
+    if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
+    {
+        // For these regions current density is calculated on OpenFOAM side
+        // and incorporated in Elmer as an external current source. 
+        hasElectricSources = true;
+        const volVectorField& Jre = solvers.getElectro(regionNames[i]).J();
+        solvers.vectorFieldToGlobal(
+            JreGlobal,
+            Jre,
+            regionNames[i]
+        );
+        if (solvers.isElectroHarmonic())
+        {
+            const volVectorField& Jim = solvers.getElectro(regionNames[i]).J(true);
+            solvers.vectorFieldToGlobal(
+                JimGlobal,
+                Jim,
+                regionNames[i]
+            );
+        }
+    }
 }
 // Send fields to Elmer
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
 sending.sendVector(UGlobal);
+if (hasElectricSources)
+{
+    sending.sendVector(JreGlobal);
+    if (solvers.isElectroHarmonic())
+    {
+        sending.sendVector(JimGlobal);
+    }
+}
 // Receive fields from Elmer
 Info<< "\nReceiving fields from Elmer for all regions " << endl;
 if (initialize_elmer) receiving.initialize();

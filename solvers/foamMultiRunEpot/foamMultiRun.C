@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
+    bool hasElectricSources = false;
     Info<< "Initializing electromagnetic solver" << nl << endl;
     #include "runElmerUpdate.H"
     initialize_elmer = false;

@@ -306,6 +306,10 @@ Foam::electromagneticModel::electromagneticModel
     IOdictionary(readModelDict(mesh.thisDb(), phaseName, true)),
     mesh_(mesh),
     phaseName_(phaseName),
+    sourceRole_
+    (
+        IOdictionary(readModelDict(mesh.thisDb(),phaseName)).lookupOrDefault<Switch>("sourceRole", false)
+    ),
     JxB_(lookupOrConstructVector(mesh, "JxB")),
     JxB(JxB_),
     JJsigma_(lookupOrConstructScalar(mesh, "JJsigma")),
@@ -409,6 +413,8 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
 
 void Foam::electromagneticModel::findDeltaJ(bool imaginary)
 {
+    // Add deltaU x B correction on top of externally calculated current density.
+    // Is used in correct() method.
     /*---------------------------------------------------------------------------
     Correction to update electrical currents is based on the epotFoam solver,
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
@@ -430,14 +436,18 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
 
 void Foam::electromagneticModel::findJ(bool imaginary)
 {
+    // Calculate current density internally.
+    // To be used with predict() method.
     /*---------------------------------------------------------------------------
     Correction to update electrical currents is based on the epotFoam solver,
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
     ---------------------------------------------------------------------------*/
     //Get J reference (boundary conditions should come from J)
     volVectorField& Jcorrect = this->J(imaginary);
+    //Interpolating cross product u x B over mesh faces
+    //surfaceScalarField psiUB = fvc::interpolate(UxB(imaginary)) & mesh_.Sf();//U_ ^ B(imaginary)
     //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf());
+    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf());// + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
@@ -449,6 +459,7 @@ void Foam::electromagneticModel::findJ(bool imaginary)
 
 void Foam::electromagneticModel::predict()
 {
+    // Updates Lorentz force and Joule heating
     bool imaginary = isComplex();
     //Lorentz force term
     JxB_ =
@@ -469,6 +480,7 @@ void Foam::electromagneticModel::predict()
 
 void Foam::electromagneticModel::correct()
 {
+    // Calculates current correction and incorporates it in Lorentz force and Joule heating
     bool imaginary = isComplex();
     //Get J difference by incorporating deltaU x B term
     findDeltaJ();
@@ -558,6 +570,11 @@ const Foam::volVectorField& Foam::electromagneticModel::getVectorField(const cha
 const Foam::volScalarField& Foam::electromagneticModel::getScalarField(const char* name) const
 {
     return mesh_.objectRegistry::lookupObject<volScalarField>(name);
+}
+
+bool Foam::electromagneticModel::isSource() const
+{
+    return sourceRole_;
 }
 
 bool Foam::electromagneticModel::correctElectromagnetics() const

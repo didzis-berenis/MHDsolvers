@@ -64,6 +64,9 @@
         "incompressibleConductingFluid.C": "cpp",
         "thermophysicalPredictor.C": "cpp",
         "momentumPredictor.C": "cpp",
-        "initializeTemperature.C": "cpp"
+        "initializeTemperature.C": "cpp",
+        "coupledCurrentDensityFvPatchVectorField.C": "cpp",
+        "externalTemperatureFvPatchScalarField.C": "cpp",
+        "conductingMaterial.C": "cpp"
     }
 }

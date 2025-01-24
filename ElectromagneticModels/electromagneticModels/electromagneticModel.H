@@ -66,6 +66,10 @@ class electromagneticModel
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        //- Determines if the region should be calculated as an electric source
+        //- or treated with corrections and updated with external values.
+        Switch sourceRole_;
+
         //- Switch for updating electromagnetics
         bool correctElectromagnetics_ = false;
 
@@ -227,9 +231,6 @@ public:
         //- Set correctElectromagnetics switch to false
         virtual void setCorrected();
 
-        //- Get correctElectromagnetics switch value
-        virtual bool correctElectromagnetics() const;
-
         //- calculate and return J correction difference
         virtual void solve();
 
@@ -238,6 +239,9 @@ public:
 
         //- calculate and return J correction difference
         virtual void findDeltaJ(bool imaginary=false);
+
+        //- calculate and return J correction
+        virtual void findJ(bool imaginary=false);
 
         //- Inverse Electric conductivity [m/S]
         virtual volScalarField& sigmaInv();
@@ -294,6 +298,12 @@ public:
 
         //- return field from object registry
         const virtual volVectorField& getVectorField(const char* name) const;
+
+        //- Get sourceRole switch value
+        virtual bool isSource() const;
+
+        //- Get correctElectromagnetics switch value
+        virtual bool correctElectromagnetics() const;
 
         //- Electric conductivity [S/m]
         virtual const volScalarField& sigma() const;
