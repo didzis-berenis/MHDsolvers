@@ -90,7 +90,7 @@ class coupledElectricPotentialFvPatchScalarField
         const word UxBname_ = "deltaUxB";
 
         //- Role name for distinguishing sides of an interface source
-        const word terminalRole_;
+        word terminalRole_ = "";
 
         //bool coupled_ = false;
 

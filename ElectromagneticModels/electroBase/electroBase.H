@@ -101,6 +101,7 @@ public:
 
         //- Current density correction [A/m^2]
         virtual void initDeltaJ(bool imaginary=false);
+        virtual void initJ(bool imaginary=false);
 
 
     // Member Operators

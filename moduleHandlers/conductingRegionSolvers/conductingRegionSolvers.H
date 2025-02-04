@@ -150,6 +150,7 @@ class conductingRegionSolvers
 
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
+        void evaluateJBfs_(const word regionName, bool imaginary=false);
 
 
 public:

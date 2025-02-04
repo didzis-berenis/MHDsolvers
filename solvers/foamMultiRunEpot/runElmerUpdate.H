@@ -35,11 +35,15 @@ forAll(regionNames, i)
     }
 }
 // Send fields to Elmer
+Info<< "\nSending fields to Elmer for all regions " << endl;
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
 sending.sendVector(UGlobal);
+//Info<< "\nEM type: " << solvers.isElectroHarmonic() << endl;
+//Info<< "\nEM sources: " << hasElectricSources << endl;
 if (hasElectricSources)
 {
+    //Info<< "\nSending J " << endl;
     sending.sendVector(JreGlobal);
     if (solvers.isElectroHarmonic())
     {
@@ -50,16 +54,19 @@ if (hasElectricSources)
 Info<< "\nReceiving fields from Elmer for all regions " << endl;
 if (initialize_elmer) receiving.initialize();
 receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+//Info<< "\nReceiving J " << endl;
 receiving.recvVector(JreGlobal);
 if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(JimGlobal);
 }
+//Info<< "\nReceiving B " << endl;
 receiving.recvVector(BreGlobal);
 if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(BimGlobal);
 }
+//Info<< "\nSetting J and B " << endl;
 //convert global field to regions
 solvers.setJ(JreGlobal);
 solvers.setB(BreGlobal);
@@ -68,6 +75,7 @@ if (solvers.isElectroHarmonic())
     solvers.setJ(JimGlobal,true);
     solvers.setB(BimGlobal,true);
 }
+//Info<< "\nUpdating.. " << endl;
 //Update region Lorentz force term
 // and Joule heating
 forAll(regionNames, i)

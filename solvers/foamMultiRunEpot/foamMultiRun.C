@@ -103,7 +103,23 @@ int main(int argc, char *argv[])
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     bool hasElectricSources = false;
-    Info<< "Initializing electromagnetic solver" << nl << endl;
+
+    // Update electromagnetics by calculating electric potential.
+    while (solvers.correctElectroPotential())
+    {
+        forAll(regionNames, i)
+        {
+            solvers.solveElectromagnetics(regionNames[i]);
+        }
+    }
+
+    forAll(solvers, i)
+    {
+        if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
+        {
+            solvers[i].postCorrector();
+        }
+    }
     #include "runElmerUpdate.H"
     initialize_elmer = false;
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM

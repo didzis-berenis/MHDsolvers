@@ -89,9 +89,9 @@ Foam::word Foam::coupledElectricPotentialFvPatchScalarField::getTerminalRole() c
 bool Foam::coupledElectricPotentialFvPatchScalarField::
 isValidSource(Foam::word nbrRole) const
 {
-    if (terminalRole_ == "terminal" && nbrRole == "ground" )
+    if (terminalRole_ == "terminal" && nbrRole == "terminal" )
         return true;
-    if (nbrRole == "terminal" && terminalRole_ == "ground" )
+    if (nbrRole == "ground" && terminalRole_ == "ground" )
         return true;
     return false;
 }
@@ -106,8 +106,7 @@ coupledElectricPotentialFvPatchScalarField
     const dictionary& dict
 )
 :
-    mixedFvPatchScalarField(p, iF, dict, false),
-    terminalRole_(dict.lookupOrDefault<word>("terminalRole",""))
+    mixedFvPatchScalarField(p, iF, dict, false)
 {
    mappedPatchBase::validateMapForField
     (
@@ -116,10 +115,11 @@ coupledElectricPotentialFvPatchScalarField
         dict,
         mappedPatchBase::from::differentPatch
     );
+    // Source interface
+    terminalRole_ = dict.lookupOrDefault<word>("terminalRole","");
 
-    if (dict.found("terminalRole"))
+    if (dict.found("refValue"))
     {
-        // Full restart
         refValue() = scalarField("refValue", dict, p.size());
         refGrad() = scalarField("refGradient", dict, p.size());
         valueFraction() = scalarField("valueFraction", dict, p.size());
@@ -209,10 +209,10 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
                 << terminalRole_
                 << endl << "The neighbouring patch field "
                 << internalField().name() << " on "
-                << patchNbr.name() << " is required to be "
-                << (terminalRole_ == "terminal" ? "ground" : "terminal")
+                << patchNbr.name() << " is required to be the same"
+                //<< (terminalRole_ == "terminal" ? "ground" : "terminal")
                 << ", but is currently " << nbrRole << endl
-                << "Valid patch role pairs are terminal-ground " << exit(FatalError);
+                << "Valid patch role pairs are terminal-terminal/ground-ground " << exit(FatalError);
         }
 
         if (terminalRole_ == "terminal")

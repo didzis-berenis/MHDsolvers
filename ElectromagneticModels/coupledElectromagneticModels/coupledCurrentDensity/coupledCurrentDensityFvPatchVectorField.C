@@ -52,12 +52,26 @@ void Foam::coupledCurrentDensityFvPatchVectorField::initCoupling()
 Foam::word Foam::coupledCurrentDensityFvPatchVectorField::suffix() const
 {
     const word Jname = internalField().name();
-    if ( Jname != Jname_ &&
+    if ( Jname != deltaJname_ &&
+        Jname.size() >= deltaJname_.size())
+    {
+        return Jname.substr(deltaJname_.size());
+    }
+    else if ( Jname != Jname_ &&
         Jname.size() >= Jname_.size())
     {
         return Jname.substr(Jname_.size());
     }
     return "";
+}
+
+bool Foam::coupledCurrentDensityFvPatchVectorField::isTerminal(Foam::word terminal) const
+{
+    if (terminal == "ground" )//|| terminal == "terminal")
+    {
+        return true;
+    }
+    return false;
 }
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -79,6 +93,8 @@ coupledCurrentDensityFvPatchVectorField
         dict,
         mappedPatchBase::from::differentPatch
     );
+
+    direction_ = (isTerminal(dict.lookupOrDefault<word>("terminalRole","")) ? -1: 1);
 
     if (dict.found("refValue"))
     {
@@ -171,7 +187,7 @@ void Foam::coupledCurrentDensityFvPatchVectorField::updateCoeffs()
     deltaUxB = deltaUxBp.patchInternalField() & patch().nf();
 
     this->refValue() =
-        (
+        direction_*(
         -(ePotPatch() - ePotInternal()) * patch().deltaCoeffs()//Potential gradient
         +
         deltaUxB()

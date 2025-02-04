@@ -112,4 +112,23 @@ void Foam::electroBase::initDeltaJ(bool imaginary)
         }
 }
 
+void Foam::electroBase::initJ(bool imaginary)
+{
+        volVectorField& J = electroPtr_->J(imaginary);
+        volVectorField::Boundary& JBf = J.boundaryFieldRef();
+        forAll(JBf, patchi)
+        {
+            fvPatchVectorField& pJ = JBf[patchi];
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pJ) )
+            {
+                //derived from directionMixedFvPatchVectorField
+                coupledCurrentDensityFvPatchVectorField& cpJ =
+                refCast<coupledCurrentDensityFvPatchVectorField>(pJ);
+                //Switch to coupling mode
+                cpJ.initCoupling();
+                cpJ.evaluate();
+            }
+        }
+}
+
 // ************************************************************************* //

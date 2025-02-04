@@ -115,6 +115,11 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         {
             evaluateDeltaJBfs_(regionName,true);
         }
+        evaluateJBfs_(regionName);
+        if (imaginary)
+        {
+            evaluateJBfs_(regionName,true);
+        }
     }
 
     nRegionNameChars++;
@@ -257,6 +262,15 @@ void Foam::conductingRegionSolvers::evaluateDeltaJBfs_(const word regionName, bo
     if (getElectroBasePtr_(regionName))
     {
         getElectroBasePtr_(regionName)->initDeltaJ(imaginary);
+    }
+}
+void Foam::conductingRegionSolvers::evaluateJBfs_(const word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        electroBase* electrPtr = getElectroBasePtr_(regionName);
+        if (electrPtr->electro.isSource())
+            electrPtr->initJ(imaginary);
     }
 }
 
