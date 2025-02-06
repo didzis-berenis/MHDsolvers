@@ -67,6 +67,10 @@
         "initializeTemperature.C": "cpp",
         "coupledCurrentDensityFvPatchVectorField.C": "cpp",
         "externalTemperatureFvPatchScalarField.C": "cpp",
-        "conductingMaterial.C": "cpp"
+        "conductingMaterial.C": "cpp",
+        "magneticMaterial.C": "cpp",
+        "Elmer.C": "cpp",
+        "dictionary.C": "cpp",
+        "dictionaryTemplates.C": "cpp"
     }
 }

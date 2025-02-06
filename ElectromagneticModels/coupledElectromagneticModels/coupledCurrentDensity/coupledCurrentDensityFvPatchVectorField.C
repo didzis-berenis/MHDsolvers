@@ -52,13 +52,11 @@ void Foam::coupledCurrentDensityFvPatchVectorField::initCoupling()
 Foam::word Foam::coupledCurrentDensityFvPatchVectorField::suffix() const
 {
     const word Jname = internalField().name();
-    if ( Jname != deltaJname_ &&
-        Jname.size() >= deltaJname_.size())
+    if (Jname.size() > deltaJname_.size() && Jname.find(deltaJname_) == 0)
     {
         return Jname.substr(deltaJname_.size());
     }
-    else if ( Jname != Jname_ &&
-        Jname.size() >= Jname_.size())
+    else if (Jname.size() > Jname_.size() && Jname.find(Jname_) == 0)
     {
         return Jname.substr(Jname_.size());
     }

@@ -344,6 +344,16 @@ void Foam::conductingRegionSolvers::setJ(volVectorField& globalField, bool imagi
         }
     }
 }
+//Assigns fluid and solid region values from global field to a specified region field
+void Foam::conductingRegionSolvers::setJToRegion(volVectorField& globalField, const word& regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName) && !isElectric(regionName))
+    {
+        volVectorField& regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
+        vectorGlobalToField_(globalField,regionField,regionName);
+        regionField.correctBoundaryConditions();
+    }
+}
 //Assigns fluid and solid region values from global to each region field
 void Foam::conductingRegionSolvers::setB(volVectorField& globalField, bool imaginary)
 {

@@ -207,6 +207,9 @@ public:
         //- Assign current density to solvers
         void setJ(volVectorField& field, bool imaginary=false);
 
+        //- Assign current density to specified region
+        void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
+
         //- Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
 

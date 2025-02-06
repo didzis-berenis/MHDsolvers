@@ -1,6 +1,10 @@
 
-// Save old U field
-hasElectricSources = false;
+// Clean global current fields before applying sources
+JreGlobal = Zero;
+if (solvers.isElectroHarmonic())
+{
+    JimGlobal = Zero;
+}
 forAll(regionNames, i)
 {
     if (solvers.isFluid(regionNames[i]))
@@ -16,6 +20,7 @@ forAll(regionNames, i)
     {
         // For these regions current density is calculated on OpenFOAM side
         // and incorporated in Elmer as an external current source. 
+        //Info<< "\nAdding to global J: " << regionNames[i] << endl;
         hasElectricSources = true;
         const volVectorField& Jre = solvers.getElectro(regionNames[i]).J();
         solvers.vectorFieldToGlobal(
@@ -34,16 +39,18 @@ forAll(regionNames, i)
         }
     }
 }
+if (transient_em)
+{
+    JreGlobal *= Foam::sin(omega_em*runTime.userTimeValue());
+}
+//JreGlobal.write();
 // Send fields to Elmer
 Info<< "\nSending fields to Elmer for all regions " << endl;
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
 sending.sendVector(UGlobal);
-//Info<< "\nEM type: " << solvers.isElectroHarmonic() << endl;
-//Info<< "\nEM sources: " << hasElectricSources << endl;
 if (hasElectricSources)
 {
-    //Info<< "\nSending J " << endl;
     sending.sendVector(JreGlobal);
     if (solvers.isElectroHarmonic())
     {
@@ -54,28 +61,35 @@ if (hasElectricSources)
 Info<< "\nReceiving fields from Elmer for all regions " << endl;
 if (initialize_elmer) receiving.initialize();
 receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-//Info<< "\nReceiving J " << endl;
 receiving.recvVector(JreGlobal);
 if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(JimGlobal);
 }
-//Info<< "\nReceiving B " << endl;
 receiving.recvVector(BreGlobal);
 if (solvers.isElectroHarmonic())
 {
     receiving.recvVector(BimGlobal);
 }
-//Info<< "\nSetting J and B " << endl;
 //convert global field to regions
-solvers.setJ(JreGlobal);
+
+
+forAll(regionNames, i)
+{
+    // Skip update for electric sources, since current was calculated in OpnFOAM
+    if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
+        continue;
+    solvers.setJToRegion(JreGlobal,regionNames[i]);
+    if (solvers.isElectroHarmonic())
+    {
+        solvers.setJToRegion(JimGlobal,regionNames[i],true);
+    }
+}
 solvers.setB(BreGlobal);
 if (solvers.isElectroHarmonic())
 {
-    solvers.setJ(JimGlobal,true);
     solvers.setB(BimGlobal,true);
 }
-//Info<< "\nUpdating.. " << endl;
 //Update region Lorentz force term
 // and Joule heating
 forAll(regionNames, i)

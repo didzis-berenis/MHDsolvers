@@ -149,3 +149,7 @@ forAll(regionNames, i)
 }
 
 const dimensionedScalar absoluteZero(dimTemperature,-273.15);
+constexpr double PI = 3.141592653589793;
+// Frequency control for electromagnetic current sources in transient simulation
+const scalar omega_em = 2*PI*runTime.controlDict().lookupOrDefault<scalar>("frequency", -1);
+const bool transient_em = omega_em < 0 ? false : true;

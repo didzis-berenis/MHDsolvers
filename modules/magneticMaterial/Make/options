@@ -1,0 +1,19 @@
+EXE_INC = \
+    -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/coupledElectromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/electroBase/lnInclude
+
+LIB_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lsampling \
+    -lfvModels \
+    -lfvConstraints \
+    -L$(FOAM_USER_LIBBIN) \
+    -lelectromagneticModels \
+    -lelectroBase \
+    -lcoupledElectromagneticModels

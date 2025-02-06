@@ -105,7 +105,8 @@ int main(int argc, char *argv[])
     bool hasElectricSources = false;
 
     // Update electromagnetics by calculating electric potential.
-    while (solvers.correctElectroPotential())
+    //FixMe: Need to go through PIMPLE loop here
+    /*while (solvers.correctElectroPotential())
     {
         forAll(regionNames, i)
         {
@@ -119,7 +120,7 @@ int main(int argc, char *argv[])
         {
             solvers[i].postCorrector();
         }
-    }
+    }*/
     #include "runElmerUpdate.H"
     initialize_elmer = false;
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM

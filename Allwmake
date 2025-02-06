@@ -7,6 +7,7 @@ wmake ElectromagneticModels/coupledElectromagneticModels
 wmake ElectromagneticModels/electroBase
 
 wmake modules/incompressibleConductingFluid
+wmake modules/magneticMaterial
 wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
