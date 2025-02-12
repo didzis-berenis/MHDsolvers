@@ -104,6 +104,8 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        std::map<word, scalar> conductorPhases_;
+
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
         
@@ -152,13 +154,22 @@ class conductingRegionSolvers
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
         void evaluateJBfs_(const word regionName, bool imaginary=false);
 
+        // Electromagnetic excitation frequency
+        // Used in simulations with transientElectromagnetics==true
+        scalar frequency_=0;
+        // Set to true if any region is electromagnetic source
+        bool hasElectricSources_=false;
+        void checkIfAnyElectricSources_();
 
 public:
     //constants
         const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
-        static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
+        static constexpr double PI = 3.141592653589793;
+        static constexpr scalar mu_0 = 4*PI*(std::pow(10,-7));
         //- Magnetic field update controls
         const int waitInterval;
+        // Used for determining electromagnetic source excitation form
+        const Switch transientElectromagnetics;
 
     // Constructors
 
@@ -207,6 +218,12 @@ public:
         //- Assign current density to solvers
         void setJ(volVectorField& field, bool imaginary=false);
 
+        // Check if any region is electric source
+        bool hasElectricSources();
+
+        // Get formatted current density from electric source regions
+        volVectorField getSourceJ(word regionName, bool imaginary);
+
         //- Assign current density to specified region
         void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
 
@@ -224,6 +241,12 @@ public:
 
         //- Check if solver type is electricSolverName_
         bool isElectric(const word regionName);
+
+        // Check if region is electric source
+        bool isSource(const word regionName);
+
+        // Check if not solved for specified region
+        bool isNotSolvedFor(const word regionName);
 
         //- Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();
@@ -260,6 +283,9 @@ public:
 
         //- Get region-solver name pairs
         List<Pair<word>> getNames();
+
+        // Get solver id from region name
+        int getRegionId(const word regionName);
 
 
     // Iterator

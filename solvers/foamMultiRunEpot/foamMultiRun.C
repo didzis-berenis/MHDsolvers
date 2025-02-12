@@ -96,33 +96,16 @@ int main(int argc, char *argv[])
 
     double elmerClock = runTime.clockTimeIncrement();
 
-    Info<< nl << "Initializing electromagnetic solver\n" << endl;
-
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
-    bool hasElectricSources = false;
-
-    // Update electromagnetics by calculating electric potential.
-    //FixMe: Need to go through PIMPLE loop here
-    /*while (solvers.correctElectroPotential())
+    // Initialize electromagnetic sources.
+    if (solvers.hasElectricSources())
     {
-        forAll(regionNames, i)
-        {
-            solvers.solveElectromagnetics(regionNames[i]);
-        }
+        #include "initializeElectricSources.H"
     }
-
-    forAll(solvers, i)
-    {
-        if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
-        {
-            solvers[i].postCorrector();
-        }
-    }*/
     #include "runElmerUpdate.H"
-    initialize_elmer = false;
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
     // This is done to avoid the initial oscillations in the solution
     for (int i = 0; i < solvers.waitInterval; i++)
@@ -210,9 +193,19 @@ int main(int argc, char *argv[])
             {
                 forAll(regionNames, i)
                 {
+                    if
+                    (   // Do not solve for source electromagnetic regions.
+                        // Source regions are solved once before time-loop.
+                        // Other electric regions are presently considered passive.
+                        // So just skip all electric/conductingMaterial regions.
+                        //solvers.isSource(regionNames[i]) || solvers.isNotSolvedFor(regionNames[i])
+                        solvers.isElectric(regionNames[i])
+                    )
+                        continue;
                     solvers.solveElectromagnetics(regionNames[i]);
                 }
             }
+            solvers.setGlobalPrefix();
 
             forAll(solvers, i)
             {

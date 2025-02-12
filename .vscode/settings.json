@@ -71,6 +71,8 @@
         "magneticMaterial.C": "cpp",
         "Elmer.C": "cpp",
         "dictionary.C": "cpp",
-        "dictionaryTemplates.C": "cpp"
+        "dictionaryTemplates.C": "cpp",
+        "fvMatrix.C": "cpp",
+        "conductingRegionSolver.C": "cpp"
     }
 }

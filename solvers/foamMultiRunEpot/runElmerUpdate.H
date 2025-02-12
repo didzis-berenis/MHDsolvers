@@ -1,9 +1,12 @@
 
 // Clean global current fields before applying sources
-JreGlobal = Zero;
-if (solvers.isElectroHarmonic())
+if (solvers.hasElectricSources())
 {
-    JimGlobal = Zero;
+    JreGlobal = Zero;
+    if (solvers.isElectroHarmonic())
+    {
+        JimGlobal = Zero;
+    }
 }
 forAll(regionNames, i)
 {
@@ -16,13 +19,11 @@ forAll(regionNames, i)
             regionNames[i]
         );
     }
-    if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
+    if (solvers.isSource(regionNames[i]))
     {
         // For these regions current density is calculated on OpenFOAM side
-        // and incorporated in Elmer as an external current source. 
-        //Info<< "\nAdding to global J: " << regionNames[i] << endl;
-        hasElectricSources = true;
-        const volVectorField& Jre = solvers.getElectro(regionNames[i]).J();
+        // and incorporated in Elmer as an external current source.
+        const volVectorField Jre = solvers.getSourceJ(regionNames[i],false);
         solvers.vectorFieldToGlobal(
             JreGlobal,
             Jre,
@@ -30,7 +31,7 @@ forAll(regionNames, i)
         );
         if (solvers.isElectroHarmonic())
         {
-            const volVectorField& Jim = solvers.getElectro(regionNames[i]).J(true);
+            const volVectorField Jim = solvers.getSourceJ(regionNames[i],true);
             solvers.vectorFieldToGlobal(
                 JimGlobal,
                 Jim,
@@ -39,17 +40,14 @@ forAll(regionNames, i)
         }
     }
 }
-if (transient_em)
-{
-    JreGlobal *= Foam::sin(omega_em*runTime.userTimeValue());
-}
 //JreGlobal.write();
+//JimGlobal.write();
 // Send fields to Elmer
 Info<< "\nSending fields to Elmer for all regions " << endl;
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
 sending.sendVector(UGlobal);
-if (hasElectricSources)
+if (solvers.hasElectricSources())
 {
     sending.sendVector(JreGlobal);
     if (solvers.isElectroHarmonic())
@@ -76,8 +74,8 @@ if (solvers.isElectroHarmonic())
 
 forAll(regionNames, i)
 {
-    // Skip update for electric sources, since current was calculated in OpnFOAM
-    if (solvers.isElectric(regionNames[i]) && solvers.getElectro(regionNames[i]).isSource())
+    // Skip update for electric sources, since current was calculated in OpenFOAM
+    if (solvers.isSource(regionNames[i]))
         continue;
     solvers.setJToRegion(JreGlobal,regionNames[i]);
     if (solvers.isElectroHarmonic())
@@ -107,3 +105,6 @@ if (Pstream::master())
     }
     else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
 }
+// Initialization is needed only on the first update.
+if (initialize_elmer)
+    initialize_elmer = false;

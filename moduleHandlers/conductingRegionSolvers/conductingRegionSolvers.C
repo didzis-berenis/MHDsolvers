@@ -32,9 +32,9 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
 :
     runTime_(runTime),
     restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0)),
-    waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0))
+    waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0)),
+    transientElectromagnetics(runTime.controlDict().lookupOrDefault("transientElectromagnetics",false))
 {
-
     if (runTime.controlDict().found("regionSolvers"))
     {
         const dictionary& conductingRegionSolversDict =
@@ -191,6 +191,55 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             regionToGlobalCellId[std::make_pair(regionName,cellI)] = globalCellI++;
         }
     }
+
+    if (runTime.controlDict().found("conductorPhases"))
+    {
+        const dictionary& conductorPhasesDict =
+            runTime.controlDict().subDict("conductorPhases");
+        forAll(names_, i)
+        {
+            const word& regionName = names_[i].first();
+            // Get phase shift for all electromagnetic sources
+            if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+            {
+                conductorPhases_[regionName] = conductorPhasesDict.lookup<scalar>(regionName)*PI/180.0;
+            }
+        }
+    }
+    checkIfAnyElectricSources_();
+    if (hasElectricSources_ && transientElectromagnetics)
+    {
+        frequency_ = runTime.controlDict().lookup<scalar>("frequency");
+        // Check if frequency is non-negative
+        if (frequency_ < 0 )
+        {
+            FatalIOError << "Frequency must be non-negative, but "
+            << frequency_ << "Hz was provided!\n" << exit(FatalIOError);
+        }
+        // Check if all electromagnetic sources has phase defined
+        // for a transient electromagnetic simulation
+        forAll(names_, i)
+        {
+            const word& regionName = names_[i].first();
+            if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+            {
+                bool sourceHasPhase = false;
+                for (auto element : conductorPhases_)
+                {
+                    if (regionName == element.first)
+                    {
+                        sourceHasPhase = true;
+                        break;
+                    }
+                }
+                if (!sourceHasPhase)
+                {
+                    FatalIOError << "Failed to get phase for electromagnetic source region " << regionName << "!\n"
+                    << exit(FatalIOError);
+                }
+            }
+        }
+    }
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -274,6 +323,21 @@ void Foam::conductingRegionSolvers::evaluateJBfs_(const word regionName, bool im
     }
 }
 
+void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+        {
+            // For these regions current density is calculated on OpenFOAM side
+            // and incorporated in Elmer as an external current source.
+            hasElectricSources_ = true;
+            break;
+        }
+    }
+}
+
 // * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
 
 void Foam::conductingRegionSolvers::setGlobalPrefix() const
@@ -330,16 +394,39 @@ const Foam::fvMesh& Foam::conductingRegionSolvers::globalMesh()
         << exit(FatalIOError);
     }
 }
+bool Foam::conductingRegionSolvers::hasElectricSources()
+{
+    return hasElectricSources_;
+}
+//Get J from electromagnetic source region
+Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+    {
+        volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
+        if (transientElectromagnetics)
+        {
+            regionField*=Foam::sin(2*PI*frequency_*runTime_.userTimeValue()-conductorPhases_[regionName]);
+        }
+        return regionField;
+    }
+    else
+    {
+        FatalIOError << "Failed to get J from region " << regionName << "!\n"
+        << exit(FatalIOError);
+    }
+}
 //Assigns fluid and solid region values from global to each region field
 void Foam::conductingRegionSolvers::setJ(volVectorField& globalField, bool imaginary)
 {
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName) && !isElectric(regionName))
+        if (getElectroBasePtr_(regionName))
         {
             volVectorField& regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
             vectorGlobalToField_(globalField,regionField,regionName);
+            // Update boundary values based on boundary conditions.
             regionField.correctBoundaryConditions();
         }
     }
@@ -347,10 +434,11 @@ void Foam::conductingRegionSolvers::setJ(volVectorField& globalField, bool imagi
 //Assigns fluid and solid region values from global field to a specified region field
 void Foam::conductingRegionSolvers::setJToRegion(volVectorField& globalField, const word& regionName, bool imaginary)
 {
-    if (getElectroBasePtr_(regionName) && !isElectric(regionName))
+    if (getElectroBasePtr_(regionName))
     {
         volVectorField& regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
         vectorGlobalToField_(globalField,regionField,regionName);
+        // Update boundary values based on boundary conditions.
         regionField.correctBoundaryConditions();
     }
 }
@@ -364,6 +452,7 @@ void Foam::conductingRegionSolvers::setB(volVectorField& globalField, bool imagi
         {
             volVectorField& regionField = getElectroBasePtr_(regionName)->getB(imaginary);
             vectorGlobalToField_(globalField,regionField,regionName);
+            // Update boundary values based on boundary conditions.
             regionField.correctBoundaryConditions();
         }
     }
@@ -445,6 +534,16 @@ bool Foam::conductingRegionSolvers::isSolid(const word regionName)
 bool Foam::conductingRegionSolvers::isElectric(const word regionName)
 {
     return names_[regionIdx_[regionName]].second() == electricSolverName_;
+}
+
+bool Foam::conductingRegionSolvers::isSource(const word regionName)
+{
+    return isElectric(regionName) && getElectro(regionName).isSource();
+}
+
+bool Foam::conductingRegionSolvers::isNotSolvedFor(const word regionName)
+{
+    return isElectric(regionName) && !getElectro(regionName).isSource();
 }
 
 void Foam::conductingRegionSolvers::setPotentialCorrectors(const dictionary& dict)
@@ -598,6 +697,11 @@ void Foam::conductingRegionSolvers::calcTemperatureGradient(const word regionNam
         }
         */
     }
+}
+
+int Foam::conductingRegionSolvers::getRegionId(const word regionName)
+{
+    return regionIdx_[regionName];
 }
 
 Foam::List<Foam::Pair<Foam::word>> Foam::conductingRegionSolvers::getNames()
