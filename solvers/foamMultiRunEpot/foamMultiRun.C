@@ -40,6 +40,7 @@ Description
 #include "conductingRegionSolvers.H"
 #include "pimpleMultiRegionControl.H"
 #include "setDeltaT.H"
+#include "feedbackLoopController.H"
 
 using namespace Foam;
 #include "Elmer.H"
@@ -104,8 +105,44 @@ int main(int argc, char *argv[])
     if (solvers.hasElectricSources())
     {
         #include "initializeElectricSources.H"
+
+        //TODO: Initialize Wire regions for current direction reference
+
     }
+    //TODO: Get feedbackLoopController initialization values from dictionary
+    scalar required_output_value = 10.0;
+    feedbackLoopController currentController(1.0,//proportional_coeff,
+        0,//differential_coeff,
+        0,//integral_coeff,
+        required_output_value);
+    scalar present_output = 0;
+
     #include "runElmerUpdate.H"
+
+    forAll(regionNames, i)
+    {
+        // Skip update for electric sources, since current was calculated in OpenFOAM
+        if (solvers.isNotSolvedFor(regionNames[i]))
+        {
+            const scalarField sumJre
+            (
+                //TODO: Calculate magnitude using current direction reference
+                mag(solvers.getElectro(regionNames[i]).J())
+            );
+            const scalarField sumJim
+            (
+                //TODO: Calculate magnitude using current direction reference
+                mag(solvers.getElectro(regionNames[i]).J(solvers.isElectroHarmonic()))
+            );
+            //TODO: Get terminal area from terminal boundary of selected wire region
+            const scalar terminalArea = 0.0001;
+            present_output = std::sqrt(std::pow(gAverage(sumJre),2)+std::pow(gAverage(sumJim),2))*terminalArea;
+        }
+    }
+    scalar correction = currentController.calculateCorrection(present_output, 1.0);
+    Info << "Present current output: " << present_output << endl;
+    Info << "Calculated correction: " << correction << endl;
+
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
     // This is done to avoid the initial oscillations in the solution
     for (int i = 0; i < solvers.waitInterval; i++)

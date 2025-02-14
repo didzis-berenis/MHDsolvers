@@ -1,0 +1,3 @@
+feedbackLoopController.C
+
+LIB = $(FOAM_USER_LIBBIN)/libfeedbackLoopController

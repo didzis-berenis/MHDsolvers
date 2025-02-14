@@ -73,6 +73,9 @@
         "dictionary.C": "cpp",
         "dictionaryTemplates.C": "cpp",
         "fvMatrix.C": "cpp",
-        "conductingRegionSolver.C": "cpp"
+        "conductingRegionSolver.C": "cpp",
+        "checkRegionCellZones.C": "cpp",
+        "feedbackLoopController.C": "cpp",
+        "iostream": "cpp"
     }
 }
