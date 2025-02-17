@@ -82,6 +82,34 @@ protected:
     //- Store old velocity field
         volVectorField U_old_;
 
+    // Control parameters
+
+        scalar maxDi = 1;
+
+    // Time-step controls
+
+        scalar DiNum = 0;
+
+
+    // Protected Member Functions
+
+        //- Read controls
+        virtual void readControls();
+
+        //- Local dummy turbulent alpha field
+        volScalarField alphat_;
+
+        //- Turbulent alpha field
+        volScalarField& alphat;
+
+
+private:
+
+    // Private Member Functions
+
+        //- Correct the cached Courant numbers
+        void correctDiNum();
+
 public:
         
 
@@ -107,10 +135,16 @@ public:
         //non-const Temperature access for initialization purposes
         volScalarField& getTemperature();
 
-    //- Store old velocity field
+        //- Store old velocity field
         const volVectorField& U_old;
         //- Set U_old = U
         virtual void storeU();
+
+        //- Return the current maximum time-step for stable solution
+        virtual scalar maxDeltaT() const;
+
+        //- Called at the start of the time-step, before the PIMPLE loop
+        virtual void preSolve();
 
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();

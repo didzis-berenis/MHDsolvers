@@ -39,6 +39,55 @@ namespace solvers
 }
 
 
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+void Foam::solvers::conductingFluid::readControls()
+{
+    isothermalFluid::readControls();
+
+    maxDi =
+        runTime.controlDict().lookupOrDefault<scalar>("maxDi", 1.0);
+}
+
+
+void Foam::solvers::conductingFluid::correctDiNum()
+{
+    const volScalarField kappa = thermo.kappa();
+    const scalarField sumPhi
+    (
+        fvc::surfaceSum(mag(phi))().primitiveField()/rho.primitiveField()
+    );
+    // Alpha/rho from material properties
+    const scalarField sumAlpha
+    (
+        fvc::surfaceSum
+        (
+            mesh.magSf()
+        *fvc::interpolate(kappa)
+        *mesh.surfaceInterpolation::deltaCoeffs()
+        )()()/(thermo.rho()()*thermo.Cp()())
+    );
+    // Alpha/rho from turbulence
+    const scalarField sumAlphat
+    (
+        alphat.primitiveField()/rho.primitiveField()
+    );
+    // Diffusion number including turbulence
+    const scalarField DiNumvf
+    (
+        (sumAlpha+sumAlphat)*runTime.deltaT().value()/mesh.V()
+    );
+
+    const scalar meanDiNum = gAverage(DiNumvf);
+    const scalar maxDiNum = gMax(DiNumvf);
+
+    Info<< "Diffusion Number mean: " << meanDiNum
+        << " max: " << maxDiNum << endl;
+
+    DiNum = maxDiNum;
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
@@ -69,9 +118,34 @@ Foam::solvers::conductingFluid::conductingFluid(fvMesh& mesh)
 
     U_old(U_old_),
 
-    electroBase(mesh)
+    electroBase(mesh),
+
+    alphat_
+    (
+            IOobject
+            (
+            "alphat",
+            mesh.time().name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+            ),
+            mesh,
+            dimensionedScalar(dimVelocity*dimDensity*dimLength,0)
+    ),
+
+    alphat
+    (
+        mesh.objectRegistry::foundObject<volScalarField>("alphat") ?
+        mesh.objectRegistry::lookupObjectRef<volScalarField>("alphat") :
+        alphat_
+    )
 {
     thermo.validate(type(), "h", "e");
+    if (transient())
+    {
+        correctDiNum();
+    }
 
     label PotERefCell = 0;
     scalar PotERefValue = 0.0;
@@ -103,6 +177,40 @@ Foam::solvers::conductingFluid::~conductingFluid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
+
+Foam::scalar Foam::solvers::conductingFluid::maxDeltaT() const
+{
+    // Combine hydrodynamic and thermophysical conditions for maxDeltaT
+    scalar deltaT = isothermalFluid::maxDeltaT();
+
+    if (DiNum > small)
+    {
+        deltaT = min(deltaT, maxDi/DiNum*runTime.deltaTValue());
+    }
+
+    return deltaT;
+}
+
+
+void Foam::solvers::conductingFluid::preSolve()
+{
+    // Combine hydrodynamic and thermophysical preSolve actions
+    isothermalFluid::preSolve();
+
+    // Read the controls
+    readControls();
+
+    fvModels().preUpdateMesh();
+
+    // Update the mesh for topology change, mesh to mesh mapping
+    mesh_.update();
+
+    if (transient())
+    {
+        correctDiNum();
+    }
+}
+
 
 void Foam::solvers::conductingFluid::prePredictor()
 {
