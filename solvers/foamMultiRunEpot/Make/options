@@ -38,6 +38,5 @@ EXE_LIBS = \
     -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
     -lconductingRegionSolvers \
-    -lfeedbackLoopController \
     $(EOF_LIBS) \
     -lElmer

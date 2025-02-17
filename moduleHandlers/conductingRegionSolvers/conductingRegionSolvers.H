@@ -71,6 +71,7 @@ SourceFiles
 #include "solver.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
+//#include "feedbackLoopController.H"
 #include <map>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -168,8 +169,6 @@ public:
         static constexpr scalar mu_0 = 4*PI*(std::pow(10,-7));
         //- Magnetic field update controls
         const int waitInterval;
-        // Used for determining electromagnetic source excitation form
-        const Switch transientElectromagnetics;
 
     // Constructors
 

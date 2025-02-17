@@ -308,7 +308,7 @@ Foam::electromagneticModel::electromagneticModel
     phaseName_(phaseName),
     sourceRole_
     (
-        IOdictionary(readModelDict(mesh.thisDb(),phaseName)).lookupOrDefault<Switch>("sourceRole", false)
+        this->lookupOrDefault<Switch>("sourceRole", false)
     ),
     JxB_(lookupOrConstructVector(mesh, "JxB")),
     JxB(JxB_),
@@ -327,12 +327,12 @@ Foam::electromagneticModel::electromagneticModel
     ),
     sigmaConst_
     (
-        IOdictionary(readModelDict(mesh.thisDb(),phaseName)).found("sigma") ?
+        this->found("sigma") ?
         dimensionedScalar
         (
             "sigma",
             pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
-            IOdictionary(readModelDict(mesh.thisDb(),phaseName))
+            *this
         ) :
         dimensionedScalar
         (

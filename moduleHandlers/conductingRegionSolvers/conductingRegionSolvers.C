@@ -32,8 +32,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
 :
     runTime_(runTime),
     restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0)),
-    waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0)),
-    transientElectromagnetics(runTime.controlDict().lookupOrDefault("transientElectromagnetics",false))
+    waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0))
 {
     if (runTime.controlDict().found("regionSolvers"))
     {
@@ -192,22 +191,24 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         }
     }
 
-    if (runTime.controlDict().found("conductorPhases"))
+    if (!isElectroHarmonic())
     {
-        const dictionary& conductorPhasesDict =
-            runTime.controlDict().subDict("conductorPhases");
+        //const dictionary& conductorPhasesDict =
+        //    runTime.controlDict().subDict("conductorPhases");
         forAll(names_, i)
         {
             const word& regionName = names_[i].first();
             // Get phase shift for all electromagnetic sources
-            if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+            if (getElectroBasePtr_(regionName))
             {
-                conductorPhases_[regionName] = conductorPhasesDict.lookup<scalar>(regionName)*PI/180.0;
+                electroBase* electrPtr = getElectroBasePtr_(regionName);
+                if (electrPtr->electro.isSource())
+                    conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
             }
         }
     }
     checkIfAnyElectricSources_();
-    if (hasElectricSources_ && transientElectromagnetics)
+    if (hasElectricSources_ && !isElectroHarmonic())
     {
         frequency_ = runTime.controlDict().lookup<scalar>("frequency");
         // Check if frequency is non-negative
@@ -404,7 +405,7 @@ Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, 
     if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
     {
         volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
-        if (transientElectromagnetics)
+        if (!isElectroHarmonic())
         {
             regionField*=Foam::sin(2*PI*frequency_*runTime_.userTimeValue()-conductorPhases_[regionName]);
         }
