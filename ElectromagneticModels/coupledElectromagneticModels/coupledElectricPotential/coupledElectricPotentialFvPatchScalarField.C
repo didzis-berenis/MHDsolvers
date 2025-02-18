@@ -81,11 +81,6 @@ Foam::word Foam::coupledElectricPotentialFvPatchScalarField::suffix() const
     return "";
 }
 
-Foam::word Foam::coupledElectricPotentialFvPatchScalarField::getTerminalRole() const
-{
-    return terminalRole_;
-}
-
 bool Foam::coupledElectricPotentialFvPatchScalarField::
 isValidSource(Foam::word nbrRole) const
 {
@@ -286,6 +281,11 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
     // Restore tag
     UPstream::msgType() = oldTag;
+}
+
+Foam::word Foam::coupledElectricPotentialFvPatchScalarField::getTerminalRole() const
+{
+    return terminalRole_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

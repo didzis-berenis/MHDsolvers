@@ -115,9 +115,6 @@ protected:
     //- Get suffix for complex cases (Re or Im)
     word suffix() const;
 
-    //- Returns role of the terminal
-    word getTerminalRole() const;
-
     //- Checks if source patch is valid
     bool isValidSource(word nbrRole) const;
 
@@ -174,6 +171,9 @@ public:
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
+
+        //- Returns role of the terminal
+        word getTerminalRole() const;
 
     // Friend class
     //- Allow coupledCurrentDensityFvPatchVectorField to access private data

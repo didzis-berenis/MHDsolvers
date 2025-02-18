@@ -93,6 +93,25 @@ void Foam::electroBase::initPotE(bool imaginary)
     }
 }
 
+
+void Foam::electroBase::updatePotErefGrad(scalar newGrad, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal")
+                cpPotE.refGrad() = newGrad;
+        }
+    }
+}
+
+
 void Foam::electroBase::initDeltaJ(bool imaginary)
 {
         volVectorField& deltaJ = electroPtr_->deltaJ(imaginary);

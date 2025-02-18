@@ -152,7 +152,6 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             dimensionedScalar("Lchar",dimLength,0)
         ).value();
     }
-
     // get write controls / magnetic field update controls
     if (isElectroHarmonic())
     {
@@ -188,6 +187,50 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         forAll(cells, cellI)
         {
             regionToGlobalCellId[std::make_pair(regionName,cellI)] = globalCellI++;
+        }
+    }
+    // Find regions, which need feedback control
+    // And initialize feedback loop controller
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName))
+        {
+            electroBase* electrPtr = getElectroBasePtr_(regionName);
+            const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
+            if (feedbackType == "")
+                continue;
+            if (feedbackType == "current")
+            {
+                const dimensionedScalar setCurrent
+                (
+                    "current",
+                    dimCurrent,
+                    electrPtr->electro
+                );
+                const dimensionedScalar terminalArea
+                (
+                    "terminalArea",
+                    dimLength*dimLength,
+                    electrPtr->electro
+                );
+                const scalar setPhase = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
+                const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                Info << "Region: " << regionName << ", terminal: " << terminalName << ", current: " << setCurrent
+                << ", terminalArea: " << terminalArea << ", phase: " << setPhase << endl;
+            }
+        }
+    }
+
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        bool imaginary = isElectroHarmonic();
+        scalar newGrad = 1;
+        updatePotErefGrad_(regionName, newGrad);
+        if (imaginary)
+        {
+            updatePotErefGrad_(regionName, newGrad, imaginary);
         }
     }
 
@@ -304,6 +347,13 @@ void Foam::conductingRegionSolvers::evaluatePotEBfs_(const word regionName, bool
     if (getElectroBasePtr_(regionName))
     {
         getElectroBasePtr_(regionName)->initPotE(imaginary);
+    }
+}
+void Foam::conductingRegionSolvers::updatePotErefGrad_(const word regionName, scalar newGrad, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        getElectroBasePtr_(regionName)->updatePotErefGrad(newGrad, imaginary);
     }
 }
 //initializes boundary conditions
