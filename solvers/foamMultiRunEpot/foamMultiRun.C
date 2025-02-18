@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
 
     #include "runElmerUpdate.H"
 
+    solvers.updateFeedbackControl();
     /*forAll(regionNames, i)
     {
         // Skip update for electric sources, since current was calculated in OpenFOAM

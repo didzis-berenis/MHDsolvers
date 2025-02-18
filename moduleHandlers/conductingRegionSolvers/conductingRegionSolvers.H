@@ -71,8 +71,9 @@ SourceFiles
 #include "solver.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
-//#include "feedbackLoopController.H"
+#include "feedbackLoopController.H"
 #include <map>
+#include <vector>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -106,6 +107,13 @@ class conductingRegionSolvers
         std::map<word, label> regionIdx_;
 
         std::map<word, scalar> conductorPhases_;
+
+        List<word> controlTerminalNames_;
+
+        std::map<word, std::vector<word>> terminalToRegions_;
+
+        //- Feedback loop controllers
+        PtrList<feedbackLoopController> feedbackControllers_;
 
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
@@ -199,6 +207,8 @@ public:
 
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
+
+        void updateFeedbackControl();
 
         // Return global fvMesh
         const fvMesh& globalMesh();

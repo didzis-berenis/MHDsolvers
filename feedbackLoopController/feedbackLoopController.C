@@ -36,19 +36,18 @@ namespace Foam
 
 Foam::feedbackLoopController::feedbackLoopController
 (
-    //fvMesh& mesh,
-    const scalar& proportional_coeff,
-    const scalar& differential_coeff,
-    const scalar& integral_coeff,
-    const scalar& required_output
+    const Pair<scalar>& target_value,
+    const word& controlType
 )
 :
-    proportional_coeff_(proportional_coeff),
-    differential_coeff_(differential_coeff),
-    integral_coeff_(integral_coeff),
-    required_output_(required_output),
-    previous_error_(0),
-    integral_(0)
+    target_value_(target_value),
+    controlType_(controlType),
+    proportional_coeff_(1,1),
+    differential_coeff_(0,0),
+    integral_coeff_(0,0),
+    previous_error_(0,0),
+    control_value_(0,0),
+    integral_(0,0)
 {}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -61,19 +60,32 @@ Foam::feedbackLoopController::~feedbackLoopController()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
-Foam::scalar Foam::feedbackLoopController::calculateCorrection(scalar present_output, scalar deltaT)
+Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<scalar> present_value, scalar newTime)
 {
-    scalar error = required_output_-present_output;
-    scalar proportional_correction = proportional_coeff_*error;
-    scalar differential_correction = 0;
-    scalar integral_correction = 0;
-    if (deltaT > 0)
+    forAll(present_value, i)
     {
-        differential_correction = differential_coeff_*(error-previous_error_)/deltaT;
-        integral_ += error*deltaT;
-        integral_correction = integral_coeff_*integral_;
+        scalar error = target_value_[i]-present_value[i];
+        scalar proportional_correction = proportional_coeff_[i]*error;
+        scalar differential_correction = 0;
+        scalar integral_correction = 0;
+
+        scalar deltaT = newTime - oldTime_;
+        if (deltaT > 0)
+        {
+            differential_correction = differential_coeff_[i]*(error-previous_error_[i])/deltaT;
+            integral_[i] += error*deltaT;
+            integral_correction = integral_coeff_[i]*integral_[i];
+        }
+        previous_error_[i] = error;
+        control_value_[i] =  proportional_correction + differential_correction + integral_correction;
     }
-    return proportional_correction + differential_correction + integral_correction;
+    oldTime_ = newTime;
+    return control_value_;
+}
+
+Foam::word Foam::feedbackLoopController::getControlType()
+{
+    return controlType_;
 }
 
 // ************************************************************************* //

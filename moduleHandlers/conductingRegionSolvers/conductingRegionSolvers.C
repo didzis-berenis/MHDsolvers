@@ -200,29 +200,68 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
             if (feedbackType == "")
                 continue;
-            if (feedbackType == "current")
+            if (feedbackType == "current")// || feedbackType == "voltage")
             {
-                const dimensionedScalar setCurrent
-                (
-                    "current",
-                    dimCurrent,
-                    electrPtr->electro
-                );
-                const dimensionedScalar terminalArea
-                (
-                    "terminalArea",
-                    dimLength*dimLength,
-                    electrPtr->electro
-                );
-                const scalar setPhase = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
-                Info << "Region: " << regionName << ", terminal: " << terminalName << ", current: " << setCurrent
-                << ", terminalArea: " << terminalArea << ", phase: " << setPhase << endl;
+                if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
+                {
+                    terminalToRegions_[terminalName].push_back(regionName);
+                }
+                else
+                {
+                    terminalToRegions_[terminalName] = {};
+                }
             }
         }
     }
 
-    forAll(names_, i)
+    for (auto element : terminalToRegions_)
+    {
+        controlTerminalNames_.append(element.first);
+    }
+    feedbackControllers_.setSize(terminalToRegions_.size());
+
+    forAll(controlTerminalNames_,i)
+    {
+        const word& regionName = controlTerminalNames_[i];
+        if (!getElectroBasePtr_(regionName))
+        {
+            FatalIOError << " electroBase class not found for region "
+            << regionName << "!\n" << "Cannot get electromagnetic model!\n" << exit(FatalIOError);
+        }
+        electroBase* electrPtr = getElectroBasePtr_(regionName);
+        const word controlType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
+        if (controlType == "current")
+        {
+            const dimensionedScalar setCurrent
+            (
+                "current",
+                dimCurrent,
+                electrPtr->electro
+            );
+            const dimensionedScalar terminalArea
+            (
+                "terminalArea",
+                dimLength*dimLength,
+                electrPtr->electro
+            );
+            const scalar target_value = (setCurrent/terminalArea).value();
+            const scalar target_phase = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
+            feedbackControllers_.set
+            (
+                i,
+                new feedbackLoopController
+                (
+                    Pair<scalar>(target_value,target_phase),
+                    controlType
+                )
+            );
+        }
+        //else if (controlType == "voltage")
+        //{}
+    }
+
+    /*forAll(names_, i)
     {
         const word& regionName = names_[i].first();
         bool imaginary = isElectroHarmonic();
@@ -232,7 +271,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         {
             updatePotErefGrad_(regionName, newGrad, imaginary);
         }
-    }
+    }*/
 
     if (!isElectroHarmonic())
     {
@@ -292,7 +331,6 @@ Foam::conductingRegionSolvers::~conductingRegionSolvers()
 {}
 
 // * * * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * * //
-
 //Assigns single fluid/solid region values from global field to region
 void Foam::conductingRegionSolvers::scalarGlobalToField_(volScalarField& global,volScalarField& region,const word& regionName)
 {
@@ -409,6 +447,42 @@ void Foam::conductingRegionSolvers::resetPrefix() const
 Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 {
     return regions_[regionIdx_[regionName]];
+}
+
+void Foam::conductingRegionSolvers::updateFeedbackControl()
+{
+    Info << "controlTerminalNames_: " << controlTerminalNames_ << endl
+    << "terminalToRegions_: " << terminalToRegions_.size() << endl
+    << "feedbackControllers_: " << feedbackControllers_.size() << endl;
+    /*forAll(controlTerminalNames_,i)
+    {
+        if (feedbackControllers_[i].getControlType() == "current")
+        {
+            //TODO: prepare correct treatment if has multiple regions
+            for (word regionName : terminalToRegions_[controlTerminalNames_[i]])
+            {
+                const scalarField sumJre
+                (
+                    mag(getElectro(regionName).J())
+                );
+                const scalarField sumJim
+                (
+                    mag(getElectro(regionName).J(isElectroHarmonic()))
+                );
+                const scalar avgJre = gAverage(sumJre);
+                const scalar avgJim = gAverage(sumJim);
+                scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
+                scalar present_phase = atan2(avgJim,avgJre);
+                Pair<scalar> control_values = feedbackControllers_[i].calculateCorrection(
+                    Pair<scalar>(present_value,present_phase),
+                    runTime_.userTimeValue());
+
+                Info << "Region: " << regionName << " present value: " << present_value 
+                << "present phase: " << present_phase << endl
+                << "control_values: " << control_values << endl;
+            }
+        }
+    }*/
 }
 
 void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)

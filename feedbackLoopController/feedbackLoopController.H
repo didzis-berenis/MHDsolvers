@@ -55,13 +55,17 @@ class feedbackLoopController
 {
 
 protected:
+    Pair<scalar> target_value_;
+    word controlType_;
 
-    scalar proportional_coeff_;
-    scalar differential_coeff_;
-    scalar integral_coeff_;
-    scalar required_output_;
-    scalar previous_error_;
-    scalar integral_;
+    Pair<scalar> proportional_coeff_;
+    Pair<scalar> differential_coeff_;
+    Pair<scalar> integral_coeff_;
+
+    Pair<scalar> previous_error_;
+    Pair<scalar> control_value_;
+    Pair<scalar> integral_;
+    scalar oldTime_ = 0;
 
 public:
 
@@ -75,11 +79,9 @@ public:
     // Constructors
 
         //- Construct from region mesh
-        feedbackLoopController(//fvMesh& mesh,
-            const scalar& proportional_coeff,
-            const scalar& differential_coeff,
-            const scalar& integral_coeff,
-            const scalar& required_output);
+        feedbackLoopController(
+            const Pair<scalar>& target_value,
+            const word& controlType);
 
         //- Disallow default bitwise copy construction
         feedbackLoopController(const feedbackLoopController&) = delete;
@@ -92,16 +94,9 @@ public:
     // Member Functions
 
         //- 
-        scalar calculateCorrection(scalar present_output, scalar deltaT);
-        
-        //- Solve electromagnetic system
-        //virtual void solveElectromagnetics();
-
-        //- Update electromagnetic system without solving
-        //virtual void electromagneticPredictor();
-
-        //- Current density [A/m^2]
-        //virtual volVectorField& getJ(bool imaginary=false);
+        Pair<scalar> calculateCorrection(Pair<scalar> present_value, scalar newTime);
+        word getControlType();
+        //void setControlType(word controlType);
 
 
     // Member Operators
