@@ -63,6 +63,7 @@ protected:
     Pair<scalar> control_value_;
     Pair<scalar> integral_ = Pair<scalar>(0,0);
     scalar oldTime_ = 0;
+    bool needs_update_ = true;
     // Coefficient values
     Pair<scalar> proportional_coeff_ = Pair<scalar>(1,1);
     Pair<scalar> differential_coeff_ = Pair<scalar>(0,0);
@@ -111,6 +112,7 @@ public:
         //- 
         Pair<scalar> calculateCorrection(Pair<scalar> present_value, scalar newTime);
         word getControlType();
+        bool needsUpdate(Pair<scalar> error);
         bool needsUpdate();
         void setReference(Pair<scalar> reference_value);
         void setMaxError(Pair<scalar> max_error);

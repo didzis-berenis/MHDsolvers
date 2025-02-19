@@ -75,6 +75,9 @@ void Foam::feedbackLoopController::updateAuxiliaryValues_(
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<scalar> present_value, scalar newTime)
 {
+    Pair<scalar> integral = integral_;
+    Pair<scalar> control_value = control_value_;
+    Pair<scalar> previous_error = previous_error_;
     forAll(present_value, i)
     {
         scalar error = target_value_[i]-present_value[i];
@@ -85,14 +88,20 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
         scalar deltaT = newTime - oldTime_;
         if (deltaT > 0)
         {
-            differential_correction = differential_coeff_[i]*(error-previous_error_[i])/deltaT;
-            integral_[i] += error*deltaT;
+            differential_correction = differential_coeff_[i]*(error-previous_error[i])/deltaT;
+            integral[i] += error*deltaT;
             integral_correction = integral_coeff_[i]*integral_[i];
         }
-        previous_error_[i] = error;
-        control_value_[i] =  proportional_correction + differential_correction + integral_correction;
+        previous_error[i] = error;
+        control_value[i] +=  proportional_correction + differential_correction + integral_correction;
     }
-    oldTime_ = newTime;
+    if (needsUpdate(previous_error))
+    {
+        integral_ = integral;
+        previous_error_ = previous_error;
+        control_value_ = control_value;
+        oldTime_ = newTime;
+    }
     return control_value_;
 }
 
@@ -113,13 +122,16 @@ void Foam::feedbackLoopController::setMaxError(Pair<scalar> max_error)
     max_error_ = max_error;
 }
 
+bool Foam::feedbackLoopController::needsUpdate(Pair<scalar> error)
+{
+    needs_update_ = (std::abs(error[0]) > std::abs(max_error_[0]*reference_value_[0]) ||
+        std::abs(error[1]) > std::abs(max_error_[1]*reference_value_[1]));
+    return needsUpdate();
+}
+
 bool Foam::feedbackLoopController::needsUpdate()
 {
-    bool needs_update = false;
-    if (std::abs(previous_error_[0]) > std::abs(max_error_[0]*reference_value_[0]) ||
-        std::abs(previous_error_[1]) > std::abs(max_error_[1]*reference_value_[1]))
-        needs_update = true;
-    return needs_update;
+    return needs_update_;
 }
 
 Foam::Pair<Foam::scalar> Foam::feedbackLoopController::getControlValues()

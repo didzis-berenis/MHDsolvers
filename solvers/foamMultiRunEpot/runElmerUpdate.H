@@ -108,3 +108,5 @@ if (Pstream::master())
 // Initialization is needed only on the first update.
 if (initialize_elmer)
     initialize_elmer = false;
+
+solvers.updateFeedbackControl();

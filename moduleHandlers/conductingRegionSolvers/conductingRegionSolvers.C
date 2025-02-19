@@ -215,8 +215,8 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                     dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
                     electrPtr->electro
                 );
-                const scalar control_value = setVoltage.value();
-                const scalar control_phase = electrPtr->electro.lookup<scalar>("voltagePhase")*PI/180.0;
+                const scalar initial_value = setVoltage.value();
+                const scalar initial_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
                 const dimensionedScalar setCurrent
                 (
                     "current",
@@ -230,18 +230,19 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                     electrPtr->electro
                 );
                 const scalar target_value = (setCurrent/terminalArea).value();
-                const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase")*PI/180.0;
+                const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
                 feedbackControllers_[terminalName] = 
                     feedbackLoopController
                     (
                         Pair<scalar>(target_value,target_phase),
                         feedbackType,
-                        Pair<scalar>(control_value,control_phase)
+                        Pair<scalar>(initial_value,initial_phase)
                     );
-                feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,2*PI));
+                feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180));
+                //feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
                 feedbackControllers_[terminalName].updateCoefficients(
                     Pair<scalar>(
-                        target_value != 0 ? control_value/target_value : 0 ,control_phase - target_phase),
+                        target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.5),//control_phase - target_phase),
                     Pair<scalar>(0,0),
                     Pair<scalar>(0,0));
                     //Info << "voltage: " << control_value << " " << control_phase <<endl;
@@ -262,7 +263,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             {
                 electroBase* electrPtr = getElectroBasePtr_(regionName);
                 if (electrPtr->electro.isSource())
-                    conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
+                    conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase");//*PI/180.0;
             }
         }
     }
@@ -437,6 +438,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
             scalar avgJim = 0;
             for (word regionName : element.second)
             {
+                //TODO: calculate reference unit vector field and use that instead of mag()
                 const scalarField sumJre
                 (
                     mag(getElectro(regionName).J())
@@ -451,9 +453,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 //Info << "Region: " << regionName;
             }
             const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
-            const scalar present_phase = atan2(avgJim,avgJre);
-            Pair<scalar> previous_values = feedbackControllers_[terminalName].getControlValues();//Pair<scalar>(0.0007021941053588036,0);
-            //Info << " previous_values: " << previous_values << endl;
+            const scalar present_phase = atan2(avgJim,avgJre)*180/PI;
             Pair<scalar> control_values = 
                 feedbackControllers_[terminalName].calculateCorrection
                 (
@@ -462,8 +462,13 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 );
             if (feedbackControllers_[terminalName].needsUpdate())
             {
-                writeControlValue("coilVoltages/"+terminalName,previous_values.first()+control_values.first());
-                writeControlValue("coilPhases/"+terminalName,previous_values.second()+control_values.second());
+                Info << "Updating voltage for terminal " << terminalName << endl;
+                writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
+                writeControlValue("coilPhases/"+terminalName,control_values.second());
+            }
+            else
+            {
+                Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
             }
 
             /*Info << " terminal: " << terminalName << endl
