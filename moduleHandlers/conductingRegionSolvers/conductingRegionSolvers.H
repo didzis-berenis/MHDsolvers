@@ -74,6 +74,7 @@ SourceFiles
 #include "feedbackLoopController.H"
 #include <map>
 #include <vector>
+#include <fstream>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -108,12 +109,12 @@ class conductingRegionSolvers
 
         std::map<word, scalar> conductorPhases_;
 
-        List<word> controlTerminalNames_;
+        //List<word> controlTerminalNames_;
 
         std::map<word, std::vector<word>> terminalToRegions_;
 
         //- Feedback loop controllers
-        PtrList<feedbackLoopController> feedbackControllers_;
+        std::map<word, feedbackLoopController> feedbackControllers_;
 
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
@@ -209,6 +210,7 @@ public:
         fvMesh& mesh(const word regionName);
 
         void updateFeedbackControl();
+        void writeControlValue(const word fileName, const scalar outputValue);
 
         // Return global fvMesh
         const fvMesh& globalMesh();

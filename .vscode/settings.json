@@ -77,6 +77,7 @@
         "checkRegionCellZones.C": "cpp",
         "feedbackLoopController.C": "cpp",
         "iostream": "cpp",
-        "FixedList.C": "cpp"
+        "FixedList.C": "cpp",
+        "cellTable.C": "cpp"
     }
 }

@@ -55,17 +55,30 @@ class feedbackLoopController
 {
 
 protected:
+    // Control values
     Pair<scalar> target_value_;
     word controlType_;
-
-    Pair<scalar> proportional_coeff_;
-    Pair<scalar> differential_coeff_;
-    Pair<scalar> integral_coeff_;
-
-    Pair<scalar> previous_error_;
+    // Auxiliary values
+    Pair<scalar> previous_error_ = Pair<scalar>(0,0);
     Pair<scalar> control_value_;
-    Pair<scalar> integral_;
+    Pair<scalar> integral_ = Pair<scalar>(0,0);
     scalar oldTime_ = 0;
+    // Coefficient values
+    Pair<scalar> proportional_coeff_ = Pair<scalar>(1,1);
+    Pair<scalar> differential_coeff_ = Pair<scalar>(0,0);
+    Pair<scalar> integral_coeff_ = Pair<scalar>(0,0);
+    Pair<scalar> max_error_ = Pair<scalar>(0.05,0.05);//5%
+    Pair<scalar> reference_value_ = Pair<scalar>(1,1);
+
+    /*void updateControlValues_(
+        const Pair<scalar>& target_value,
+        const word& controlType);
+
+    void updateAuxiliaryValues_(
+        const Pair<scalar>& previous_error,
+        const Pair<scalar>& control_value,
+        const Pair<scalar>& integral,
+        const scalar& oldTime);*/
 
 public:
 
@@ -79,9 +92,11 @@ public:
     // Constructors
 
         //- Construct from region mesh
+        feedbackLoopController();
         feedbackLoopController(
             const Pair<scalar>& target_value,
-            const word& controlType);
+            const word& controlType,
+            Pair<scalar> control_value = Pair<scalar>(0,0));
 
         //- Disallow default bitwise copy construction
         feedbackLoopController(const feedbackLoopController&) = delete;
@@ -96,13 +111,32 @@ public:
         //- 
         Pair<scalar> calculateCorrection(Pair<scalar> present_value, scalar newTime);
         word getControlType();
+        bool needsUpdate();
+        void setReference(Pair<scalar> reference_value);
+        void setMaxError(Pair<scalar> max_error);
+        Pair<scalar> getControlValues();
         //void setControlType(word controlType);
+
+        void updateCoefficients(
+            const Pair<scalar>& proportional_coeff,
+            const Pair<scalar>& differential_coeff,
+            const Pair<scalar>& integral_coeff);
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const feedbackLoopController&) = delete;
+        //- Copy control values
+        feedbackLoopController& operator=(const feedbackLoopController& newController)
+        {
+            if (this == &newController)  // Self-assignment check
+            return *this;
+
+            //TODO: check if usefult to copy other values
+            this->target_value_ = newController.target_value_;
+            this->controlType_ = newController.controlType_;
+            this->control_value_ = newController.control_value_;
+            return *this;
+        }
 };
 
 

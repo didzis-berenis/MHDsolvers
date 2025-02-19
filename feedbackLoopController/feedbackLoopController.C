@@ -34,20 +34,22 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
+Foam::feedbackLoopController::feedbackLoopController()
+:
+    target_value_(0,0),
+    controlType_("")
+{}
+
 Foam::feedbackLoopController::feedbackLoopController
 (
     const Pair<scalar>& target_value,
-    const word& controlType
+    const word& controlType,
+    Pair<scalar> control_value
 )
 :
     target_value_(target_value),
     controlType_(controlType),
-    proportional_coeff_(1,1),
-    differential_coeff_(0,0),
-    integral_coeff_(0,0),
-    previous_error_(0,0),
-    control_value_(0,0),
-    integral_(0,0)
+    control_value_(control_value)
 {}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -58,6 +60,17 @@ Foam::feedbackLoopController::~feedbackLoopController()
 
 // * * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * * * //
 
+/*void Foam::feedbackLoopController::updateControlValues_(
+    const Pair<scalar>& target_value,
+    const word& controlType)
+{}
+
+void Foam::feedbackLoopController::updateAuxiliaryValues_(
+    const Pair<scalar>& previous_error,
+    const Pair<scalar>& control_value,
+    const Pair<scalar>& integral,
+    const scalar& oldTime)
+{}*/
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<scalar> present_value, scalar newTime)
@@ -86,6 +99,42 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
 Foam::word Foam::feedbackLoopController::getControlType()
 {
     return controlType_;
+}
+void Foam::feedbackLoopController::setReference(Pair<scalar> reference_value)
+{
+    forAll(reference_value, i)
+    {
+        if (reference_value[i] != 0)
+            reference_value_[i] = reference_value[i];
+    }
+}
+void Foam::feedbackLoopController::setMaxError(Pair<scalar> max_error)
+{
+    max_error_ = max_error;
+}
+
+bool Foam::feedbackLoopController::needsUpdate()
+{
+    bool needs_update = false;
+    if (std::abs(previous_error_[0]) > std::abs(max_error_[0]*reference_value_[0]) ||
+        std::abs(previous_error_[1]) > std::abs(max_error_[1]*reference_value_[1]))
+        needs_update = true;
+    return needs_update;
+}
+
+Foam::Pair<Foam::scalar> Foam::feedbackLoopController::getControlValues()
+{
+    return control_value_;
+}
+
+void Foam::feedbackLoopController::updateCoefficients(
+    const Pair<scalar>& proportional_coeff,
+    const Pair<scalar>& differential_coeff,
+    const Pair<scalar>& integral_coeff)
+{
+    proportional_coeff_ = proportional_coeff;
+    differential_coeff_ = differential_coeff;
+    integral_coeff_ = integral_coeff;
 }
 
 // ************************************************************************* //

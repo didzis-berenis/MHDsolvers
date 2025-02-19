@@ -206,72 +206,49 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                 if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
                 {
                     terminalToRegions_[terminalName].push_back(regionName);
+                    continue;
                 }
-                else
-                {
-                    terminalToRegions_[terminalName] = {};
-                }
+                terminalToRegions_[terminalName].push_back(regionName);
+                const dimensionedScalar setVoltage
+                (
+                    "voltage",
+                    dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
+                    electrPtr->electro
+                );
+                const scalar control_value = setVoltage.value();
+                const scalar control_phase = electrPtr->electro.lookup<scalar>("voltagePhase")*PI/180.0;
+                const dimensionedScalar setCurrent
+                (
+                    "current",
+                    dimCurrent,
+                    electrPtr->electro
+                );
+                const dimensionedScalar terminalArea
+                (
+                    "terminalArea",
+                    dimLength*dimLength,
+                    electrPtr->electro
+                );
+                const scalar target_value = (setCurrent/terminalArea).value();
+                const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase")*PI/180.0;
+                feedbackControllers_[terminalName] = 
+                    feedbackLoopController
+                    (
+                        Pair<scalar>(target_value,target_phase),
+                        feedbackType,
+                        Pair<scalar>(control_value,control_phase)
+                    );
+                feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,2*PI));
+                feedbackControllers_[terminalName].updateCoefficients(
+                    Pair<scalar>(
+                        target_value != 0 ? control_value/target_value : 0 ,control_phase - target_phase),
+                    Pair<scalar>(0,0),
+                    Pair<scalar>(0,0));
+                    //Info << "voltage: " << control_value << " " << control_phase <<endl;
+                    //Info << "controls: " << control_value/target_value << " " << control_phase - target_phase <<endl;
             }
         }
     }
-
-    for (auto element : terminalToRegions_)
-    {
-        controlTerminalNames_.append(element.first);
-    }
-    feedbackControllers_.setSize(terminalToRegions_.size());
-
-    forAll(controlTerminalNames_,i)
-    {
-        const word& regionName = controlTerminalNames_[i];
-        if (!getElectroBasePtr_(regionName))
-        {
-            FatalIOError << " electroBase class not found for region "
-            << regionName << "!\n" << "Cannot get electromagnetic model!\n" << exit(FatalIOError);
-        }
-        electroBase* electrPtr = getElectroBasePtr_(regionName);
-        const word controlType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
-        if (controlType == "current")
-        {
-            const dimensionedScalar setCurrent
-            (
-                "current",
-                dimCurrent,
-                electrPtr->electro
-            );
-            const dimensionedScalar terminalArea
-            (
-                "terminalArea",
-                dimLength*dimLength,
-                electrPtr->electro
-            );
-            const scalar target_value = (setCurrent/terminalArea).value();
-            const scalar target_phase = electrPtr->electro.lookup<scalar>("phase")*PI/180.0;
-            feedbackControllers_.set
-            (
-                i,
-                new feedbackLoopController
-                (
-                    Pair<scalar>(target_value,target_phase),
-                    controlType
-                )
-            );
-        }
-        //else if (controlType == "voltage")
-        //{}
-    }
-
-    /*forAll(names_, i)
-    {
-        const word& regionName = names_[i].first();
-        bool imaginary = isElectroHarmonic();
-        scalar newGrad = 1;
-        updatePotErefGrad_(regionName, newGrad);
-        if (imaginary)
-        {
-            updatePotErefGrad_(regionName, newGrad, imaginary);
-        }
-    }*/
 
     if (!isElectroHarmonic())
     {
@@ -451,15 +428,14 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 
 void Foam::conductingRegionSolvers::updateFeedbackControl()
 {
-    Info << "controlTerminalNames_: " << controlTerminalNames_ << endl
-    << "terminalToRegions_: " << terminalToRegions_.size() << endl
-    << "feedbackControllers_: " << feedbackControllers_.size() << endl;
-    /*forAll(controlTerminalNames_,i)
+    for (auto element : terminalToRegions_)
     {
-        if (feedbackControllers_[i].getControlType() == "current")
+        const word terminalName = element.first;
+        if (feedbackControllers_[terminalName].getControlType() == "current")
         {
-            //TODO: prepare correct treatment if has multiple regions
-            for (word regionName : terminalToRegions_[controlTerminalNames_[i]])
+            scalar avgJre = 0;
+            scalar avgJim = 0;
+            for (word regionName : element.second)
             {
                 const scalarField sumJre
                 (
@@ -469,20 +445,45 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 (
                     mag(getElectro(regionName).J(isElectroHarmonic()))
                 );
-                const scalar avgJre = gAverage(sumJre);
-                const scalar avgJim = gAverage(sumJim);
-                scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
-                scalar present_phase = atan2(avgJim,avgJre);
-                Pair<scalar> control_values = feedbackControllers_[i].calculateCorrection(
-                    Pair<scalar>(present_value,present_phase),
-                    runTime_.userTimeValue());
-
-                Info << "Region: " << regionName << " present value: " << present_value 
-                << "present phase: " << present_phase << endl
-                << "control_values: " << control_values << endl;
+                //TODO: check if this works correctly if has multiple regions
+                avgJre += gAverage(sumJre);
+                avgJim += gAverage(sumJim);
+                //Info << "Region: " << regionName;
             }
+            const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
+            const scalar present_phase = atan2(avgJim,avgJre);
+            Pair<scalar> previous_values = feedbackControllers_[terminalName].getControlValues();//Pair<scalar>(0.0007021941053588036,0);
+            //Info << " previous_values: " << previous_values << endl;
+            Pair<scalar> control_values = 
+                feedbackControllers_[terminalName].calculateCorrection
+                (
+                    Pair<scalar>(present_value,present_phase),
+                    runTime_.userTimeValue()
+                );
+            if (feedbackControllers_[terminalName].needsUpdate())
+            {
+                writeControlValue("coilVoltages/"+terminalName,previous_values.first()+control_values.first());
+                writeControlValue("coilPhases/"+terminalName,previous_values.second()+control_values.second());
+            }
+
+            /*Info << " terminal: " << terminalName << endl
+            << "present value: " << present_value 
+            << " present phase: " << present_phase << endl
+            << "control_values: " << control_values << endl
+            << "needs update: " << feedbackControllers_[terminalName].needsUpdate();*/
         }
-    }*/
+    }
+}
+
+void Foam::conductingRegionSolvers::writeControlValue(const word fileName, const scalar outputValue)
+{
+    std::ofstream outputFile(fileName, std::ios::out);
+    if (outputFile.is_open())
+    {
+        outputFile << outputValue << std::endl;
+        outputFile.close();
+    }
+    else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for writing!\n" << abort(FatalError);
 }
 
 void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)
