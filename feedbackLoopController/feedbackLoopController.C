@@ -78,14 +78,24 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
     Pair<scalar> integral = integral_;
     Pair<scalar> control_value = control_value_;
     Pair<scalar> previous_error = previous_error_;
+    Pair<scalar> oldTime = oldTime_;
     forAll(present_value, i)
     {
         scalar error = target_value_[i]-present_value[i];
-        scalar proportional_correction = proportional_coeff_[i]*error;
+        // Switch sign to avoid positive feedback loop
+        // This can happen if small error remains despite of incrementing control value
+        if (!first_iteration_ && abs(error)-abs(previous_error[i]) > 0)
+        {
+            sign_[i] *= -1;
+            reset_counter_[i] ++;
+        }
+        if (first_iteration_)
+            first_iteration_ = false;
+        scalar proportional_correction = sign_[i]*proportional_coeff_[i]*error;
         scalar differential_correction = 0;
         scalar integral_correction = 0;
 
-        scalar deltaT = newTime - oldTime_;
+        scalar deltaT = newTime - oldTime[i];
         if (deltaT > 0)
         {
             differential_correction = differential_coeff_[i]*(error-previous_error[i])/deltaT;
@@ -93,15 +103,20 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
             integral_correction = integral_coeff_[i]*integral_[i];
         }
         previous_error[i] = error;
-        control_value[i] +=  proportional_correction + differential_correction + integral_correction;
+        scalar correction = proportional_correction + differential_correction + integral_correction;
+        control_value[i] = min(max(control_value[i] + correction,min_value_[i]),max_value_[i]);
+        // If oscillates too much around one error, then settle on this error
+        if (reset_counter_[i]>10)
+            max_error_[i] = error+SMALL;
+        if (needsUpdate(previous_error[i],i))
+        {
+            integral_[i] = integral[i];
+            previous_error_[i] = previous_error[i];
+            control_value_[i] = control_value[i];
+            oldTime_[i] = newTime;
+        }
     }
-    if (needsUpdate(previous_error))
-    {
-        integral_ = integral;
-        previous_error_ = previous_error;
-        control_value_ = control_value;
-        oldTime_ = newTime;
-    }
+    bool up = needsUpdate(previous_error);
     return control_value_;
 }
 
@@ -120,6 +135,22 @@ void Foam::feedbackLoopController::setReference(Pair<scalar> reference_value)
 void Foam::feedbackLoopController::setMaxError(Pair<scalar> max_error)
 {
     max_error_ = max_error;
+}
+void Foam::feedbackLoopController::setMinMaxValue(Pair<scalar> min_value, Pair<scalar> max_value)
+{
+    forAll(min_value, i)
+    {
+        if (min_value[i] < max_value[i])
+        {
+            min_value_[i] = min_value[i];
+            max_value_[i] = max_value[i];
+        }
+    }
+}
+
+bool Foam::feedbackLoopController::needsUpdate(scalar error, label i)
+{
+    return std::abs(error) > std::abs(max_error_[i]*reference_value_[i]);
 }
 
 bool Foam::feedbackLoopController::needsUpdate(Pair<scalar> error)

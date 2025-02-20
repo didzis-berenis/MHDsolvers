@@ -239,10 +239,11 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                         Pair<scalar>(initial_value,initial_phase)
                     );
                 feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180));
-                //feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
+                feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
+                feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180),Pair<scalar>(great,180));
                 feedbackControllers_[terminalName].updateCoefficients(
                     Pair<scalar>(
-                        target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.5),//control_phase - target_phase),
+                        target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
                     Pair<scalar>(0,0),
                     Pair<scalar>(0,0));
                     //Info << "voltage: " << control_value << " " << control_phase <<endl;
@@ -262,7 +263,8 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             if (getElectroBasePtr_(regionName))
             {
                 electroBase* electrPtr = getElectroBasePtr_(regionName);
-                if (electrPtr->electro.isSource())
+                word regionRole = electrPtr->electro.getRegionRole();
+                if (regionRole == "coil")
                     conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase");//*PI/180.0;
             }
         }
@@ -282,7 +284,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         forAll(names_, i)
         {
             const word& regionName = names_[i].first();
-            if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+            if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "coil")
             {
                 bool sourceHasPhase = false;
                 for (auto element : conductorPhases_)
@@ -385,7 +387,7 @@ void Foam::conductingRegionSolvers::evaluateJBfs_(const word regionName, bool im
     if (getElectroBasePtr_(regionName))
     {
         electroBase* electrPtr = getElectroBasePtr_(regionName);
-        if (electrPtr->electro.isSource())
+        if (electrPtr->electro.getRegionRole() == "coil")
             electrPtr->initJ(imaginary);
     }
 }
@@ -395,7 +397,7 @@ void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+        if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "coil")
         {
             // For these regions current density is calculated on OpenFOAM side
             // and incorporated in Elmer as an external current source.
@@ -439,13 +441,15 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
             for (word regionName : element.second)
             {
                 //TODO: calculate reference unit vector field and use that instead of mag()
+                const volVectorField directionRe = getJdirection(regionName,false);
+                const volVectorField directionIm = getJdirection(regionName,isElectroHarmonic());
                 const scalarField sumJre
                 (
-                    mag(getElectro(regionName).J())
+                    getElectro(regionName).J() & directionRe
                 );
                 const scalarField sumJim
                 (
-                    mag(getElectro(regionName).J(isElectroHarmonic()))
+                    getElectro(regionName).J(isElectroHarmonic()) & directionIm
                 );
                 //TODO: check if this works correctly if has multiple regions
                 avgJre += gAverage(sumJre);
@@ -471,11 +475,12 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
             }
 
-            /*Info << " terminal: " << terminalName << endl
+            Info << " terminal: " << terminalName << endl
             << "present value: " << present_value 
+            << "Jre: " << avgJre << " Jim: " << avgJim 
             << " present phase: " << present_phase << endl
             << "control_values: " << control_values << endl
-            << "needs update: " << feedbackControllers_[terminalName].needsUpdate();*/
+            << "needs update: " << feedbackControllers_[terminalName].needsUpdate();
         }
     }
 }
@@ -532,7 +537,7 @@ bool Foam::conductingRegionSolvers::hasElectricSources()
 //Get J from electromagnetic source region
 Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, bool imaginary)
 {
-    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.isSource())
+    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "coil")
     {
         volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
         if (!isElectroHarmonic())
@@ -540,6 +545,21 @@ Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, 
             regionField*=Foam::sin(2*PI*frequency_*runTime_.userTimeValue()-conductorPhases_[regionName]);
         }
         return regionField;
+    }
+    else
+    {
+        FatalIOError << "Failed to get J from region " << regionName << "!\n"
+        << exit(FatalIOError);
+    }
+}
+Foam::volVectorField Foam::conductingRegionSolvers::getJdirection(word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
+    {
+        volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
+        volScalarField magnitudeField = mag(regionField);
+        volVectorField directionField = regionField/magnitudeField;
+        return directionField;
     }
     else
     {
@@ -669,12 +689,27 @@ bool Foam::conductingRegionSolvers::isElectric(const word regionName)
 
 bool Foam::conductingRegionSolvers::isSource(const word regionName)
 {
-    return isElectric(regionName) && getElectro(regionName).isSource();
+    const word regionRole = getElectro(regionName).getRegionRole();
+    return isElectric(regionName) && (regionRole == "coil" || regionRole == "wire");
 }
 
 bool Foam::conductingRegionSolvers::isNotSolvedFor(const word regionName)
 {
-    return isElectric(regionName) && !getElectro(regionName).isSource();
+    const word regionRole = getElectro(regionName).getRegionRole();
+    return isElectric(regionName) && regionRole != "coil";
+}
+
+bool Foam::conductingRegionSolvers::hasAnyRole(const word regionRole)
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectro(regionName).getRegionRole() == regionRole)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Foam::conductingRegionSolvers::setPotentialCorrectors(const dictionary& dict)

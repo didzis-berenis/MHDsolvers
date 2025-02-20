@@ -51,8 +51,8 @@ Foam::solvers::conductingMaterial::conductingMaterial
 {
     // Non-source conductingMaterial regions are considered passive.
     // Initialize only source regions.
-    if (electro.isSource())
-    {
+    //if (electro.isSource())
+    //{
         label PotERefCell = 0;
         scalar PotERefValue = 0.0;
         setRefCell
@@ -75,7 +75,7 @@ Foam::solvers::conductingMaterial::conductingMaterial
             );
             mesh.schemes().setFluxRequired(electro.PotE(true).name());
         }
-    }
+    //}
 }
 
 
@@ -122,7 +122,7 @@ void Foam::solvers::conductingMaterial::pressureCorrector()
 void Foam::solvers::conductingMaterial::postCorrector()
 {
     // Solve only for source regions
-    if (electro.isSource() && electro.correctElectromagnetics())
+    if (electro.correctElectromagnetics())//electro.isSource() && 
     {
         //Calculate current density
         electro_.findJ();
@@ -142,10 +142,10 @@ void Foam::solvers::conductingMaterial::postSolve()
 void Foam::solvers::conductingMaterial::solveElectromagnetics()
 {
     // Solve only for source regions
-    if (electro.isSource())
-    {
+    //if (electro.isSource())
+    //{
         electro_.solve();
-    }
+    //}
 }
 
 // ************************************************************************* //

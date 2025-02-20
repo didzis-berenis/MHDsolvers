@@ -68,7 +68,7 @@ class electromagneticModel
 
         //- Determines if the region should be calculated as an electric source
         //- or treated with corrections and updated with external values.
-        Switch sourceRole_;
+        word regionRole_;
 
         //- Switch for updating electromagnetics
         bool correctElectromagnetics_ = false;
@@ -299,8 +299,8 @@ public:
         //- return field from object registry
         const virtual volVectorField& getVectorField(const char* name) const;
 
-        //- Get sourceRole switch value
-        virtual bool isSource() const;
+        //- Get regionRole switch value
+        virtual word getRegionRole() const;
 
         //- Get correctElectromagnetics switch value
         virtual bool correctElectromagnetics() const;

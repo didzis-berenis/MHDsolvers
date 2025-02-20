@@ -58,11 +58,14 @@ protected:
     // Control values
     Pair<scalar> target_value_;
     word controlType_;
+    bool first_iteration_ = true;
+    Pair<int> sign_ = Pair<int>(1,1);
+    Pair<int> reset_counter_ = Pair<int>(0,0);
     // Auxiliary values
     Pair<scalar> previous_error_ = Pair<scalar>(0,0);
     Pair<scalar> control_value_;
     Pair<scalar> integral_ = Pair<scalar>(0,0);
-    scalar oldTime_ = 0;
+    Pair<scalar> oldTime_ = Pair<scalar>(0,0);
     bool needs_update_ = true;
     // Coefficient values
     Pair<scalar> proportional_coeff_ = Pair<scalar>(1,1);
@@ -70,6 +73,8 @@ protected:
     Pair<scalar> integral_coeff_ = Pair<scalar>(0,0);
     Pair<scalar> max_error_ = Pair<scalar>(0.05,0.05);//5%
     Pair<scalar> reference_value_ = Pair<scalar>(1,1);
+    Pair<scalar> max_value_ = Pair<scalar>(great,great);
+    Pair<scalar> min_value_ = Pair<scalar>(-great,-great);
 
     /*void updateControlValues_(
         const Pair<scalar>& target_value,
@@ -112,10 +117,12 @@ public:
         //- 
         Pair<scalar> calculateCorrection(Pair<scalar> present_value, scalar newTime);
         word getControlType();
+        bool needsUpdate(scalar error, label id);
         bool needsUpdate(Pair<scalar> error);
         bool needsUpdate();
         void setReference(Pair<scalar> reference_value);
         void setMaxError(Pair<scalar> max_error);
+        void setMinMaxValue(Pair<scalar> min_value,Pair<scalar> max_value);
         Pair<scalar> getControlValues();
         //void setControlType(word controlType);
 

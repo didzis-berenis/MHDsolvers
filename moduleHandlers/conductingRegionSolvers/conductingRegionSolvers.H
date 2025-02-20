@@ -235,6 +235,7 @@ public:
 
         // Get formatted current density from electric source regions
         volVectorField getSourceJ(word regionName, bool imaginary);
+        volVectorField getJdirection(word regionName, bool imaginary);
 
         //- Assign current density to specified region
         void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
@@ -259,6 +260,8 @@ public:
 
         // Check if not solved for specified region
         bool isNotSolvedFor(const word regionName);
+        
+        bool hasAnyRole(const word regionRole);
 
         //- Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();

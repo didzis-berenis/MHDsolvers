@@ -199,11 +199,11 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     scalarField potE(ePotP.size(), 0);
     if (haveI_)
     {
-        gradPotE += I_/gSum(patch().magSf())/(sigma + SMALL);
+        gradPotE += -I_/gSum(patch().magSf())/(sigma + SMALL);
     }
     if (haveJ_)
     {
-        gradPotE += J_/(sigma + SMALL);
+        gradPotE += -J_/(sigma + SMALL);
     }
     if (havePot_)
     {

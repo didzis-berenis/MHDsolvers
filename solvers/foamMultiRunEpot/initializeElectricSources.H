@@ -57,7 +57,7 @@ for (int it=1; it<=pimple.nCorr(); it++)
     solvers.setGlobalPrefix();
     solved = result;
 }
-if (solvers.isElectroHarmonic())
+if (solvers.isElectroHarmonic() && solvers.hasAnyRole("coil"))
 {
     // Do one extra Elmer iteration to stabilize current.
     #include "runElmerUpdate.H"

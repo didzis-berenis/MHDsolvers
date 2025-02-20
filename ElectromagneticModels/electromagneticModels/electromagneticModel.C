@@ -306,9 +306,9 @@ Foam::electromagneticModel::electromagneticModel
     IOdictionary(readModelDict(mesh.thisDb(), phaseName, true)),
     mesh_(mesh),
     phaseName_(phaseName),
-    sourceRole_
+    regionRole_
     (
-        this->lookupOrDefault<Switch>("sourceRole", false)
+        this->lookupOrDefault<word>("regionRole", "")
     ),
     JxB_(lookupOrConstructVector(mesh, "JxB")),
     JxB(JxB_),
@@ -572,9 +572,9 @@ const Foam::volScalarField& Foam::electromagneticModel::getScalarField(const cha
     return mesh_.objectRegistry::lookupObject<volScalarField>(name);
 }
 
-bool Foam::electromagneticModel::isSource() const
+Foam::word Foam::electromagneticModel::getRegionRole() const
 {
-    return sourceRole_;
+    return regionRole_;
 }
 
 bool Foam::electromagneticModel::correctElectromagnetics() const
