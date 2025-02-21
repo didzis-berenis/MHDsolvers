@@ -60,7 +60,9 @@ protected:
     word controlType_;
     bool first_iteration_ = true;
     Pair<int> sign_ = Pair<int>(1,1);
-    Pair<int> reset_counter_ = Pair<int>(0,0);
+    Pair<int> stop_counter_ = Pair<int>(0,0);
+    Pair<bool> use_stabilizer_ = Pair<bool>(false,false);
+    Pair<int> reset_value_ = Pair<int>(0,0);
     // Auxiliary values
     Pair<scalar> previous_error_ = Pair<scalar>(0,0);
     Pair<scalar> control_value_;
@@ -71,7 +73,8 @@ protected:
     Pair<scalar> proportional_coeff_ = Pair<scalar>(1,1);
     Pair<scalar> differential_coeff_ = Pair<scalar>(0,0);
     Pair<scalar> integral_coeff_ = Pair<scalar>(0,0);
-    Pair<scalar> max_error_ = Pair<scalar>(0.05,0.05);//5%
+    Pair<scalar> max_error_default_ = Pair<scalar>(0.05,0.05);//5%
+    Pair<scalar> max_error_ = max_error_default_;
     Pair<scalar> reference_value_ = Pair<scalar>(1,1);
     Pair<scalar> max_value_ = Pair<scalar>(great,great);
     Pair<scalar> min_value_ = Pair<scalar>(-great,-great);
@@ -123,6 +126,7 @@ public:
         void setReference(Pair<scalar> reference_value);
         void setMaxError(Pair<scalar> max_error);
         void setMinMaxValue(Pair<scalar> min_value,Pair<scalar> max_value);
+        void setStabilizer(Pair<bool> use_stabilizer,Pair<int> reset_value);
         Pair<scalar> getControlValues();
         //void setControlType(word controlType);
 

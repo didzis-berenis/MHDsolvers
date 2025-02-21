@@ -215,8 +215,6 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                     dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
                     electrPtr->electro
                 );
-                const scalar initial_value = setVoltage.value();
-                const scalar initial_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
                 const dimensionedScalar setCurrent
                 (
                     "current",
@@ -229,25 +227,66 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                     dimLength*dimLength,
                     electrPtr->electro
                 );
-                const scalar target_value = (setCurrent/terminalArea).value();
-                const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
-                feedbackControllers_[terminalName] = 
-                    feedbackLoopController
-                    (
-                        Pair<scalar>(target_value,target_phase),
-                        feedbackType,
-                        Pair<scalar>(initial_value,initial_phase)
-                    );
-                feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180));
-                feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
-                feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180),Pair<scalar>(great,180));
-                feedbackControllers_[terminalName].updateCoefficients(
-                    Pair<scalar>(
-                        target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
-                    Pair<scalar>(0,0),
-                    Pair<scalar>(0,0));
-                    //Info << "voltage: " << control_value << " " << control_phase <<endl;
-                    //Info << "controls: " << control_value/target_value << " " << control_phase - target_phase <<endl;
+                if (feedbackType == "current")
+                {
+                    // Initial values should be read from file to ensure matching values between OpenFOAM and Elmer, when restarting calculation.
+                    const scalar initial_value = setVoltage.value();
+                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
+                    const scalar target_value = (setCurrent/terminalArea).value();
+                    const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
+                    /*
+                    TODO: Check if the initially guessed proportionality coefficient of target_valueisn't grossly incorrect when
+                    ferromagnetic materials are present.
+                    This could lead to so inefficient (slow) current correction that it doesn't actually work for practical purposes. 
+                    This may be avoided with the use of integral regulation. 
+
+                    target_phase has some small error remaining (maybe because of some mesh/geometry),
+                    which doesn't respond to the same regulation pattern. This can lead to positive feedback loop.
+                    setStabilizer() can be used to avoid this.
+                    */
+                    feedbackControllers_[terminalName] = 
+                        feedbackLoopController
+                        (
+                            Pair<scalar>(target_value,target_phase),
+                            feedbackType,
+                            Pair<scalar>(initial_value,initial_phase)
+                        );
+                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180));
+                    feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
+                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,3));
+                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180),Pair<scalar>(great,180));
+                    feedbackControllers_[terminalName].updateCoefficients(
+                        Pair<scalar>(
+                            target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
+                        Pair<scalar>(0,0),
+                        Pair<scalar>(0,0));
+                        //Info << "voltage: " << control_value << " " << control_phase <<endl;
+                        //Info << "controls: " << control_value/target_value << " " << control_phase - target_phase <<endl;
+                }
+                if (feedbackType == "voltage")
+                {
+                    //TODO: set up correct settings for voltage type
+                    // Initial values should be read from file to ensure matching values between OpenFOAM and Elmer, when restarting calculation.
+                    const scalar target_value = setCurrent.value();
+                    const scalar target_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
+                    const scalar initial_value = (setVoltage/terminalArea).value();
+                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
+                    feedbackControllers_[terminalName] = 
+                        feedbackLoopController
+                        (
+                            Pair<scalar>(target_value,target_phase),
+                            feedbackType,
+                            Pair<scalar>(initial_value,initial_phase)
+                        );
+                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180.0));
+                    //feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
+                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180.0),Pair<scalar>(great,180.0));
+                    feedbackControllers_[terminalName].updateCoefficients(
+                        Pair<scalar>(
+                            target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
+                        Pair<scalar>(0,0),
+                        Pair<scalar>(0,0));
+                }
             }
         }
     }
@@ -466,7 +505,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 );
             if (feedbackControllers_[terminalName].needsUpdate())
             {
-                Info << "Updating voltage for terminal " << terminalName << endl;
+                //Info << "Updating voltage for terminal " << terminalName << endl;
                 writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
                 writeControlValue("coilPhases/"+terminalName,control_values.second());
             }
@@ -481,6 +520,48 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
             << " present phase: " << present_phase << endl
             << "control_values: " << control_values << endl
             << "needs update: " << feedbackControllers_[terminalName].needsUpdate();
+        }
+        if (feedbackControllers_[terminalName].getControlType() == "voltage")
+        {
+            //TODO: set up correct settings for voltage type
+            scalar avgJre = 0;
+            scalar avgJim = 0;
+            for (word regionName : element.second)
+            {
+                //TODO: calculate reference unit vector field and use that instead of mag()
+                const volVectorField directionRe = getJdirection(regionName,false);
+                const volVectorField directionIm = getJdirection(regionName,isElectroHarmonic());
+                const scalarField sumJre
+                (
+                    getElectro(regionName).J() & directionRe
+                );
+                const scalarField sumJim
+                (
+                    getElectro(regionName).J(isElectroHarmonic()) & directionIm
+                );
+                //TODO: check if this works correctly if has multiple regions
+                avgJre += gAverage(sumJre);
+                avgJim += gAverage(sumJim);
+                //Info << "Region: " << regionName;
+            }
+            const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
+            const scalar present_phase = atan2(avgJim,avgJre)*180/PI;
+            Pair<scalar> control_values = 
+                feedbackControllers_[terminalName].calculateCorrection
+                (
+                    Pair<scalar>(present_value,present_phase),
+                    1//runTime_.userTimeValue()
+                );
+            if (feedbackControllers_[terminalName].needsUpdate())
+            {
+                //Info << "Updating voltage for terminal " << terminalName << endl;
+                writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
+                writeControlValue("coilPhases/"+terminalName,control_values.second());
+            }
+            else
+            {
+                Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
+            }
         }
     }
 }
