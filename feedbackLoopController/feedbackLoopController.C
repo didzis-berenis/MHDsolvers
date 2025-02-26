@@ -79,21 +79,27 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
     Pair<scalar> control_value = control_value_;
     Pair<scalar> previous_error = previous_error_;
     Pair<scalar> oldTime = oldTime_;
-    Pair<int> sign = sign_;
-    Pair<int> stop_counter = stop_counter_;
+    //Pair<int> sign = sign_;
+    //Pair<int> stop_counter = stop_counter_;
     forAll(present_value, i)
     {
-        scalar error = target_value_[i]-present_value[i];
+        scalar error = present_value[i]-target_value_[i]+offset_value_[i];
         // Switch sign to avoid positive feedback loop
         // This can happen if small error remains despite of incrementing control value
-        if (!first_iteration_ && use_stabilizer_[i] && abs(error)>abs(previous_error[i]))
+        if (!first_iteration_[i] && use_stabilizer_[i] && abs(error)>abs(previous_error[i]))
         {
-            sign[i] *= -1;
-            stop_counter[i] ++;
+            //sign[i] *= -1;
+            //stop_counter[i] ++;
+            offset_value_[i] = -error;
+            Info << "Positive feedback loop deteckted!" << endl
+            <<"Setting present error as an offset value: offset_value_[" << i << "]: " << -error << endl;
+            // Reset to zero
+            //stop_counter_[i] = 0;
+            first_iteration_[i] = true;
+            error = present_value[i]-target_value_[i]+offset_value_[i];
         }
-        if (first_iteration_)
-            first_iteration_ = false;
-        scalar proportional_correction = sign_[i]*proportional_coeff_[i]*error;
+        scalar proportional_correction = //sign[i]*
+        proportional_coeff_[i]*error;
         scalar differential_correction = 0;
         scalar integral_correction = 0;
 
@@ -106,18 +112,22 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
         integral_correction = integral_coeff_[i]*integral_[i];
         previous_error[i] = error;
         scalar correction = proportional_correction + differential_correction + integral_correction;
+        //Info << "proportional_coeff_[" << i << "]: " << proportional_coeff_[i] << endl;
+        //Info << "correction[" << i << "]: " << correction << endl;
         control_value[i] = min(max(control_value[i] + correction,min_value_[i]),max_value_[i]);
         Info << "error[" << i << "]: " << error << endl;
         Info << "potential control_value[" << i << "]: " << control_value[i] << endl;
-        if (needsUpdate(previous_error[i],i))
+        /*if (needsUpdate(previous_error[i],i))
         {
-            sign_[i] = sign[i];
-            stop_counter_[i] = stop_counter[i];
-            max_error_[i] = max_error_default_[i];
-        }
+            if (first_iteration_[i])
+                first_iteration_[i] = false;
+            //sign_[i] = sign[i];
+            //stop_counter_[i] = stop_counter[i];
+            offset_value_[i] = 0;//Could be offset instead
+        }*/
         // If oscillates too much around one error, then settle on this error
-        Info << "stop_counter_[" << i << "]: " << stop_counter_[i] << endl;
-        if (stop_counter_[i]>reset_value_[i])
+        //Info << "stop_counter_[" << i << "]: " << stop_counter_[i] << endl;
+        /*if (stop_counter_[i]>reset_value_[i])
         {
             //Info << "error: " << error << endl;
             //Info << "reference_value_[" << i << "]: " << reference_value_[i] << endl;
@@ -127,11 +137,13 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
             Info << "new_error_limit_[" << i << "]: " << max_error_[i] << endl;
             // Reset to zero
             stop_counter_[i] = 0;
-            first_iteration_ = true;
-        }
+            first_iteration_[i] = true;
+        }*/
         Info << "needsUpdate[" << i << "]: " << needsUpdate(previous_error[i],i) << endl;
         if (needsUpdate(previous_error[i],i))
         {
+            first_iteration_[i] = false;
+            offset_value_[i] = 0;
             integral_[i] = integral[i];
             previous_error_[i] = previous_error[i];
             control_value_[i] = control_value[i];
@@ -145,7 +157,7 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
 void Foam::feedbackLoopController::setStabilizer(Pair<bool> use_stabilizer,Pair<int> reset_value)
 {
     use_stabilizer_ = use_stabilizer;
-    reset_value_ = reset_value;
+    //reset_value_ = reset_value;
 }
 
 Foam::word Foam::feedbackLoopController::getControlType()
@@ -163,7 +175,7 @@ void Foam::feedbackLoopController::setReference(Pair<scalar> reference_value)
 void Foam::feedbackLoopController::setMaxError(Pair<scalar> max_error)
 {
     max_error_ = max_error;
-    max_error_default_ = max_error;
+    //max_error_default_ = max_error;
 }
 void Foam::feedbackLoopController::setMinMaxValue(Pair<scalar> min_value, Pair<scalar> max_value)
 {

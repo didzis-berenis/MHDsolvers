@@ -203,6 +203,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
             if (feedbackType == "current")// || feedbackType == "voltage")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                Info << "Setting up controls for terminal: " << terminalName << endl;
                 if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
                 {
                     terminalToRegions_[terminalName].push_back(regionName);
@@ -227,6 +228,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                     dimLength*dimLength,
                     electrPtr->electro
                 );
+                //feedbackControllers_[terminalName] = prepareFeedbackController()
                 if (feedbackType == "current")
                 {
                     // Initial values should be read from file to ensure matching values between OpenFOAM and Elmer, when restarting calculation.
@@ -251,13 +253,46 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                             feedbackType,
                             Pair<scalar>(initial_value,initial_phase)
                         );
-                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180));
-                    feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
-                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,3));
-                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180),Pair<scalar>(great,180));
+                    scalar phaseReference = 180.0;//PI
+                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,phaseReference));
+                    // Variables are linked, so phase error is limited by value error
+                    scalar maxCurrentError = MAX_CONTROL_ERROR;
+                    // Assuming eeror for case Imag=(1-maxCurrentError)*Ire, we can arrive at approximate max error for phase,
+                    // where coefficient 1.5 is added, because it is unlikely to reach the theoretical minimum error.
+                    scalar maxPhaseError = 1.5*(1.0-maxCurrentError)/sqrt(2.0/maxCurrentError-1.0)/PI;// Divided by PI, because in radians.
+                    if (!isElectroHarmonic())
+                    {
+                        Info << "maxPhaseError: " << maxPhaseError << endl;
+                        t_step_em = adjustableRunTime_ ?
+                        readScalar(runTime.controlDict().lookup("writeInterval")) :
+                        readScalar(runTime.controlDict().lookup("deltaT"))*writeMultiplier_;
+                        frequency_ = runTime.controlDict().lookup<scalar>("frequency");
+                        Info << "t_step_em: " << t_step_em << endl;
+                        integration_steps_ = round(0.5/(t_step_em*frequency_));
+                        scalar maxIntegrationError = asin(sin(PI*(1.0-1.0/integration_steps_)))/PI;
+                        Info << "integration_steps_: " << integration_steps_ << endl;
+                        Info << "maxIntegrationError: " << maxIntegrationError << endl;
+                        while (0.5*maxPhaseError < maxIntegrationError )
+                        {
+                            // time steps need to be fine enough to calculate phase within reasonable errors
+                            // take half of maxPhaseError as a reference
+                            integration_multiplier_++;
+                            integration_steps_ = round(integration_multiplier_*0.5/(t_step_em*frequency_));
+                            maxIntegrationError = asin(sin(PI*(1.0-1.0/integration_steps_)))/PI;//relative error
+                            Info << "integration_steps_: " << integration_steps_ << endl;
+                            Info << "maxIntegrationError: " << maxIntegrationError << endl;
+                        }
+                        maxPhaseError += maxIntegrationError;
+                    }
+                    Info << "maxPhaseError after correction: " << maxPhaseError << endl;
+                    feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
+                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,0));
+                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-phaseReference),Pair<scalar>(great,phaseReference));
                     feedbackControllers_[terminalName].updateCoefficients(
                         Pair<scalar>(
-                            target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
+                            target_value != 0 ? -0.5*initial_value/target_value : 0 , 
+                            0.5
+                        ),//control_phase - target_phase),
                         Pair<scalar>(0,0),
                         Pair<scalar>(0,0));
                         //Info << "voltage: " << control_value << " " << control_phase <<endl;
@@ -311,7 +346,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     checkIfAnyElectricSources_();
     if (hasElectricSources_ && !isElectroHarmonic())
     {
-        frequency_ = runTime.controlDict().lookup<scalar>("frequency");
+        //frequency_ = runTime.controlDict().lookup<scalar>("frequency");
         // Check if frequency is non-negative
         if (frequency_ < 0 )
         {
@@ -470,6 +505,11 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 
 void Foam::conductingRegionSolvers::updateFeedbackControl()
 {
+    if (!isElectroHarmonic())
+    {
+        integration_counter_++;
+        Info << "integration_counter_: " << integration_counter_ << endl;
+    }
     for (auto element : terminalToRegions_)
     {
         const word terminalName = element.first;
@@ -481,22 +521,40 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
             {
                 //TODO: calculate reference unit vector field and use that instead of mag()
                 const volVectorField directionRe = getJdirection(regionName,false);
-                const volVectorField directionIm = getJdirection(regionName,isElectroHarmonic());
                 const scalarField sumJre
                 (
                     getElectro(regionName).J() & directionRe
                 );
-                const scalarField sumJim
-                (
-                    getElectro(regionName).J(isElectroHarmonic()) & directionIm
-                );
                 //TODO: check if this works correctly if has multiple regions
                 avgJre += gAverage(sumJre);
-                avgJim += gAverage(sumJim);
+                if (isElectroHarmonic())
+                {
+                    const volVectorField directionIm = getJdirection(regionName,true);
+                    const scalarField sumJim
+                    (
+                        getElectro(regionName).J(true) & directionIm
+                    );
+                    avgJim += gAverage(sumJim);
+                }
                 //Info << "Region: " << regionName;
             }
-            const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
-            const scalar present_phase = atan2(avgJim,avgJre)*180/PI;
+            if (integration_counter_ % integration_steps_ != 0)
+            {
+                Info << "Incrementing totalJre " << endl;
+                totalJre += avgJre*t_step_em;
+                return;
+            }
+            totalJre += avgJre*t_step_em;
+            totalJre *= PI*frequency_*integration_multiplier_;//half period*integration_multiplier_
+            Info << "Updating control values " << endl
+            << "Found value: " << totalJre << " phase: " << asin(avgJre/totalJre)*180/PI << endl;
+            
+            const scalar present_value = isElectroHarmonic() ? std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2))
+            : std::abs(totalJre);
+            const scalar present_phase = isElectroHarmonic() ?
+            atan2(avgJim,avgJre)*180/PI :
+            asin(avgJre/totalJre)*180/PI;
+            totalJre = 0;
             Pair<scalar> control_values = 
                 feedbackControllers_[terminalName].calculateCorrection
                 (

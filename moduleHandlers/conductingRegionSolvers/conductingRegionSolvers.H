@@ -76,6 +76,8 @@ SourceFiles
 #include <vector>
 #include <fstream>
 
+static const double MAX_CONTROL_ERROR = 0.01;//relative error of 1%
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -130,6 +132,11 @@ class conductingRegionSolvers
         bool adjustableRunTime_ = false;
         long long int cleanupCounter_ = 0;
         int restartInterval_;
+        int integration_steps_ = 0;
+        int integration_multiplier_ = 1;
+        int integration_counter_ = 0;
+        scalar totalJre = 0;
+        scalar t_step_em = 0;
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
