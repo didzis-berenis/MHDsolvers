@@ -269,10 +269,11 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                         frequency_ = runTime.controlDict().lookup<scalar>("frequency");
                         Info << "t_step_em: " << t_step_em << endl;
                         integration_steps_ = round(0.5/(t_step_em*frequency_));
-                        scalar maxIntegrationError = asin(sin(PI*(1.0-1.0/integration_steps_)))/PI;
+                        scalar half_step_weight = 1.0/(2.0*integration_steps_);//Error related to half of step size
+                        scalar maxIntegrationError = asin(sin(PI*(1.0-half_step_weight)))/PI;
                         Info << "integration_steps_: " << integration_steps_ << endl;
                         Info << "maxIntegrationError: " << maxIntegrationError << endl;
-                        while (0.5*maxPhaseError < maxIntegrationError )
+                        /*while (0.5*maxPhaseError < maxIntegrationError )
                         {
                             // time steps need to be fine enough to calculate phase within reasonable errors
                             // take half of maxPhaseError as a reference
@@ -281,12 +282,13 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                             maxIntegrationError = asin(sin(PI*(1.0-1.0/integration_steps_)))/PI;//relative error
                             Info << "integration_steps_: " << integration_steps_ << endl;
                             Info << "maxIntegrationError: " << maxIntegrationError << endl;
-                        }
+                        }*/
                         maxPhaseError += maxIntegrationError;
                     }
                     Info << "maxPhaseError after correction: " << maxPhaseError << endl;
+                    /*TODO: Add warning if error is too large*/
                     feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
-                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,0));
+                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,3));
                     feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-phaseReference),Pair<scalar>(great,phaseReference));
                     feedbackControllers_[terminalName].updateCoefficients(
                         Pair<scalar>(
@@ -521,39 +523,73 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
             {
                 //TODO: calculate reference unit vector field and use that instead of mag()
                 const volVectorField directionRe = getJdirection(regionName,false);
-                const scalarField sumJre
+                const scalarField projectionJre
                 (
                     getElectro(regionName).J() & directionRe
                 );
                 //TODO: check if this works correctly if has multiple regions
-                avgJre += gAverage(sumJre);
+                scalar sumJre = 0;
+                scalarField volume = mesh(regionName).V();
+                scalar regionVolume = 0;
+                forAll(volume,cellI)
+                {
+                    sumJre+=projectionJre[cellI]*volume[cellI];
+                    regionVolume +=volume[cellI];
+
+                }
+                sumJre /= regionVolume;
+                //Info << "test_sum: " << test_sum << " gAverage(sumJre): " << gAverage(sumJre) << endl;
+                avgJre += sumJre;
                 if (isElectroHarmonic())
                 {
                     const volVectorField directionIm = getJdirection(regionName,true);
-                    const scalarField sumJim
+                    const scalarField projectionJim
                     (
                         getElectro(regionName).J(true) & directionIm
                     );
-                    avgJim += gAverage(sumJim);
+                    scalar sumJim = 0;
+                    forAll(volume,cellI)
+                    {
+                        sumJim+=projectionJim[cellI]*volume[cellI];
+    
+                    }
+                    sumJim /= regionVolume;
+                    avgJim += sumJim;
                 }
                 //Info << "Region: " << regionName;
             }
             if (integration_counter_ % integration_steps_ != 0)
             {
                 Info << "Incrementing totalJre " << endl;
-                totalJre += avgJre*t_step_em;
+                totalJre += std::abs(avgJre)*t_step_em;
+
+                /*scalar time_m = runTime_.userTimeValue();//midpoint of step
+                bool cond1 = static_cast <int> (floor(2*time_m*frequency_)) % 2 == 1;
+                bool cond2 = static_cast <int> (floor(4*time_m*frequency_)) % 2 == 1;
+                bool cond3 = 4*time_m*frequency_ > floor(4*time_m*frequency_);
+            
+                int sign1 = cond1 ? 1 : 1;
+                int sign2 = (cond2 && cond3) ? -1 : 1;
+                scalar offset = (cond2 && cond3) ? -PI : 0;
+                Info << "cond1: " << cond1 << " cond2: " << cond2 << " cond3: " << cond3 << endl
+                << "sign1: " << sign1 << " sign2: " << sign2 << " offset: " << offset << endl;
+                scalar time_shift = 2*frequency_*time_m*PI - floor(2*frequency_*time_m)*PI;
+                Info << "time_shift: " << time_shift << endl;*/
                 return;
             }
-            totalJre += avgJre*t_step_em;
-            totalJre *= PI*frequency_*integration_multiplier_;//half period*integration_multiplier_
+            totalJre += std::abs(avgJre)*t_step_em;
+            totalJre *= PI*frequency_/integration_multiplier_;//half period*integration_multiplier_
+            //TODO: Have to take into account all threads
+            //Could be done by writing out each thread value and reading in master thread
+            scalar present_phase_shift = asin(avgJre/totalJre);//getPhaseShift(avgJre/totalJre);
             Info << "Updating control values " << endl
-            << "Found value: " << totalJre << " phase: " << asin(avgJre/totalJre)*180/PI << endl;
+            << "Found value: " << totalJre << " phase: " << present_phase_shift*180/PI << endl;
             
             const scalar present_value = isElectroHarmonic() ? std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2))
-            : std::abs(totalJre);
+            : totalJre;
             const scalar present_phase = isElectroHarmonic() ?
             atan2(avgJim,avgJre)*180/PI :
-            asin(avgJre/totalJre)*180/PI;
+            present_phase_shift*180/PI;//This is at midpoint of avgJre
             totalJre = 0;
             Pair<scalar> control_values = 
                 feedbackControllers_[terminalName].calculateCorrection
@@ -563,7 +599,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 );
             if (feedbackControllers_[terminalName].needsUpdate())
             {
-                //Info << "Updating voltage for terminal " << terminalName << endl;
+                Info << "Updating voltage for terminal " << terminalName << endl;
                 writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
                 writeControlValue("coilPhases/"+terminalName,control_values.second());
             }
@@ -572,12 +608,12 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
             }
 
-            Info << " terminal: " << terminalName << endl
+            Pout << " terminal: " << terminalName << endl
             << "present value: " << present_value 
             << "Jre: " << avgJre << " Jim: " << avgJim 
             << " present phase: " << present_phase << endl
-            << "control_values: " << control_values << endl
-            << "needs update: " << feedbackControllers_[terminalName].needsUpdate();
+            << "control_values: " << control_values << endl;
+            //<< "needs update: " << feedbackControllers_[terminalName].needsUpdate();
         }
         if (feedbackControllers_[terminalName].getControlType() == "voltage")
         {
@@ -598,8 +634,8 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                     getElectro(regionName).J(isElectroHarmonic()) & directionIm
                 );
                 //TODO: check if this works correctly if has multiple regions
-                avgJre += gAverage(sumJre);
-                avgJim += gAverage(sumJim);
+                //avgJre += gAverage(sumJre);
+                //avgJim += gAverage(sumJim);
                 //Info << "Region: " << regionName;
             }
             const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
@@ -624,15 +660,46 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
     }
 }
 
+Foam::scalar Foam::conductingRegionSolvers::getPhaseShift(scalar argument)
+{
+    //scalar period = 0.5*integration_multiplier_/frequency_;
+    scalar time = runTime_.userTimeValue() - 0.5*t_step_em;//midpoint of step
+    scalar time_m = time;
+    /*while (time_m > period)
+    {
+        time_m -= period;//get remainder
+    }*/
+    bool cond1 = static_cast <int> (floor(2*time_m*frequency_)) % 2 == 1;
+    bool cond2 = static_cast <int> (floor(4*time_m*frequency_)) % 2 == 1;
+    bool cond3 = 4*time_m*frequency_ > floor(4*time_m*frequency_);
+
+    int sign1 = cond1 ? 1 : -1;//not necessary because abs?
+    int sign2 = (cond2 && cond3) ? -1 : 1;
+    scalar offset = (cond2 && cond3) ? -PI : 0;
+    Info << "cond1: " << cond1 << " cond2: " << cond2 << " cond3: " << cond3 << endl
+    << "sign1: " << sign1 << " sign2: " << sign2 << " offset: " << offset << endl;
+    scalar time_shift = 2*frequency_*time*PI - floor(2*frequency_*time)*PI;
+    Info << "2*frequency_*time: " << 2*frequency_*time << endl;
+    Info << "floor(2*frequency_*time): " << floor(2*frequency_*time) << endl;
+    Info << "time_shift: " << time_shift*180/PI << endl;
+    Info << "asin(argument): " << asin(argument)*180/PI << endl;
+    scalar phase_shift = sign1*sign2*asin(argument) + time_shift + offset;
+    return phase_shift;
+}
+
 void Foam::conductingRegionSolvers::writeControlValue(const word fileName, const scalar outputValue)
 {
-    std::ofstream outputFile(fileName, std::ios::out);
-    if (outputFile.is_open())
+    if (Pstream::master())
     {
-        outputFile << outputValue << std::endl;
-        outputFile.close();
+        Info << "writing control value: " << outputValue << " to file: " << fileName << endl;
+        std::ofstream outputFile(fileName, std::ios::out);
+        if (outputFile.is_open())
+        {
+            outputFile << outputValue << std::endl;
+            outputFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for writing!\n" << abort(FatalError);
     }
-    else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for writing!\n" << abort(FatalError);
 }
 
 void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)

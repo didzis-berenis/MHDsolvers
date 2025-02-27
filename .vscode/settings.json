@@ -78,6 +78,8 @@
         "feedbackLoopController.C": "cpp",
         "iostream": "cpp",
         "FixedList.C": "cpp",
-        "cellTable.C": "cpp"
+        "cellTable.C": "cpp",
+        "meshRefinementTemplates.C": "cpp",
+        "fvcAverage.C": "cpp"
     }
 }

@@ -179,6 +179,8 @@ class conductingRegionSolvers
         bool hasElectricSources_=false;
         void checkIfAnyElectricSources_();
 
+        scalar getPhaseShift(scalar argument);
+
 public:
     //constants
         const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);

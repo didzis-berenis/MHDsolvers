@@ -60,9 +60,9 @@ protected:
     word controlType_;
     Pair<bool> first_iteration_ = Pair<bool>(true,true);
     //Pair<int> sign_ = Pair<int>(1,1);
-    //Pair<int> stop_counter_ = Pair<int>(0,0);
+    Pair<int> stop_counter_ = Pair<int>(0,0);
     Pair<bool> use_stabilizer_ = Pair<bool>(false,false);
-    //Pair<int> reset_value_ = Pair<int>(0,0);
+    Pair<int> reset_value_ = Pair<int>(0,0);
     Pair<scalar> offset_value_ = Pair<scalar>(0.0,0.0);
     // Auxiliary values
     Pair<scalar> previous_error_ = Pair<scalar>(0.0,0.0);

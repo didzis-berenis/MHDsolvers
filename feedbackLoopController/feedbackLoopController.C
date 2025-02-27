@@ -89,12 +89,15 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
         if (!first_iteration_[i] && use_stabilizer_[i] && abs(error)>abs(previous_error[i]))
         {
             //sign[i] *= -1;
-            //stop_counter[i] ++;
+            stop_counter_[i] ++;
+        }
+        if (stop_counter_[i]>reset_value_[i])//Should be renamed to positive feedback tolerance
+        {
             offset_value_[i] = -error;
-            Info << "Positive feedback loop deteckted!" << endl
+            Info << "Positive feedback loop detected!" << endl
             <<"Setting present error as an offset value: offset_value_[" << i << "]: " << -error << endl;
             // Reset to zero
-            //stop_counter_[i] = 0;
+            stop_counter_[i] = 0;
             first_iteration_[i] = true;
             error = present_value[i]-target_value_[i]+offset_value_[i];
         }
@@ -157,7 +160,7 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
 void Foam::feedbackLoopController::setStabilizer(Pair<bool> use_stabilizer,Pair<int> reset_value)
 {
     use_stabilizer_ = use_stabilizer;
-    //reset_value_ = reset_value;
+    reset_value_ = reset_value;
 }
 
 Foam::word Foam::feedbackLoopController::getControlType()
