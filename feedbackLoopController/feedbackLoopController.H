@@ -59,10 +59,9 @@ protected:
     Pair<scalar> target_value_;
     word controlType_;
     Pair<bool> first_iteration_ = Pair<bool>(true,true);
-    //Pair<int> sign_ = Pair<int>(1,1);
-    Pair<int> stop_counter_ = Pair<int>(0,0);
+    Pair<int> positive_feedback_counter_ = Pair<int>(0,0);
     Pair<bool> use_stabilizer_ = Pair<bool>(false,false);
-    Pair<int> reset_value_ = Pair<int>(0,0);
+    Pair<int> positive_feedback_tolerance_ = Pair<int>(0,0);
     Pair<scalar> offset_value_ = Pair<scalar>(0.0,0.0);
     // Auxiliary values
     Pair<scalar> previous_error_ = Pair<scalar>(0.0,0.0);
@@ -74,7 +73,6 @@ protected:
     Pair<scalar> proportional_coeff_ = Pair<scalar>(1,1);
     Pair<scalar> differential_coeff_ = Pair<scalar>(0,0);
     Pair<scalar> integral_coeff_ = Pair<scalar>(0,0);
-    //Pair<scalar> max_error_default_ = 
     Pair<scalar> max_error_ = Pair<scalar>(0.05,0.05);//5%
     Pair<scalar> reference_value_ = Pair<scalar>(1,1);
     Pair<scalar> max_value_ = Pair<scalar>(great,great);
@@ -122,8 +120,8 @@ public:
         Pair<scalar> calculateCorrection(Pair<scalar> present_value, scalar newTime);
         word getControlType();
         bool needsUpdate(scalar error, label id);
-        bool needsUpdate(Pair<scalar> error);
         bool needsUpdate();
+        void setNeedsUpdate(Pair<scalar> error);
         void setReference(Pair<scalar> reference_value);
         void setMaxError(Pair<scalar> max_error);
         void setMinMaxValue(Pair<scalar> min_value,Pair<scalar> max_value);

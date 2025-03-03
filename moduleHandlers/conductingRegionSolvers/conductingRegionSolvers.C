@@ -26,6 +26,7 @@ License
 #include "conductingRegionSolvers.H"
 #include "Time.H"
 #include "globalMeshNew.H"
+//#include <experimental/filesystem>
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
@@ -191,147 +192,10 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     }
     // Find regions, which need feedback control
     // And initialize feedback loop controller
-    forAll(names_, i)
-    {
-        const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName))
-        {
-            electroBase* electrPtr = getElectroBasePtr_(regionName);
-            const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
-            if (feedbackType == "")
-                continue;
-            if (feedbackType == "current")// || feedbackType == "voltage")
-            {
-                const word terminalName = electrPtr->electro.lookup<word>("terminalName");
-                Info << "Setting up controls for terminal: " << terminalName << endl;
-                if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
-                {
-                    terminalToRegions_[terminalName].push_back(regionName);
-                    continue;
-                }
-                terminalToRegions_[terminalName].push_back(regionName);
-                const dimensionedScalar setVoltage
-                (
-                    "voltage",
-                    dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
-                    electrPtr->electro
-                );
-                const dimensionedScalar setCurrent
-                (
-                    "current",
-                    dimCurrent,
-                    electrPtr->electro
-                );
-                const dimensionedScalar terminalArea
-                (
-                    "terminalArea",
-                    dimLength*dimLength,
-                    electrPtr->electro
-                );
-                //feedbackControllers_[terminalName] = prepareFeedbackController()
-                if (feedbackType == "current")
-                {
-                    // Initial values should be read from file to ensure matching values between OpenFOAM and Elmer, when restarting calculation.
-                    const scalar initial_value = setVoltage.value();
-                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
-                    const scalar target_value = (setCurrent/terminalArea).value();
-                    const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
-                    /*
-                    TODO: Check if the initially guessed proportionality coefficient of target_valueisn't grossly incorrect when
-                    ferromagnetic materials are present.
-                    This could lead to so inefficient (slow) current correction that it doesn't actually work for practical purposes. 
-                    This may be avoided with the use of integral regulation. 
-
-                    target_phase has some small error remaining (maybe because of some mesh/geometry),
-                    which doesn't respond to the same regulation pattern. This can lead to positive feedback loop.
-                    setStabilizer() can be used to avoid this.
-                    */
-                    feedbackControllers_[terminalName] = 
-                        feedbackLoopController
-                        (
-                            Pair<scalar>(target_value,target_phase),
-                            feedbackType,
-                            Pair<scalar>(initial_value,initial_phase)
-                        );
-                    scalar phaseReference = 180.0;//PI
-                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,phaseReference));
-                    // Variables are linked, so phase error is limited by value error
-                    scalar maxCurrentError = MAX_CONTROL_ERROR;
-                    // Assuming eeror for case Imag=(1-maxCurrentError)*Ire, we can arrive at approximate max error for phase,
-                    // where coefficient 1.5 is added, because it is unlikely to reach the theoretical minimum error.
-                    scalar maxPhaseError = 1.5*(1.0-maxCurrentError)/sqrt(2.0/maxCurrentError-1.0)/PI;// Divided by PI, because in radians.
-                    if (!isElectroHarmonic())
-                    {
-                        Info << "maxPhaseError: " << maxPhaseError << endl;
-                        t_step_em = adjustableRunTime_ ?
-                        readScalar(runTime.controlDict().lookup("writeInterval")) :
-                        readScalar(runTime.controlDict().lookup("deltaT"))*writeMultiplier_;
-                        frequency_ = runTime.controlDict().lookup<scalar>("frequency");
-                        Info << "t_step_em: " << t_step_em << endl;
-                        integration_steps_ = round(0.5/(t_step_em*frequency_));
-                        scalar half_step_weight = 1.0/(2.0*integration_steps_);//Error related to half of step size
-                        scalar maxIntegrationError = asin(sin(PI*(1.0-half_step_weight)))/PI;
-                        Info << "integration_steps_: " << integration_steps_ << endl;
-                        Info << "maxIntegrationError: " << maxIntegrationError << endl;
-                        /*while (0.5*maxPhaseError < maxIntegrationError )
-                        {
-                            // time steps need to be fine enough to calculate phase within reasonable errors
-                            // take half of maxPhaseError as a reference
-                            integration_multiplier_++;
-                            integration_steps_ = round(integration_multiplier_*0.5/(t_step_em*frequency_));
-                            maxIntegrationError = asin(sin(PI*(1.0-1.0/integration_steps_)))/PI;//relative error
-                            Info << "integration_steps_: " << integration_steps_ << endl;
-                            Info << "maxIntegrationError: " << maxIntegrationError << endl;
-                        }*/
-                        maxPhaseError += maxIntegrationError;
-                    }
-                    Info << "maxPhaseError after correction: " << maxPhaseError << endl;
-                    /*TODO: Add warning if error is too large*/
-                    feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
-                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,3));
-                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-phaseReference),Pair<scalar>(great,phaseReference));
-                    feedbackControllers_[terminalName].updateCoefficients(
-                        Pair<scalar>(
-                            target_value != 0 ? -0.5*initial_value/target_value : 0 , 
-                            0.5
-                        ),//control_phase - target_phase),
-                        Pair<scalar>(0,0),
-                        Pair<scalar>(0,0));
-                        //Info << "voltage: " << control_value << " " << control_phase <<endl;
-                        //Info << "controls: " << control_value/target_value << " " << control_phase - target_phase <<endl;
-                }
-                if (feedbackType == "voltage")
-                {
-                    //TODO: set up correct settings for voltage type
-                    // Initial values should be read from file to ensure matching values between OpenFOAM and Elmer, when restarting calculation.
-                    const scalar target_value = setCurrent.value();
-                    const scalar target_phase = electrPtr->electro.lookup<scalar>("voltagePhase");//*PI/180.0;
-                    const scalar initial_value = (setVoltage/terminalArea).value();
-                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
-                    feedbackControllers_[terminalName] = 
-                        feedbackLoopController
-                        (
-                            Pair<scalar>(target_value,target_phase),
-                            feedbackType,
-                            Pair<scalar>(initial_value,initial_phase)
-                        );
-                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,180.0));
-                    //feedbackControllers_[terminalName].setMaxError(Pair<scalar>(0.01,0.01));//1%
-                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-180.0),Pair<scalar>(great,180.0));
-                    feedbackControllers_[terminalName].updateCoefficients(
-                        Pair<scalar>(
-                            target_value != 0 ? 0.5*initial_value/target_value : 0 , 0.1),//control_phase - target_phase),
-                        Pair<scalar>(0,0),
-                        Pair<scalar>(0,0));
-                }
-            }
-        }
-    }
+    setUpFeedbackControllers_();
 
     if (!isElectroHarmonic())
     {
-        //const dictionary& conductorPhasesDict =
-        //    runTime.controlDict().subDict("conductorPhases");
         forAll(names_, i)
         {
             const word& regionName = names_[i].first();
@@ -341,14 +205,13 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
                 electroBase* electrPtr = getElectroBasePtr_(regionName);
                 word regionRole = electrPtr->electro.getRegionRole();
                 if (regionRole == "coil")
-                    conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase");//*PI/180.0;
+                    conductorPhases_[regionName] = electrPtr->electro.lookup<scalar>("phase");
             }
         }
     }
     checkIfAnyElectricSources_();
     if (hasElectricSources_ && !isElectroHarmonic())
     {
-        //frequency_ = runTime.controlDict().lookup<scalar>("frequency");
         // Check if frequency is non-negative
         if (frequency_ < 0 )
         {
@@ -385,6 +248,120 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
 
 Foam::conductingRegionSolvers::~conductingRegionSolvers()
 {}
+
+void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName))
+        {
+            electroBase* electrPtr = getElectroBasePtr_(regionName);
+            const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
+            if (feedbackType == "")
+                continue;
+            if (feedbackType == "current")// || feedbackType == "voltage")
+            {
+                const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                Info << "Setting up controls for terminal: " << terminalName << endl;
+                if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
+                {
+                    terminalToRegions_[terminalName].push_back(regionName);
+                    continue;
+                }
+                terminalToRegions_[terminalName].push_back(regionName);
+                /*const dimensionedScalar setVoltage
+                (
+                    "voltage",
+                    dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
+                    electrPtr->electro
+                );*/
+                const dimensionedScalar setCurrent// Perhaps could be just current density
+                (
+                    "current",
+                    dimCurrent,
+                    electrPtr->electro
+                );
+                const dimensionedScalar terminalArea
+                (
+                    "terminalArea",
+                    dimLength*dimLength,
+                    electrPtr->electro
+                );
+                if (feedbackType == "current")
+                {
+                    const scalar initial_value = readControlValue_("coilVoltages/"+terminalName);
+                    //Info << "Value from file: " << initial_value << endl;
+                    //Info << "Value from dict: " << setVoltage.value() << endl;
+                    const scalar initial_phase = readControlValue_("coilPhases/"+terminalName);
+                    //Info << "Phase from file: " << initial_phase << endl;
+                    //Info << "Phase from dict: " << electrPtr->electro.lookup<scalar>("voltagePhase") << endl;
+                    const scalar target_value = (setCurrent/terminalArea).value();
+                    const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
+                    /*
+                    TODO: Check if the initially guessed proportionality coefficient of target_value isn't grossly incorrect when
+                    ferromagnetic materials are present.
+                    This could lead to so inefficient (slow) current correction that it doesn't actually work for practical purposes. 
+                    This may be avoided with the use of integral regulation.
+                    */
+                    feedbackControllers_[terminalName] = 
+                        feedbackLoopController
+                        (
+                            Pair<scalar>(target_value,target_phase),
+                            feedbackType,
+                            Pair<scalar>(initial_value,initial_phase)
+                        );
+                    scalar phaseReference = 180.0;//PI
+                    feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,phaseReference));
+                    // Variables are linked, so phase error is limited by value error
+                    scalar maxCurrentError = MAX_CONTROL_ERROR;
+                    // Assuming eeror for case Imag=(1-maxCurrentError)*Ire, we can arrive at approximate max error for phase,
+                    // where coefficient 1.5 is added, because it is unlikely to reach the theoretical minimum error.
+                    scalar maxPhaseError = 1.5*(1.0-maxCurrentError)/sqrt(2.0/maxCurrentError-1.0)/PI;// Divided by PI, because in radians.
+                    if (!isElectroHarmonic())
+                    {
+                        // Additional error is introduced in transient simulations,
+                        // whicjh is due to finite time step size.
+                        tStepElectro_ = adjustableRunTime_ ?
+                        readScalar(runTime_.controlDict().lookup("writeInterval")) :
+                        readScalar(runTime_.controlDict().lookup("deltaT"))*writeMultiplier_;
+                        frequency_ = runTime_.controlDict().lookup<scalar>("frequency");
+                        integrationSteps_ = round(0.5/(tStepElectro_*frequency_));
+                        scalar half_step_weight = 1.0/(2.0*integrationSteps_);//Error related to half of step size
+                        scalar maxIntegrationError = asin(sin(PI*(1.0-half_step_weight)))/PI;
+                        maxPhaseError += maxIntegrationError;
+                    }
+                    if (maxPhaseError > 0.05)
+                    {
+                        Info << "Warning: Phase error " << maxPhaseError*100
+                        << "% is larger than 5% ! Consider decreasing time step." << endl;
+                    }
+                    feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
+                    // Stabilizer detects positive feedback loop and stops controller
+                    feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,2));
+                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-phaseReference),Pair<scalar>(great,phaseReference));
+                    feedbackControllers_[terminalName].updateCoefficients(
+                        Pair<scalar>(
+                            target_value != 0 ? -0.5*initial_value/target_value : 0 , 
+                            0.5
+                        ),
+                        Pair<scalar>(0,0),
+                        Pair<scalar>(0,0));
+                        //Info << "voltage: " << control_value << " " << control_phase <<endl;
+                        //Info << "controls: " << control_value/target_value << " " << control_phase - target_phase <<endl;
+                }
+                if (feedbackType == "voltage")
+                {
+                    //TODO: set up correct settings for voltage type
+                    /*const scalar target_value = setCurrent.value();
+                    const scalar target_phase = electrPtr->electro.lookup<scalar>("voltagePhase");
+                    const scalar initial_value = (setVoltage/terminalArea).value();
+                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("currentPhase");*/
+                }
+            }
+        }
+    }
+}
 
 // * * * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * * //
 //Assigns single fluid/solid region values from global field to region
@@ -473,14 +450,102 @@ void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "coil")
+        if (getElectroBasePtr_(regionName))
         {
-            // For these regions current density is calculated on OpenFOAM side
-            // and incorporated in Elmer as an external current source.
-            hasElectricSources_ = true;
-            break;
+            const word regionRole = getElectroBasePtr_(regionName)->electro.getRegionRole();
+            if (regionRole == "coil")
+            {
+                // For these regions current density is calculated on OpenFOAM side
+                // and incorporated in Elmer as an external current source.
+                hasElectricSources_ = true;
+                break;
+            }
         }
     }
+}
+
+Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
+    {
+        volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
+        volScalarField magnitudeField = mag(regionField);
+        volVectorField directionField = regionField/magnitudeField;
+        return directionField;
+    }
+    else
+    {
+        FatalIOError << "Failed to get J from region " << regionName << "!\n"
+        << exit(FatalIOError);
+    }
+}
+
+Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary)
+{
+    const volVectorField Jdirection = getJdirection_(regionName,imaginary);//Get reference
+    volVectorField JRegion = getElectro(regionName).J(imaginary);//Use copy of internal J for rewriting (has respective regions' mesh)
+    vectorGlobalToField_(JGlobal,JRegion,regionName);//Assign received field
+    const scalarField Jprojection(JRegion & Jdirection);//Project to a reference
+    const scalarField volume = mesh(regionName).V();
+    //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+    scalar sumJ = gSum(volume*Jprojection)/max(gSum(volume), vSmall);//Find volume average
+    return sumJ;
+}
+
+Foam::scalar Foam::conductingRegionSolvers::getPhaseShift_(scalar argument)
+{
+    scalar angle = 0;
+    // Safety check to avoid error, if argument is out of bounds
+    if (argument > 1.0)
+        angle = 0.5*PI;
+    else if (argument < -1.0)
+        angle = -0.5*PI;
+    else
+        angle = asin(argument);
+    // Taking midpoint of step gives slightly better performance,
+    // because we get the average value over time step, which is
+    // not the same as instantaneous value at the present time.
+    scalar time_position = runTime_.userTimeValue() - 0.5*tStepElectro_;
+    bool wave_condition = static_cast <int> (floor(2*time_position*frequency_)) % 2 == 1;
+    bool half_wave_condition = (
+        (static_cast <int> (floor(4*time_position*frequency_)) % 2 == 1)
+        &&
+        (4*time_position*frequency_ > floor(4*time_position*frequency_))
+    );
+    int phase_sign = (wave_condition ? 1 : -1) * (half_wave_condition ? -1 : 1);
+    scalar offset = half_wave_condition ? -PI : 0;
+    // Voltage is assigned as voltage = magnitude*Sin(omega*t-phase)
+    // Passing argument as voltage/magnitude gives solution for phase as follows.
+    scalar time_shift = 2*frequency_*time_position*PI - floor(2*frequency_*time_position)*PI;
+    scalar phase_shift = -phase_sign*angle + time_shift + offset;
+    return phase_shift;
+}
+
+void Foam::conductingRegionSolvers::writeControlValue_(const word fileName, const scalar outputValue)
+{
+    if (Pstream::master())
+    {
+        std::ofstream outputFile(fileName, std::ios::out);
+        if (outputFile.is_open())
+        {
+            outputFile << outputValue << std::endl;
+            outputFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for writing!\n" << abort(FatalError);
+    }
+}
+
+Foam::scalar Foam::conductingRegionSolvers::readControlValue_(const word fileName)
+{
+    scalar inputValue = 0.0;
+    std::ifstream inputFile(fileName, std::ios::in);
+    if (inputFile.is_open())
+    {
+        inputFile >> inputValue;
+        inputFile.close();
+    }
+    else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for reading!\n" << abort(FatalError);
+    return inputValue;
 }
 
 // * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
@@ -505,92 +570,49 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
     return regions_[regionIdx_[regionName]];
 }
 
-void Foam::conductingRegionSolvers::updateFeedbackControl()
+void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal)
 {
     if (!isElectroHarmonic())
     {
-        integration_counter_++;
-        Info << "integration_counter_: " << integration_counter_ << endl;
+        integrationCounter_++;
     }
     for (auto element : terminalToRegions_)
     {
         const word terminalName = element.first;
+        //Info << "terminalName: " << terminalName;
         if (feedbackControllers_[terminalName].getControlType() == "current")
         {
             scalar avgJre = 0;
             scalar avgJim = 0;
             for (word regionName : element.second)
             {
-                //TODO: calculate reference unit vector field and use that instead of mag()
-                const volVectorField directionRe = getJdirection(regionName,false);
-                const scalarField projectionJre
-                (
-                    getElectro(regionName).J() & directionRe
-                );
+                //Info << "Region: " << regionName;
                 //TODO: check if this works correctly if has multiple regions
-                scalar sumJre = 0;
-                scalarField volume = mesh(regionName).V();
-                scalar regionVolume = 0;
-                forAll(volume,cellI)
-                {
-                    sumJre+=projectionJre[cellI]*volume[cellI];
-                    regionVolume +=volume[cellI];
-
-                }
-                sumJre /= regionVolume;
-                //Info << "test_sum: " << test_sum << " gAverage(sumJre): " << gAverage(sumJre) << endl;
-                avgJre += sumJre;
+                avgJre += getCurrentSum_(JreGlobal,regionName);
                 if (isElectroHarmonic())
                 {
-                    const volVectorField directionIm = getJdirection(regionName,true);
-                    const scalarField projectionJim
-                    (
-                        getElectro(regionName).J(true) & directionIm
-                    );
-                    scalar sumJim = 0;
-                    forAll(volume,cellI)
-                    {
-                        sumJim+=projectionJim[cellI]*volume[cellI];
-    
-                    }
-                    sumJim /= regionVolume;
-                    avgJim += sumJim;
+                    avgJim += getCurrentSum_(JimGlobal,regionName,true);
                 }
-                //Info << "Region: " << regionName;
             }
-            if (integration_counter_ % integration_steps_ != 0)
-            {
-                Info << "Incrementing totalJre " << endl;
-                totalJre += std::abs(avgJre)*t_step_em;
-
-                /*scalar time_m = runTime_.userTimeValue();//midpoint of step
-                bool cond1 = static_cast <int> (floor(2*time_m*frequency_)) % 2 == 1;
-                bool cond2 = static_cast <int> (floor(4*time_m*frequency_)) % 2 == 1;
-                bool cond3 = 4*time_m*frequency_ > floor(4*time_m*frequency_);
             
-                int sign1 = cond1 ? 1 : 1;
-                int sign2 = (cond2 && cond3) ? -1 : 1;
-                scalar offset = (cond2 && cond3) ? -PI : 0;
-                Info << "cond1: " << cond1 << " cond2: " << cond2 << " cond3: " << cond3 << endl
-                << "sign1: " << sign1 << " sign2: " << sign2 << " offset: " << offset << endl;
-                scalar time_shift = 2*frequency_*time_m*PI - floor(2*frequency_*time_m)*PI;
-                Info << "time_shift: " << time_shift << endl;*/
-                return;
+            if (!isElectroHarmonic())
+            {
+                if (integrationCounter_ % integrationSteps_ != 0)
+                {
+                    //Info << "Incrementing integralCurrent_ by avgJre " << avgJre << endl;
+                    integralCurrent_ += std::abs(avgJre)*tStepElectro_;
+                    return;
+                }
+                integralCurrent_ += std::abs(avgJre)*tStepElectro_;
+                integralCurrent_ *= PI*frequency_;
             }
-            totalJre += std::abs(avgJre)*t_step_em;
-            totalJre *= PI*frequency_/integration_multiplier_;//half period*integration_multiplier_
-            //TODO: Have to take into account all threads
-            //Could be done by writing out each thread value and reading in master thread
-            scalar present_phase_shift = asin(avgJre/totalJre);//getPhaseShift(avgJre/totalJre);
-            Info << "Updating control values " << endl
-            << "Found value: " << totalJre << " phase: " << present_phase_shift*180/PI << endl;
             
             const scalar present_value = isElectroHarmonic() ? std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2))
-            : totalJre;
+            : integralCurrent_;
             const scalar present_phase = isElectroHarmonic() ?
             atan2(avgJim,avgJre)*180/PI :
-            present_phase_shift*180/PI;//This is at midpoint of avgJre
-            totalJre = 0;
+            getPhaseShift_(avgJre/integralCurrent_)*180/PI;//This is at midpoint of avgJre
+            integralCurrent_ = 0;
             Pair<scalar> control_values = 
                 feedbackControllers_[terminalName].calculateCorrection
                 (
@@ -599,106 +621,22 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()
                 );
             if (feedbackControllers_[terminalName].needsUpdate())
             {
+                Info << "Starting feedback update " << endl;
                 Info << "Updating voltage for terminal " << terminalName << endl;
-                writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
-                writeControlValue("coilPhases/"+terminalName,control_values.second());
+                Info << "Present values: (" << present_value << " " << present_phase << ")" << endl
+                << "New control values: " << control_values << endl;
+                writeControlValue_("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
+                writeControlValue_("coilPhases/"+terminalName,control_values.second());
             }
             else
             {
                 Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
             }
-
-            Pout << " terminal: " << terminalName << endl
-            << "present value: " << present_value 
-            << "Jre: " << avgJre << " Jim: " << avgJim 
-            << " present phase: " << present_phase << endl
-            << "control_values: " << control_values << endl;
-            //<< "needs update: " << feedbackControllers_[terminalName].needsUpdate();
         }
         if (feedbackControllers_[terminalName].getControlType() == "voltage")
         {
             //TODO: set up correct settings for voltage type
-            scalar avgJre = 0;
-            scalar avgJim = 0;
-            for (word regionName : element.second)
-            {
-                //TODO: calculate reference unit vector field and use that instead of mag()
-                const volVectorField directionRe = getJdirection(regionName,false);
-                const volVectorField directionIm = getJdirection(regionName,isElectroHarmonic());
-                const scalarField sumJre
-                (
-                    getElectro(regionName).J() & directionRe
-                );
-                const scalarField sumJim
-                (
-                    getElectro(regionName).J(isElectroHarmonic()) & directionIm
-                );
-                //TODO: check if this works correctly if has multiple regions
-                //avgJre += gAverage(sumJre);
-                //avgJim += gAverage(sumJim);
-                //Info << "Region: " << regionName;
-            }
-            const scalar present_value = std::sqrt(std::pow(avgJre,2)+std::pow(avgJim,2));
-            const scalar present_phase = atan2(avgJim,avgJre)*180/PI;
-            Pair<scalar> control_values = 
-                feedbackControllers_[terminalName].calculateCorrection
-                (
-                    Pair<scalar>(present_value,present_phase),
-                    1//runTime_.userTimeValue()
-                );
-            if (feedbackControllers_[terminalName].needsUpdate())
-            {
-                //Info << "Updating voltage for terminal " << terminalName << endl;
-                writeControlValue("coilVoltages/"+terminalName,control_values.first());//std::abs(control_values.first()));
-                writeControlValue("coilPhases/"+terminalName,control_values.second());
-            }
-            else
-            {
-                Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
-            }
         }
-    }
-}
-
-Foam::scalar Foam::conductingRegionSolvers::getPhaseShift(scalar argument)
-{
-    //scalar period = 0.5*integration_multiplier_/frequency_;
-    scalar time = runTime_.userTimeValue() - 0.5*t_step_em;//midpoint of step
-    scalar time_m = time;
-    /*while (time_m > period)
-    {
-        time_m -= period;//get remainder
-    }*/
-    bool cond1 = static_cast <int> (floor(2*time_m*frequency_)) % 2 == 1;
-    bool cond2 = static_cast <int> (floor(4*time_m*frequency_)) % 2 == 1;
-    bool cond3 = 4*time_m*frequency_ > floor(4*time_m*frequency_);
-
-    int sign1 = cond1 ? 1 : -1;//not necessary because abs?
-    int sign2 = (cond2 && cond3) ? -1 : 1;
-    scalar offset = (cond2 && cond3) ? -PI : 0;
-    Info << "cond1: " << cond1 << " cond2: " << cond2 << " cond3: " << cond3 << endl
-    << "sign1: " << sign1 << " sign2: " << sign2 << " offset: " << offset << endl;
-    scalar time_shift = 2*frequency_*time*PI - floor(2*frequency_*time)*PI;
-    Info << "2*frequency_*time: " << 2*frequency_*time << endl;
-    Info << "floor(2*frequency_*time): " << floor(2*frequency_*time) << endl;
-    Info << "time_shift: " << time_shift*180/PI << endl;
-    Info << "asin(argument): " << asin(argument)*180/PI << endl;
-    scalar phase_shift = sign1*sign2*asin(argument) + time_shift + offset;
-    return phase_shift;
-}
-
-void Foam::conductingRegionSolvers::writeControlValue(const word fileName, const scalar outputValue)
-{
-    if (Pstream::master())
-    {
-        Info << "writing control value: " << outputValue << " to file: " << fileName << endl;
-        std::ofstream outputFile(fileName, std::ios::out);
-        if (outputFile.is_open())
-        {
-            outputFile << outputValue << std::endl;
-            outputFile.close();
-        }
-        else FatalErrorInFunction << "ERROR: Couldn't open " << fileName << " for writing!\n" << abort(FatalError);
     }
 }
 
@@ -751,21 +689,6 @@ Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, 
             regionField*=Foam::sin(2*PI*frequency_*runTime_.userTimeValue()-conductorPhases_[regionName]);
         }
         return regionField;
-    }
-    else
-    {
-        FatalIOError << "Failed to get J from region " << regionName << "!\n"
-        << exit(FatalIOError);
-    }
-}
-Foam::volVectorField Foam::conductingRegionSolvers::getJdirection(word regionName, bool imaginary)
-{
-    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
-    {
-        volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
-        volScalarField magnitudeField = mag(regionField);
-        volVectorField directionField = regionField/magnitudeField;
-        return directionField;
     }
     else
     {
@@ -896,13 +819,13 @@ bool Foam::conductingRegionSolvers::isElectric(const word regionName)
 bool Foam::conductingRegionSolvers::isSource(const word regionName)
 {
     const word regionRole = getElectro(regionName).getRegionRole();
-    return isElectric(regionName) && (regionRole == "coil" || regionRole == "wire");
+    return isElectric(regionName) && (regionRole == "coil");
 }
 
-bool Foam::conductingRegionSolvers::isNotSolvedFor(const word regionName)
+bool Foam::conductingRegionSolvers::isSolvedFor(const word regionName)
 {
     const word regionRole = getElectro(regionName).getRegionRole();
-    return isElectric(regionName) && regionRole != "coil";
+    return isElectric(regionName) && (regionRole == "coil" || regionRole == "wire");
 }
 
 bool Foam::conductingRegionSolvers::hasAnyRole(const word regionRole)

@@ -13,12 +13,12 @@ for (int it=1; it<=pimple.nCorr(); it++)
 
     forAll(regionNames, i)
     {
-        if (solvers.isSource(regionNames[i]))
+        if (solvers.isSolvedFor(regionNames[i]))
             pimple.pimple(solvers.getRegionId(regionNames[i])).storePrevIterFields();
     }
     forAll(regionNames, i)
     {
-        if (solvers.isSource(regionNames[i]))
+        if (solvers.isSolvedFor(regionNames[i]))
         {
             label thisLabel = solvers.getRegionId(regionNames[i]);
             pimple.pimple(thisLabel).storePrevIterFields();
@@ -32,13 +32,13 @@ for (int it=1; it<=pimple.nCorr(); it++)
     {
         forAll(regionNames, i)
         {
-            if (solvers.isSource(regionNames[i]))
+            if (solvers.isSolvedFor(regionNames[i]))
                 solvers.solveElectromagnetics(regionNames[i]);
         }
     }
     forAll(regionNames, i)
     {
-        if (solvers.isSource(regionNames[i]))
+        if (solvers.isSolvedFor(regionNames[i]))
             solvers(regionNames[i]).postCorrector();
     }
     if (solved)
@@ -51,13 +51,13 @@ for (int it=1; it<=pimple.nCorr(); it++)
     bool result = true;
     forAll(regionNames, i)
     {
-        if (solvers.isSource(regionNames[i]))
+        if (solvers.isSolvedFor(regionNames[i]))
             result = pimple.pimple(solvers.getRegionId(regionNames[i])).corrCriteriaSatisfied() && result;
     }
     solvers.setGlobalPrefix();
     solved = result;
 }
-if (solvers.isElectroHarmonic() && solvers.hasAnyRole("coil"))
+if (solvers.isElectroHarmonic() && solvers.hasElectricSources())
 {
     // Do one extra Elmer iteration to stabilize current.
     #include "runElmerUpdate.H"

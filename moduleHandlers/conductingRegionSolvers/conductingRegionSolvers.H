@@ -132,11 +132,11 @@ class conductingRegionSolvers
         bool adjustableRunTime_ = false;
         long long int cleanupCounter_ = 0;
         int restartInterval_;
-        int integration_steps_ = 0;
-        int integration_multiplier_ = 1;
-        int integration_counter_ = 0;
-        scalar totalJre = 0;
-        scalar t_step_em = 0;
+        int integrationSteps_ = 0;
+        //int integration_multiplier_ = 1;
+        int integrationCounter_ = 0;
+        scalar integralCurrent_ = 0;
+        scalar tStepElectro_ = 0;
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
@@ -179,7 +179,19 @@ class conductingRegionSolvers
         bool hasElectricSources_=false;
         void checkIfAnyElectricSources_();
 
-        scalar getPhaseShift(scalar argument);
+        // Performs feedback control initialization
+        void setUpFeedbackControllers_();
+
+        // Calculates phase shift for transient simulation
+        scalar getPhaseShift_(scalar argument);
+        // Calculates unit vector field from current density
+        volVectorField getJdirection_(word regionName, bool imaginary);
+        // Calculates integral current density for a region
+        scalar getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary=false);
+        // Writes provided value to a file
+        void writeControlValue_(const word fileName, const scalar outputValue);
+        // Reads value from a file
+        scalar readControlValue_(const word fileName);
 
 public:
     //constants
@@ -218,8 +230,7 @@ public:
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
-        void updateFeedbackControl();
-        void writeControlValue(const word fileName, const scalar outputValue);
+        void updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal);
 
         // Return global fvMesh
         const fvMesh& globalMesh();
@@ -244,7 +255,6 @@ public:
 
         // Get formatted current density from electric source regions
         volVectorField getSourceJ(word regionName, bool imaginary);
-        volVectorField getJdirection(word regionName, bool imaginary);
 
         //- Assign current density to specified region
         void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
@@ -267,8 +277,8 @@ public:
         // Check if region is electric source
         bool isSource(const word regionName);
 
-        // Check if not solved for specified region
-        bool isNotSolvedFor(const word regionName);
+        // Check if electromagnetics solved in OpenFOAM for specified region
+        bool isSolvedFor(const word regionName);
         
         bool hasAnyRole(const word regionRole);
 

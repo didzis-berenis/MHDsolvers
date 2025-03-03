@@ -80,6 +80,13 @@
         "FixedList.C": "cpp",
         "cellTable.C": "cpp",
         "meshRefinementTemplates.C": "cpp",
-        "fvcAverage.C": "cpp"
+        "fvcAverage.C": "cpp",
+        "fieldAverage.C": "cpp",
+        "fieldAverageTemplates.C": "cpp",
+        "fieldValueTemplates.C": "cpp",
+        "volFieldValueTemplates.C": "cpp",
+        "chrono": "cpp",
+        "FieldFunctions.C": "cpp",
+        "mixedFvPatchField.C": "cpp"
     }
 }

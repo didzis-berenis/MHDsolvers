@@ -197,13 +197,17 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     // Compute the total non-convective heat flux
     scalarField gradPotE(ePotP.size(), 0);
     scalarField potE(ePotP.size(), 0);
+    // J = -sigma*grad(PotE)
+    // However, terminal functions as an inlet
+    // and since patch normal is directed outwards
+    // we have to take the opposite value for gradient.
     if (haveI_)
     {
-        gradPotE += -I_/gSum(patch().magSf())/(sigma + SMALL);
+        gradPotE += I_/gSum(patch().magSf())/(sigma + SMALL);
     }
     if (haveJ_)
     {
-        gradPotE += -J_/(sigma + SMALL);
+        gradPotE += J_/(sigma + SMALL);
     }
     if (havePot_)
     {

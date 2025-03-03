@@ -101,44 +101,12 @@ int main(int argc, char *argv[])
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     // Initialize electromagnetic sources.
-    if (solvers.hasElectricSources())
+    if (solvers.hasElectricSources() || solvers.hasAnyRole("wire"))//wire roles only need reference
     {
         #include "initializeElectricSources.H"
-        // Possible improvement if mag(field) is not precise enough or not working properly:
-        // Initialize (calculate steady state current and find unit vectors) for conducting regions
-        // Calculate magnitude as scalar product between control field and unit vector field
-
     }
-    //TODO: Get feedbackLoopController initialization values from dictionary
-    /*scalar required_output_value = 10.0;
-    feedbackLoopController currentController(1.0,//proportional_coeff,
-        0,//differential_coeff,
-        0,//integral_coeff,
-        required_output_value);
-    scalar present_output = 0;*/
 
     #include "runElmerUpdate.H"
-    /*forAll(regionNames, i)
-    {
-        // Skip update for electric sources, since current was calculated in OpenFOAM
-        if (solvers.isNotSolvedFor(regionNames[i]))
-        {
-            const scalarField sumJre
-            (
-                mag(solvers.getElectro(regionNames[i]).J())
-            );
-            const scalarField sumJim
-            (
-                mag(solvers.getElectro(regionNames[i]).J(solvers.isElectroHarmonic()))
-            );
-            //TODO: Get terminal area from terminal boundary of selected wire region
-            const scalar terminalArea = 0.0001;
-            present_output = std::sqrt(std::pow(gAverage(sumJre),2)+std::pow(gAverage(sumJim),2))*terminalArea;
-        }
-    }
-    scalar correction = currentController.calculateCorrection(present_output, 1.0);
-    Info << "Present current output: " << present_output << endl;
-    Info << "Calculated correction: " << correction << endl;*/
 
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
     // This is done to avoid the initial oscillations in the solution

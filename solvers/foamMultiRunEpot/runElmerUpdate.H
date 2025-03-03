@@ -19,7 +19,7 @@ forAll(regionNames, i)
             regionNames[i]
         );
     }
-    if (solvers.isSource(regionNames[i]) && !solvers.isNotSolvedFor(regionNames[i]))
+    if (solvers.isSource(regionNames[i]))
     {
         // For these regions current density is calculated on OpenFOAM side
         // and incorporated in Elmer as an external current source.
@@ -74,8 +74,8 @@ if (solvers.isElectroHarmonic())
 
 forAll(regionNames, i)
 {
-    // Skip update for electric sources, since current was calculated in OpenFOAM
-    if (solvers.isSource(regionNames[i]) && !solvers.isNotSolvedFor(regionNames[i]))
+    // Skip update if current was calculated in OpenFOAM
+    if (solvers.isSolvedFor(regionNames[i]))
         continue;
     solvers.setJToRegion(JreGlobal,regionNames[i]);
     if (solvers.isElectroHarmonic())
@@ -109,4 +109,4 @@ if (Pstream::master())
 if (initialize_elmer)
     initialize_elmer = false;
 
-solvers.updateFeedbackControl();
+solvers.updateFeedbackControl(JreGlobal,JimGlobal);
