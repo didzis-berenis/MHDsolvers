@@ -117,6 +117,15 @@ class conductingRegionSolvers
 
         //- Feedback loop controllers
         std::map<word, feedbackLoopController> feedbackControllers_;
+        std::map<word, scalar> inducedVoltage_;
+        struct coilParameters_
+        {
+            scalar target_value;
+            scalar inner_area;
+            scalar outer_area;
+            Foam::vector winding_direction;
+        };
+        std::map<word, coilParameters_> voltageControls_;
 
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
@@ -183,7 +192,7 @@ class conductingRegionSolvers
         void setUpFeedbackControllers_();
 
         // Calculates phase shift for transient simulation
-        scalar getPhaseShift_(scalar argument);
+        scalar getTransientPhaseShift_(scalar argument);
         // Calculates unit vector field from current density
         volVectorField getJdirection_(word regionName, bool imaginary);
         // Calculates integral current density for a region

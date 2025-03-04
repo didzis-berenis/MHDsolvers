@@ -260,7 +260,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
             const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
             if (feedbackType == "")
                 continue;
-            if (feedbackType == "current")// || feedbackType == "voltage")
+            if (feedbackType == "current" || feedbackType == "voltage")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
                 Info << "Setting up controls for terminal: " << terminalName << endl;
@@ -270,34 +270,26 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     continue;
                 }
                 terminalToRegions_[terminalName].push_back(regionName);
-                /*const dimensionedScalar setVoltage
-                (
-                    "voltage",
-                    dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
+                const scalar target_phase =
+                dimensionedScalar(
+                    "phaseShift",
+                    dimless,
                     electrPtr->electro
-                );*/
-                const dimensionedScalar setCurrent// Perhaps could be just current density
-                (
-                    "current",
-                    dimCurrent,
-                    electrPtr->electro
-                );
-                const dimensionedScalar terminalArea
-                (
-                    "terminalArea",
-                    dimLength*dimLength,
-                    electrPtr->electro
-                );
+                ).value();
                 if (feedbackType == "current")
                 {
+                    const scalar target_value =
+                    dimensionedScalar(
+                        "currentDensity",
+                        dimCurrent/dimLength/dimLength,
+                        electrPtr->electro
+                    ).value();
                     const scalar initial_value = readControlValue_("coilVoltages/"+terminalName);
                     //Info << "Value from file: " << initial_value << endl;
                     //Info << "Value from dict: " << setVoltage.value() << endl;
                     const scalar initial_phase = readControlValue_("coilPhases/"+terminalName);
                     //Info << "Phase from file: " << initial_phase << endl;
                     //Info << "Phase from dict: " << electrPtr->electro.lookup<scalar>("voltagePhase") << endl;
-                    const scalar target_value = (setCurrent/terminalArea).value();
-                    const scalar target_phase = electrPtr->electro.lookup<scalar>("currentPhase");//*PI/180.0;
                     /*
                     TODO: Check if the initially guessed proportionality coefficient of target_value isn't grossly incorrect when
                     ferromagnetic materials are present.
@@ -352,11 +344,45 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                 }
                 if (feedbackType == "voltage")
                 {
-                    //TODO: set up correct settings for voltage type
-                    /*const scalar target_value = setCurrent.value();
-                    const scalar target_phase = electrPtr->electro.lookup<scalar>("voltagePhase");
-                    const scalar initial_value = (setVoltage/terminalArea).value();
-                    const scalar initial_phase = electrPtr->electro.lookup<scalar>("currentPhase");*/
+                    //setVoltage = target_value + induced_voltage
+                    //induced_voltage = -0.5*windingDirection*(
+                    //innerArea*integralCore(dB/dt)+outerArea*(integralCore(dB/dt)+integralCoil(dB/dt))
+                    //) = -0.5*windingDirection*(
+                    //(innerArea+outerArea)*integralCore(dB/dt)+outerArea*(integralCoil(dB/dt))
+                    //)
+                    const scalar target_value =
+                    dimensionedScalar(
+                        "voltage",
+                        dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
+                        electrPtr->electro
+                    ).value();
+                    const scalar inner_area =
+                    dimensionedScalar(
+                        "innerArea",
+                        dimLength*dimLength,
+                        electrPtr->electro
+                    ).value();
+                    const scalar outer_area =
+                    dimensionedScalar(
+                        "outerArea",
+                        dimLength*dimLength,
+                        electrPtr->electro
+                    ).value();
+                    const Foam::vector winding_direction =
+                    dimensionedVector(
+                        "windingDirection",
+                        dimless,
+                        electrPtr->electro
+                    ).value();
+                    coilParameters_ terminalControls;
+                    terminalControls.target_value = target_value;
+                    terminalControls.inner_area = inner_area;
+                    terminalControls.outer_area = outer_area;
+                    terminalControls.winding_direction = winding_direction;
+                    voltageControls_[terminalName] = terminalControls;
+                    //TODO: Get this from terminal boundary
+                    scalar set_voltage = target_value;
+                    inducedVoltage_[terminalName] = set_voltage - target_value;
                 }
             }
         }
@@ -492,7 +518,7 @@ Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(volVectorField JGloba
     return sumJ;
 }
 
-Foam::scalar Foam::conductingRegionSolvers::getPhaseShift_(scalar argument)
+Foam::scalar Foam::conductingRegionSolvers::getTransientPhaseShift_(scalar argument)
 {
     scalar angle = 0;
     // Safety check to avoid error, if argument is out of bounds
@@ -611,7 +637,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
             : integralCurrent_;
             const scalar present_phase = isElectroHarmonic() ?
             atan2(avgJim,avgJre)*180/PI :
-            getPhaseShift_(avgJre/integralCurrent_)*180/PI;//This is at midpoint of avgJre
+            getTransientPhaseShift_(avgJre/integralCurrent_)*180/PI;//This is at midpoint of avgJre
             integralCurrent_ = 0;
             Pair<scalar> control_values = 
                 feedbackControllers_[terminalName].calculateCorrection
@@ -636,6 +662,19 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
         if (feedbackControllers_[terminalName].getControlType() == "voltage")
         {
             //TODO: set up correct settings for voltage type
+            coilParameters_ terminalControls = voltageControls_[terminalName];
+            //TODO: calculate integral magnetic flux change
+            //setVoltage = target_value + induced_voltage
+            //induced_voltage = -0.5*windingDirection*(
+            //innerArea*integralCore(dB/dt)+outerArea*(integralCore(dB/dt)+integralCoil(dB/dt))
+            //) = -0.5*windingDirection*(
+            //(innerArea+outerArea)*integralCore(dB/dt)+outerArea*(integralCoil(dB/dt))
+            //)
+            /*terminalControls.target_value = target_value;
+            terminalControls.inner_area = inner_area;
+            terminalControls.outer_area = outer_area;
+            terminalControls.winding_direction = winding_direction;
+            inducedVoltage_[terminalName] = ;*/
         }
     }
 }

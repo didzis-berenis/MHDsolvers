@@ -87,6 +87,10 @@
         "volFieldValueTemplates.C": "cpp",
         "chrono": "cpp",
         "FieldFunctions.C": "cpp",
-        "mixedFvPatchField.C": "cpp"
+        "mixedFvPatchField.C": "cpp",
+        "codecvt": "cpp",
+        "ctime": "cpp",
+        "ratio": "cpp",
+        "sstream": "cpp"
     }
 }
