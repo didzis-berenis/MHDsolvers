@@ -413,6 +413,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     ).value();
                     coilParameters_ terminalControls;
                     terminalControls.target_value = target_value;
+                    terminalControls.target_phase = target_phase;
                     terminalControls.inner_area = inner_area;
                     terminalControls.outer_area = outer_area;
                     terminalControls.winding_direction = winding_direction;
@@ -491,6 +492,13 @@ void Foam::conductingRegionSolvers::updatePotErefGrad_(const word regionName, sc
         getElectroBasePtr_(regionName)->updatePotErefGrad(newGrad, imaginary);
     }
 }
+void Foam::conductingRegionSolvers::updatePotErefValue_(const word regionName, scalar newValue, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        getElectroBasePtr_(regionName)->updatePotErefValue(newValue, imaginary);
+    }
+}
 //initializes boundary conditions
 void Foam::conductingRegionSolvers::evaluateDeltaJBfs_(const word regionName, bool imaginary)
 {
@@ -542,6 +550,25 @@ Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionNa
         FatalIOError << "Failed to get J from region " << regionName << "!\n"
         << exit(FatalIOError);
     }
+}
+
+Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, Foam::vector winding_direction,bool imaginary)
+{
+    const scalarField volume = mesh(regionName).V();
+    scalar sumI = 0;
+    if (isElectroHarmonic())
+    {
+        const scalarField dBdt = getElectro(regionName).B(!imaginary).internalField() & winding_direction;
+        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+        sumI = gSum(volume*dBdt);//Find volume integral
+    }
+    else
+    {
+        const scalarField dBdt = (getElectro(regionName).B(imaginary).internalField() - regionOldB_[regionName]) & winding_direction;
+        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+        sumI = gSum(volume*dBdt);//Find volume integral
+    }
+    return sumI;
 }
 
 Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary)
@@ -634,25 +661,6 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
     return regions_[regionIdx_[regionName]];
 }
 
-Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, Foam::vector winding_direction,bool imaginary)
-{
-    const scalarField volume = mesh(regionName).V();
-    scalar sumI = 0;
-    if (isElectroHarmonic())
-    {
-        const scalarField dBdt = getElectro(regionName).B(!imaginary).internalField() & winding_direction;
-        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
-        sumI = gSum(volume*dBdt);//Find volume integral
-    }
-    else
-    {
-        const scalarField dBdt = (getElectro(regionName).B(imaginary).internalField() - regionOldB_[regionName]) & winding_direction;
-        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
-        sumI = gSum(volume*dBdt);//Find volume integral
-    }
-    return sumI;
-}
-
 void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal)
 {
     if (!isElectroHarmonic())
@@ -724,19 +732,35 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
             //Convert to value and phase
             if (isElectroHarmonic())
             {
-                scalar inducedVoltageRe = inducedVoltageValue_[terminalName];
-                scalar inducedVoltageIm = inducedVoltagePhase_[terminalName];
-                inducedVoltageValue_[terminalName] = sqrt(pow(inducedVoltageRe,2)+pow(inducedVoltageIm,2));
-                inducedVoltagePhase_[terminalName] = atan2(inducedVoltageIm,inducedVoltageRe)*180/PI;
+                scalar newVoltageRe = inducedVoltageValue_[terminalName];
+                scalar newVoltageIm = inducedVoltagePhase_[terminalName];
+                newVoltageRe += terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
+                newVoltageIm += terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
+                //inducedVoltageValue_[terminalName] = sqrt(pow(inducedVoltageRe,2)+pow(inducedVoltageIm,2));
+                //inducedVoltagePhase_[terminalName] = atan2(inducedVoltageIm,inducedVoltageRe)*180/PI;
+                scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
+                scalar newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
+                Info << "terminalName: " << terminalName << endl;
+                Info << "newVoltageRe: " << newVoltageRe << endl;
+                Info << "newVoltageIm: " << newVoltageIm << endl;
+                Info << "newVoltageValue: " << newVoltageValue << endl;
+                Info << "newVoltagePhase: " << newVoltagePhase << endl;
+                //voltageControls_[terminalName].target_value = newVoltageValue;
+                //voltageControls_[terminalName].target_phase = newVoltagePhase;
+                for (word regionName : element.second)
+                {
+                    updatePotErefValue_(regionName, newVoltageRe);
+                    updatePotErefValue_(regionName, newVoltageIm,true);
+                }
             }
             else
             {
                 //TODO: Set up transient case
+                Info << "terminalName: " << terminalName << endl;
+                Info << "target value: " << terminalControls.target_value << endl;
+                Info << "induced value: " << inducedVoltageValue_[terminalName] << endl;
+                Info << "induced phase: " << inducedVoltagePhase_[terminalName] << endl;
             }
-            Info << "terminalName: " << terminalName << endl;
-            Info << "target value: " << terminalControls.target_value << endl;
-            Info << "induced value: " << inducedVoltageValue_[terminalName] << endl;
-            Info << "induced phase: " << inducedVoltagePhase_[terminalName] << endl;
             //TODO: set up correct settings for voltage type
             //setVoltage = target_value + induced_voltage
         }

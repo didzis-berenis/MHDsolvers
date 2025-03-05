@@ -122,6 +122,7 @@ class conductingRegionSolvers
         struct coilParameters_
         {
             scalar target_value;
+            scalar target_phase;
             scalar inner_area;
             scalar outer_area;
             Foam::vector winding_direction;
@@ -182,6 +183,7 @@ class conductingRegionSolvers
         //- Initialize electric potential boundary conditions
         void evaluatePotEBfs_(const word regionName, bool imaginary=false);
         void updatePotErefGrad_(const word regionName, scalar newGrad, bool imaginary=false);
+        void updatePotErefValue_(const word regionName, scalar newValue, bool imaginary=false);
 
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
