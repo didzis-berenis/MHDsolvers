@@ -117,7 +117,8 @@ class conductingRegionSolvers
 
         //- Feedback loop controllers
         std::map<word, feedbackLoopController> feedbackControllers_;
-        std::map<word, scalar> inducedVoltage_;
+        std::map<word, scalar> inducedVoltageValue_;
+        std::map<word, scalar> inducedVoltagePhase_;
         struct coilParameters_
         {
             scalar target_value;
@@ -126,6 +127,8 @@ class conductingRegionSolvers
             Foam::vector winding_direction;
         };
         std::map<word, coilParameters_> voltageControls_;
+        std::map<word, vectorField> regionOldB_;
+        std::map<word, std::vector<word>> terminalCoreRegions_;
 
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
@@ -146,6 +149,9 @@ class conductingRegionSolvers
         int integrationCounter_ = 0;
         scalar integralCurrent_ = 0;
         scalar tStepElectro_ = 0;
+
+        // Electromagnetic excitation frequency
+        const scalar frequency_;
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
@@ -181,9 +187,6 @@ class conductingRegionSolvers
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
         void evaluateJBfs_(const word regionName, bool imaginary=false);
 
-        // Electromagnetic excitation frequency
-        // Used in simulations with transientElectromagnetics==true
-        scalar frequency_=0;
         // Set to true if any region is electromagnetic source
         bool hasElectricSources_=false;
         void checkIfAnyElectricSources_();
@@ -197,6 +200,7 @@ class conductingRegionSolvers
         volVectorField getJdirection_(word regionName, bool imaginary);
         // Calculates integral current density for a region
         scalar getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary=false);
+        scalar getInductionSum_(word regionName, Foam::vector winding_direction, bool imaginary=false);
         // Writes provided value to a file
         void writeControlValue_(const word fileName, const scalar outputValue);
         // Reads value from a file

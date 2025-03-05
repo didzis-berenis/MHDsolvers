@@ -32,6 +32,7 @@ License
 Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
 :
     runTime_(runTime),
+    frequency_(runTime_.controlDict().lookup<scalar>("frequency")),
     restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0)),
     waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0))
 {
@@ -258,18 +259,54 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
         {
             electroBase* electrPtr = getElectroBasePtr_(regionName);
             const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
+            const word regionRole = electrPtr->electro.getRegionRole();//TODO: Should be some other tag
+            if (feedbackType == "current" || feedbackType == "voltage")
+            {
+                const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                terminalToRegions_[terminalName].push_back(regionName);
+            }
+            if (feedbackType == "voltage")
+            {
+                const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                if (!isElectroHarmonic())
+                {
+                    const vectorField oldB = getElectro(regionName).B().internalField();
+                    regionOldB_[regionName]=oldB;
+                }
+            }
+            if (regionRole == "coil_core")//TODO: should be some other tag
+            {
+                const word terminalName = electrPtr->electro.lookup<word>("terminalName");//TODO: should be a list
+                //forAll(terminalNames, terminalName) {
+                terminalCoreRegions_[terminalName].push_back(regionName);
+                //}
+                if (!isElectroHarmonic())
+                {
+                    const vectorField oldB = getElectro(regionName).B().internalField();
+                    regionOldB_[regionName]=oldB;
+                }
+            }
+        }
+    }
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName))
+        {
+            electroBase* electrPtr = getElectroBasePtr_(regionName);
+            const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
             if (feedbackType == "")
                 continue;
             if (feedbackType == "current" || feedbackType == "voltage")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
                 Info << "Setting up controls for terminal: " << terminalName << endl;
-                if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
+                /*if (terminalToRegions_.find(terminalName) != terminalToRegions_.end())
                 {
                     terminalToRegions_[terminalName].push_back(regionName);
                     continue;
                 }
-                terminalToRegions_[terminalName].push_back(regionName);
+                terminalToRegions_[terminalName].push_back(regionName);*/
                 const scalar target_phase =
                 dimensionedScalar(
                     "phaseShift",
@@ -317,7 +354,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                         tStepElectro_ = adjustableRunTime_ ?
                         readScalar(runTime_.controlDict().lookup("writeInterval")) :
                         readScalar(runTime_.controlDict().lookup("deltaT"))*writeMultiplier_;
-                        frequency_ = runTime_.controlDict().lookup<scalar>("frequency");
+                        //frequency_ = runTime_.controlDict().lookup<scalar>("frequency");
                         integrationSteps_ = round(0.5/(tStepElectro_*frequency_));
                         scalar half_step_weight = 1.0/(2.0*integrationSteps_);//Error related to half of step size
                         scalar maxIntegrationError = asin(sin(PI*(1.0-half_step_weight)))/PI;
@@ -382,7 +419,8 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     voltageControls_[terminalName] = terminalControls;
                     //TODO: Get this from terminal boundary
                     scalar set_voltage = target_value;
-                    inducedVoltage_[terminalName] = set_voltage - target_value;
+                    inducedVoltageValue_[terminalName] = set_voltage - target_value;
+                    inducedVoltagePhase_[terminalName] = 0;
                 }
             }
         }
@@ -596,11 +634,112 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
     return regions_[regionIdx_[regionName]];
 }
 
+Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, Foam::vector winding_direction,bool imaginary)
+{
+    const scalarField volume = mesh(regionName).V();
+    scalar sumI = 0;
+    if (isElectroHarmonic())
+    {
+        const scalarField dBdt = getElectro(regionName).B(!imaginary).internalField() & winding_direction;
+        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+        sumI = gSum(volume*dBdt);//Find volume integral
+    }
+    else
+    {
+        const scalarField dBdt = (getElectro(regionName).B(imaginary).internalField() - regionOldB_[regionName]) & winding_direction;
+        //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+        sumI = gSum(volume*dBdt);//Find volume integral
+    }
+    return sumI;
+}
+
 void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal)
 {
     if (!isElectroHarmonic())
     {
         integrationCounter_++;
+    }
+    for (auto element : terminalCoreRegions_)
+    {
+        const word terminalName = element.first;
+        inducedVoltagePhase_[terminalName] = 0;
+        inducedVoltageValue_[terminalName] = 0;
+        for (word regionName : element.second)
+        {
+            //induced_voltage = -0.5*windingDirection*(
+            //innerArea*integralCore(dB/dt)+outerArea*(integralCore(dB/dt)+integralCoil(dB/dt))
+            //) = -0.5*windingDirection*(
+            //(innerArea+outerArea)*integralCore(dB/dt)+
+            //outerArea*(integralCoil(dB/dt))
+            //)
+
+            //TODO: Harmonic case
+            //dBdt = omega*i*B
+            //dBdt Re = -omega*Bim
+            //dBdt Im = omega*Bre
+            if (isElectroHarmonic())
+            {
+            scalar coefficient = -2*PI*frequency_;
+            const coilParameters_ terminalControls = voltageControls_[terminalName];
+            const scalar dBdtIntegralRe = getInductionSum_(regionName,coefficient*terminalControls.winding_direction);
+            inducedVoltageValue_[terminalName] +=
+            -0.5*(terminalControls.inner_area+terminalControls.outer_area)*dBdtIntegralRe;
+            coefficient = 2*PI*frequency_;
+            const scalar dBdtIntegralIm = getInductionSum_(regionName,coefficient*terminalControls.winding_direction,true);
+            inducedVoltagePhase_[terminalName] +=
+            -0.5*(terminalControls.inner_area+terminalControls.outer_area)*dBdtIntegralIm;
+            }
+            else
+            {
+                //TODO: Set up transient case
+            }
+        }
+        
+    }
+    for (auto element : terminalToRegions_)
+    {
+        const word terminalName = element.first;
+        if (voltageControls_.find(terminalName) != voltageControls_.end())
+        {
+            const coilParameters_ terminalControls = voltageControls_[terminalName];
+            for (word regionName : element.second)
+            {
+                //induced_voltage = -0.5*windingDirection*(
+                //innerArea*integralCore(dB/dt)+outerArea*(integralCore(dB/dt)+integralCoil(dB/dt))
+                //) = -0.5*windingDirection*(
+                //(innerArea+outerArea)*integralCore(dB/dt)+
+                //outerArea*(integralCoil(dB/dt))
+                if (isElectroHarmonic())
+                {
+                    const scalar dBdtIntegralRe = getInductionSum_(regionName,terminalControls.winding_direction);
+                    inducedVoltageValue_[terminalName] += -0.5*terminalControls.outer_area*dBdtIntegralRe;
+                    const scalar dBdtIntegralIm = getInductionSum_(regionName,terminalControls.winding_direction,true);
+                    inducedVoltagePhase_[terminalName] += -0.5*terminalControls.outer_area*dBdtIntegralIm;
+                }
+                else
+                {
+                    //TODO: Set up transient case
+                }
+            }
+            //Convert to value and phase
+            if (isElectroHarmonic())
+            {
+                scalar inducedVoltageRe = inducedVoltageValue_[terminalName];
+                scalar inducedVoltageIm = inducedVoltagePhase_[terminalName];
+                inducedVoltageValue_[terminalName] = sqrt(pow(inducedVoltageRe,2)+pow(inducedVoltageIm,2));
+                inducedVoltagePhase_[terminalName] = atan2(inducedVoltageIm,inducedVoltageRe)*180/PI;
+            }
+            else
+            {
+                //TODO: Set up transient case
+            }
+            Info << "terminalName: " << terminalName << endl;
+            Info << "target value: " << terminalControls.target_value << endl;
+            Info << "induced value: " << inducedVoltageValue_[terminalName] << endl;
+            Info << "induced phase: " << inducedVoltagePhase_[terminalName] << endl;
+            //TODO: set up correct settings for voltage type
+            //setVoltage = target_value + induced_voltage
+        }
     }
     for (auto element : terminalToRegions_)
     {
@@ -658,23 +797,6 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
             {
                 Info << "Calculated current for terminal " << terminalName  << " is within acceptable errors." << endl;
             }
-        }
-        if (feedbackControllers_[terminalName].getControlType() == "voltage")
-        {
-            //TODO: set up correct settings for voltage type
-            coilParameters_ terminalControls = voltageControls_[terminalName];
-            //TODO: calculate integral magnetic flux change
-            //setVoltage = target_value + induced_voltage
-            //induced_voltage = -0.5*windingDirection*(
-            //innerArea*integralCore(dB/dt)+outerArea*(integralCore(dB/dt)+integralCoil(dB/dt))
-            //) = -0.5*windingDirection*(
-            //(innerArea+outerArea)*integralCore(dB/dt)+outerArea*(integralCoil(dB/dt))
-            //)
-            /*terminalControls.target_value = target_value;
-            terminalControls.inner_area = inner_area;
-            terminalControls.outer_area = outer_area;
-            terminalControls.winding_direction = winding_direction;
-            inducedVoltage_[terminalName] = ;*/
         }
     }
 }
