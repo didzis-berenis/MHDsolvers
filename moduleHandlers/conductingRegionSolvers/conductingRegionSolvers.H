@@ -109,6 +109,7 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        std::map<word, scalar> conductorValues_;
         std::map<word, scalar> conductorPhases_;
 
         //List<word> controlTerminalNames_;
@@ -116,6 +117,7 @@ class conductingRegionSolvers
         std::map<word, std::vector<word>> terminalToRegions_;
 
         //- Feedback loop controllers
+        std::map<word, bool> voltageNeedsUpdate_;
         std::map<word, feedbackLoopController> feedbackControllers_;
         std::map<word, scalar> inducedVoltageValue_;
         std::map<word, scalar> inducedVoltagePhase_;
@@ -127,6 +129,8 @@ class conductingRegionSolvers
             scalar outer_area;
             Foam::vector winding_direction;
         };
+        scalar target_value_error_;
+        scalar target_phase_error_;
         std::map<word, coilParameters_> voltageControls_;
         std::map<word, vectorField> regionOldB_;
         std::map<word, std::vector<word>> terminalCoreRegions_;
@@ -148,7 +152,7 @@ class conductingRegionSolvers
         int integrationSteps_ = 0;
         //int integration_multiplier_ = 1;
         int integrationCounter_ = 0;
-        scalar integralCurrent_ = 0;
+        std::map<word, scalar> integralCurrent_;
         scalar tStepElectro_ = 0;
 
         // Electromagnetic excitation frequency
@@ -183,7 +187,9 @@ class conductingRegionSolvers
         //- Initialize electric potential boundary conditions
         void evaluatePotEBfs_(const word regionName, bool imaginary=false);
         void updatePotErefGrad_(const word regionName, scalar newGrad, bool imaginary=false);
-        void updatePotErefValue_(const word regionName, scalar newValue, bool imaginary=false);
+        void updatePotErefValue_(const word terminalName, scalar newValue, bool imaginary=false);
+        scalar getPotErefValue_(const word terminalName, bool imaginary=false);
+        int initial_iter_ = 0;
 
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
@@ -207,6 +213,7 @@ class conductingRegionSolvers
         void writeControlValue_(const word fileName, const scalar outputValue);
         // Reads value from a file
         scalar readControlValue_(const word fileName);
+        bool fileExists_(const word fileName);
 
 public:
     //constants

@@ -99,7 +99,9 @@ public:
         //- Electric potential [V/m]
         virtual void initPotE(bool imaginary=false);
         virtual void updatePotErefGrad(scalar newGrad, bool imaginary);
-        virtual void updatePotErefValue(scalar newValue, bool imaginary);
+        virtual void updatePotErefValue(const word terminalName, scalar newValue, bool imaginary);
+        scalar getPotErefValue(const word terminalName, bool imaginary);
+        bool hasBoundary(const word terminalName);
 
         //- Current density correction [A/m^2]
         virtual void initDeltaJ(bool imaginary=false);

@@ -112,7 +112,7 @@ void Foam::electroBase::updatePotErefGrad(scalar newGrad, bool imaginary)
 }
 
 
-void Foam::electroBase::updatePotErefValue(scalar newValue, bool imaginary)
+void Foam::electroBase::updatePotErefValue(const word terminalName, scalar newValue, bool imaginary)
 {
     volScalarField& PotE = electroPtr_->PotE(imaginary);
     volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
@@ -123,10 +123,53 @@ void Foam::electroBase::updatePotErefValue(scalar newValue, bool imaginary)
         {
             coupledElectricPotentialFvPatchScalarField& cpPotE =
             refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
-            if (cpPotE.getTerminalRole() == "terminal")
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
                 cpPotE.refValue() = newValue;
         }
     }
+}
+
+
+Foam::scalar Foam::electroBase::getPotErefValue(const word terminalName, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+                return gAverage(cpPotE.refValue());
+        }
+    }
+    
+    FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
+    << exit(FatalIOError);
+    return -1;
+}
+
+
+bool Foam::electroBase::hasBoundary(const word terminalName)
+{
+    volScalarField& PotE = electroPtr_->PotE();
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() == terminalName)
+            return true;
+        /*if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+                return true;
+        }*/
+    }
+    return false;
 }
 
 
