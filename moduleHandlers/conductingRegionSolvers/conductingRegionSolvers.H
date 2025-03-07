@@ -125,8 +125,8 @@ class conductingRegionSolvers
         {
             scalar target_value;
             scalar target_phase;
-            scalar inner_area;
-            scalar outer_area;
+            //scalar inner_area;
+            //scalar outer_area;
             Foam::vector winding_direction;
         };
         scalar target_value_error_;
@@ -190,6 +190,7 @@ class conductingRegionSolvers
         void updatePotErefValue_(const word terminalName, scalar newValue, bool imaginary=false);
         scalar getPotErefValue_(const word terminalName, bool imaginary=false);
         int initial_iter_ = 0;
+        int wait_iter_ = 0;
 
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
@@ -203,7 +204,7 @@ class conductingRegionSolvers
         void setUpFeedbackControllers_();
 
         // Calculates phase shift for transient simulation
-        scalar getTransientPhaseShift_(scalar argument);
+        scalar getTransientPhaseShift_(scalar argument, scalar step_shift);
         // Calculates unit vector field from current density
         volVectorField getJdirection_(word regionName, bool imaginary);
         // Calculates integral current density for a region
