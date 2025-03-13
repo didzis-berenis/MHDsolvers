@@ -82,6 +82,11 @@ public:
 
 
     // Member Functions
+
+        //- Construct and solve the energy equation,
+        //  convert to temperature
+        //  and update thermophysical and transport properties
+        virtual void thermophysicalPredictor();
     
         //non-const Temperature access for initialization purposes
         volScalarField& getTemperature();

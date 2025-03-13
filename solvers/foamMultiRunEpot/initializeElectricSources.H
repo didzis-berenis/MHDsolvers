@@ -3,7 +3,8 @@ Info<< nl << "Initializing electromagnetic sources\n" << endl;
 bool solved = false;
 solvers.setGlobalPrefix();
 // Analoge for pimple.loop(), but only for selected regions.
-for (int it=1; it<=pimple.nCorr(); it++)
+int nOuterPotECorrectors = pimple.nCorr();//pimple.lookup("nOuterPotECorrectors");
+for (int it=1; it<=nOuterPotECorrectors; it++)
 {
     pimple.read();
     if (it==1)
@@ -22,7 +23,7 @@ for (int it=1; it<=pimple.nCorr(); it++)
         {
             label thisLabel = solvers.getRegionId(regionNames[i]);
             pimple.pimple(thisLabel).storePrevIterFields();
-            bool isFinal = solved || it==pimple.nCorr();
+            bool isFinal = solved || it==nOuterPotECorrectors;
             pimple.pimple(thisLabel).updateFinal(isFinal);
         }
     }

@@ -122,7 +122,7 @@ void Foam::solvers::conductingMaterial::pressureCorrector()
 void Foam::solvers::conductingMaterial::postCorrector()
 {
     // Solve only for source regions
-    if (electro.correctElectromagnetics())//electro.isSource() && 
+    if (electro.correctElectromagnetics())
     {
         //Calculate current density
         electro_.findJ();
@@ -131,7 +131,22 @@ void Foam::solvers::conductingMaterial::postCorrector()
         {
             electro_.findJ(imaginary);
         }
-        electro_.predict();
+        if (electro.getRegionRole() == "coil")
+        {
+            electro_.predict();
+        }
+        else
+        {
+            const volVectorField Jre = electro.J();
+            volVectorField& JreRef = electro_.Jref();
+            JreRef = Jre;
+            if (imaginary)
+            {
+                const volVectorField Jim = electro.J(imaginary);
+                volVectorField& JimRef = electro_.Jref(imaginary);
+                JimRef = Jim;
+            }
+        }
         electro_.setCorrected();
     }
 }

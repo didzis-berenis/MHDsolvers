@@ -69,6 +69,11 @@ Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
     return electroPtr_->J(imaginary);
 }
 
+Foam::volVectorField& Foam::electroBase::getJref(bool imaginary)
+{
+    return electroPtr_->Jref(imaginary);
+}
+
 Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
 {
     return electroPtr_->B(imaginary);

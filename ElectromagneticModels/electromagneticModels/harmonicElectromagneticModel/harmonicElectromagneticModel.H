@@ -75,9 +75,13 @@ class harmonicElectromagneticModel
     //- Current density [A/m^2]
         //- real
         volVectorField& Jre_;
+        // Not the actual current, but for keeping reference value
+        volVectorField& JreReference_;
 
         //- imaginary
         volVectorField& Jim_;
+        // Not the actual current, but for keeping reference value
+        volVectorField& JimReference_;
 
     //- Magnetic field [T]
         //- real
@@ -120,6 +124,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+        virtual volVectorField& Jref(bool imaginary=false) override;
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) override;
@@ -140,6 +145,7 @@ public:
 
         //- Current density [A/m^2]
         const virtual volVectorField& J(bool imaginary=false) const override;
+        const virtual volVectorField& Jref(bool imaginary=false) const override;
 
         //- Magnetic field [T]
         const virtual volVectorField& B(bool imaginary=false) const override;

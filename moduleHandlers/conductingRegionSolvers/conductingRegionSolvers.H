@@ -208,7 +208,7 @@ class conductingRegionSolvers
         // Calculates unit vector field from current density
         volVectorField getJdirection_(word regionName, bool imaginary);
         // Calculates integral current density for a region
-        scalar getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary=false);
+        scalar getCurrentSum_(word regionName,bool imaginary=false);//volVectorField JGlobal,
         scalar getInductionSum_(word regionName, Foam::vector winding_direction, bool imaginary=false);
         // Writes provided value to a file
         void writeControlValue_(const word fileName, const scalar outputValue);
@@ -253,7 +253,8 @@ public:
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
-        void updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal);
+        void updateFeedbackControl();//volVectorField& JreGlobal,volVectorField& JimGlobal
+        bool controllersNeedUpdate();
 
         // Return global fvMesh
         const fvMesh& globalMesh();

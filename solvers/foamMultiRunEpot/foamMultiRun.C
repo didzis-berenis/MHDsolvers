@@ -108,6 +108,16 @@ int main(int argc, char *argv[])
 
     #include "runElmerUpdate.H"
 
+    // TODO: Enable this also for tranisent electromagnetics
+    if (solvers.isElectroHarmonic())
+    {
+        // Iterate until target values reached
+        while (solvers.controllersNeedUpdate())
+        {
+            #include "runElmerUpdate.H"
+        }
+    }
+
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
     // This is done to avoid the initial oscillations in the solution
     for (int i = 0; i < solvers.waitInterval; i++)

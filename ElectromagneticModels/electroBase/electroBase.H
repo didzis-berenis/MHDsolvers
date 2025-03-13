@@ -92,6 +92,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
+        virtual volVectorField& getJref(bool imaginary=false);
 
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);

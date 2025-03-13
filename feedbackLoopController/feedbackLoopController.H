@@ -133,6 +133,9 @@ public:
             const Pair<scalar>& proportional_coeff,
             const Pair<scalar>& differential_coeff,
             const Pair<scalar>& integral_coeff);
+        Pair<scalar> getProportionalCoefficient();
+        Pair<scalar> getReference();
+        void updateProportionalCoefficient(const Pair<scalar>& proportional_coeff);
 
 
     // Member Operators

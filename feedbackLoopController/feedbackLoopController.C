@@ -194,4 +194,19 @@ void Foam::feedbackLoopController::updateCoefficients(
     integral_coeff_ = integral_coeff;
 }
 
+Foam::Pair<Foam::scalar> Foam::feedbackLoopController::getProportionalCoefficient()
+{
+    return proportional_coeff_;
+}
+
+void Foam::feedbackLoopController::updateProportionalCoefficient(
+    const Pair<scalar>& proportional_coeff)
+{
+    proportional_coeff_ = proportional_coeff;
+}
+Foam::Pair<Foam::scalar> Foam::feedbackLoopController::getReference()
+{
+    return reference_value_;
+}
+
 // ************************************************************************* //

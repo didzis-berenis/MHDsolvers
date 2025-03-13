@@ -75,7 +75,7 @@ if (solvers.isElectroHarmonic())
 forAll(regionNames, i)
 {
     // Skip update if current was calculated in OpenFOAM
-    if (solvers.isSolvedFor(regionNames[i]))
+    if (solvers.isSource(regionNames[i]))//solvers.isSolvedFor(regionNames[i])
         continue;
     solvers.setJToRegion(JreGlobal,regionNames[i]);
     if (solvers.isElectroHarmonic())
@@ -109,4 +109,4 @@ if (Pstream::master())
 if (initialize_elmer)
     initialize_elmer = false;
 
-solvers.updateFeedbackControl(JreGlobal,JimGlobal);
+solvers.updateFeedbackControl();//JreGlobal,JimGlobal

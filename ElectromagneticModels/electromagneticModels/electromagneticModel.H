@@ -278,6 +278,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) = 0;
+        virtual volVectorField& Jref(bool imaginary=false) = 0;
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) = 0;
@@ -325,6 +326,7 @@ public:
 
         //- Current density [A/m^2]
         virtual const volVectorField& J(bool imaginary=false) const = 0;
+        virtual const volVectorField& Jref(bool imaginary=false) const = 0;
 
         //- Magnetic field [T]
         virtual const volVectorField& B(bool imaginary=false) const = 0;

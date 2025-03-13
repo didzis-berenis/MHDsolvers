@@ -268,7 +268,6 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
         {
             electroBase* electrPtr = getElectroBasePtr_(regionName);
             const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
-            const word regionRole = electrPtr->electro.getRegionRole();//TODO: Should be some other tag
             if (feedbackType == "current" || feedbackType == "voltage")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
@@ -283,6 +282,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     regionOldB_[regionName]=oldB;
                 }
             }
+            const word regionRole = electrPtr->electro.getRegionRole();//TODO: Should be some other tag
             if (regionRole == "coil_core")//TODO: should be some other tag
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");//TODO: should be a list
@@ -604,7 +604,7 @@ Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionNa
 {
     if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
     {
-        volVectorField regionField = getElectroBasePtr_(regionName)->getJ(imaginary);
+        volVectorField regionField = getElectroBasePtr_(regionName)->getJref(imaginary);
         volScalarField magnitudeField = mag(regionField);
         volVectorField directionField = regionField/magnitudeField;
         return directionField;
@@ -638,11 +638,11 @@ Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, Fo
     return sumI;
 }
 
-Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(volVectorField JGlobal,word regionName,bool imaginary)
+Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(word regionName,bool imaginary)//volVectorField JGlobal,
 {
     const volVectorField Jdirection = getJdirection_(regionName,imaginary);//Get reference
-    volVectorField JRegion = getElectro(regionName).J(imaginary);//Use copy of internal J for rewriting (has respective regions' mesh)
-    vectorGlobalToField_(JGlobal,JRegion,regionName);//Assign received field
+    const volVectorField JRegion = getElectro(regionName).J(imaginary);//Use copy of internal J for rewriting (has respective regions' mesh)
+    //vectorGlobalToField_(JGlobal,JRegion,regionName);//Assign received field
     const scalarField Jprojection(JRegion & Jdirection);//Project to a reference
     const scalarField volume = mesh(regionName).V();
     //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
@@ -742,8 +742,10 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
     return regions_[regionIdx_[regionName]];
 }
 
-void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlobal,volVectorField& JimGlobal)
+void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& JreGlobal,volVectorField& JimGlobal
 {
+    // TODO: don't increase time-step size if needsUpdate
+    // OR run extra initial iterations to get to correct values.
     if (!isElectroHarmonic())
     {
         integrationCounter_++;
@@ -1002,10 +1004,10 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
             {
                 //Info << "Region: " << regionName;
                 //TODO: check if this works correctly if has multiple regions
-                avgJre += getCurrentSum_(JreGlobal,regionName);
+                avgJre += getCurrentSum_(regionName);//JreGlobal,
                 if (isElectroHarmonic())
                 {
-                    avgJim += getCurrentSum_(JimGlobal,regionName,true);
+                    avgJim += getCurrentSum_(regionName,true);//JimGlobal,
                 }
             }
             
@@ -1041,6 +1043,19 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
                 << "New control values: " << control_values << endl;
                 writeControlValue_("coilVoltages/"+terminalName,control_values.first());//abs(control_values.first()));
                 writeControlValue_("coilPhases/"+terminalName,control_values.second());
+                
+                // TODO: current value raises very slowly for high frequencies
+                // Maybe updating coefficient can help? 
+                Pair<scalar> old_proportional_coeff = feedbackControllers_[terminalName].getProportionalCoefficient();
+                scalar target_value = feedbackControllers_[terminalName].getReference().first();
+                scalar old_value_coeff = old_proportional_coeff.first();
+                scalar new_value_coeff = -0.5*control_values.first()/target_value;
+                bool needs_coeff_update = abs(new_value_coeff) > 10*old_value_coeff;
+                if (needs_coeff_update)
+                {
+                    Pair<scalar> new_proportional_coeff(new_value_coeff,old_proportional_coeff.second());
+                    feedbackControllers_[terminalName].updateProportionalCoefficient(new_proportional_coeff);
+                }
             }
             else
             {
@@ -1048,6 +1063,18 @@ void Foam::conductingRegionSolvers::updateFeedbackControl(volVectorField& JreGlo
             }
         }
     }
+}
+
+bool Foam::conductingRegionSolvers::controllersNeedUpdate()
+{
+    // TODO: include voltage controllers
+    for (auto element : terminalToRegions_)
+    {
+        const word terminalName = element.first;
+        if (feedbackControllers_[terminalName].needsUpdate())
+        {return true;}
+    }
+    return false;
 }
 
 void Foam::conductingRegionSolvers::solveElectromagnetics(const word regionName)
@@ -1094,7 +1121,7 @@ Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, 
     if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "coil")
     {
         electroBase* electrPtr = getElectroBasePtr_(regionName);
-        volVectorField regionField = electrPtr->getJ(imaginary);
+        volVectorField regionField = isSource(regionName) ? electrPtr->getJ(imaginary) : electrPtr->getJref(imaginary);
         if (!isElectroHarmonic())
         {
             /*const word feedbackType = electrPtr->electro.lookupOrDefault<word>("feedbackControl","");
@@ -1108,7 +1135,7 @@ Foam::volVectorField Foam::conductingRegionSolvers::getSourceJ(word regionName, 
             {*/
                 regionField*=conductorValues_[regionName]*Foam::sin(2*PI*frequency_*runTime_.userTimeValue()
                 //TODO: Check if sign is consistent everywhere
-                +conductorPhases_[regionName]*PI/180.0);
+                -conductorPhases_[regionName]*PI/180.0);
             //}
         }
         return regionField;
@@ -1326,6 +1353,16 @@ bool Foam::conductingRegionSolvers::updateMagneticField()
         }
         else if(maxRemDiff_local>maxRemDiff_ && maxRelDiff_-SMALL<=1.0) {
             doUpdate = true;
+        }
+        // Include update check for controllers
+        for (auto element : terminalToRegions_)
+        {
+            const word terminalName = element.first;
+            Info << "terminalName: " << terminalName << endl;
+            if (voltageControls_.find(terminalName) != voltageControls_.end() && voltageNeedsUpdate_[terminalName])
+            {doUpdate = true;}
+            if (feedbackControllers_.find(terminalName) != feedbackControllers_.end()  && feedbackControllers_[terminalName].needsUpdate())
+            {doUpdate = true;}
         }
     }
     else
