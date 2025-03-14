@@ -152,6 +152,7 @@ class conductingRegionSolvers
         int integrationSteps_ = 0;
         //int integration_multiplier_ = 1;
         int integrationCounter_ = 0;
+        bool controllerCheckTime_ = false;
         std::map<word, scalar> integralCurrent_;
         scalar tStepElectro_ = 0;
 

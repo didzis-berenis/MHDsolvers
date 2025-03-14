@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
 
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
+    bool logElmerTime = true;
+    bool skipControllerUpdate = false;
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     // Initialize electromagnetic sources.
@@ -105,24 +107,67 @@ int main(int argc, char *argv[])
     {
         #include "initializeElectricSources.H"
     }
-
+    // Run extra iterations to reach controller values
+    if (solvers.controllersNeedUpdate())
+    {
+        Info<< nl << "Initializing electromagnetic controls\n" << endl;
+    }
+    logElmerTime = false;
+    int controlStepsTaken = 0;
+    // Time == startTime() iteration
     #include "runElmerUpdate.H"
-
-    // TODO: Enable this also for tranisent electromagnetics
+    controlStepsTaken++;
     if (solvers.isElectroHarmonic())
     {
         // Iterate until target values reached
         while (solvers.controllersNeedUpdate())
         {
             #include "runElmerUpdate.H"
+            controlStepsTaken++;
         }
     }
+    else
+    {
+        const scalar startTime = runTime.startTime().value();
+        const label startTimeLabel = runTime.startTimeIndex();
+        label thisTimeLabel = startTimeLabel;
+        bool adjustableRunTime = (word(runTime.controlDict().lookup("writeControl"))=="adjustableRunTime");
+        scalar frequency = (runTime.controlDict().lookup<scalar>("frequency"));
+        scalar writeInterval = readScalar(runTime.controlDict().lookup("writeInterval"));
+        scalar deltaT = adjustableRunTime ? writeInterval : runTime.deltaTValue();
+        //Info<< "deltaT = " << deltaT << endl;
+        int periodSteps = round(1.0/(deltaT*frequency));
+        Info<< "periodSteps = " << periodSteps << endl;
+        // Iterate until target values reached
+        // Continue until reached multiple of oscillation period
+        while (solvers.controllersNeedUpdate() || (controlStepsTaken % periodSteps != 0))
+        {
+            // Cannot use runTime++ here
+            // because it messes up runTime.writeTime() detection for adjustableRunTime during calculation
+            thisTimeLabel++;
+            runTime.setTime(startTime+controlStepsTaken*deltaT, thisTimeLabel);
+            Info<< "Time = " << runTime.userTimeName() << endl;
+            #include "runElmerUpdate.H"
+            controlStepsTaken++;
+            Info<< "stepsTaken = " << controlStepsTaken << endl;
+        }
+        runTime.setTime(startTime, startTimeLabel);
+    }
+    logElmerTime = true;
 
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM
     // This is done to avoid the initial oscillations in the solution
-    for (int i = 0; i < solvers.waitInterval; i++)
+    // Do not need to run this if already iterated for controller update
+    if (controlStepsTaken < solvers.waitInterval)
     {
-        #include "runElmerUpdate.H"
+        // At this point solvers.controllersNeedUpdate() == false
+        // So we can skip check
+        skipControllerUpdate = true;
+        for (int i = 0; i < solvers.waitInterval; i++)
+        {
+            #include "runElmerUpdate.H"
+        }
+        skipControllerUpdate = false;
     }
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -164,6 +209,7 @@ int main(int argc, char *argv[])
         runTime++;
 
         Info<< "Time = " << runTime.userTimeName() << nl << endl;
+        Info<< "writeTime = " << runTime.writeTime() << endl;
         // Multi-region PIMPLE corrector loop
         while (pimple.loop())
         {

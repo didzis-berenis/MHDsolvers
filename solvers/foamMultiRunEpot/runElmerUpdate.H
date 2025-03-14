@@ -95,7 +95,7 @@ forAll(regionNames, i)
     solvers.electromagneticPredictor(regionNames[i]);
 }
 // Log the current simulation time
-if (Pstream::master())
+if (Pstream::master() && logElmerTime)
 {
     std::ofstream elmerTimes(elmerTimesFileName, std::ios::app);
     if (elmerTimes.is_open())
@@ -109,4 +109,5 @@ if (Pstream::master())
 if (initialize_elmer)
     initialize_elmer = false;
 
-solvers.updateFeedbackControl();//JreGlobal,JimGlobal
+if (!skipControllerUpdate)
+    solvers.updateFeedbackControl();//JreGlobal,JimGlobal

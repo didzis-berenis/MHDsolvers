@@ -91,6 +91,7 @@
         "codecvt": "cpp",
         "ctime": "cpp",
         "ratio": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "Time.C": "cpp"
     }
 }

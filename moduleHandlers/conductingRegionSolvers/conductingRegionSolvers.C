@@ -744,6 +744,9 @@ Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 
 void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& JreGlobal,volVectorField& JimGlobal
 {
+    // Elmer should be called only at writeTime with adjustableTime option enabled.
+    // Check if for some reason that is not so.
+    //if ( adjustableRunTime_ && !runTime_.writeTime() ) {return;}
     // TODO: don't increase time-step size if needsUpdate
     // OR run extra initial iterations to get to correct values.
     if (!isElectroHarmonic())
