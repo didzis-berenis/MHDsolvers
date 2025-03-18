@@ -112,10 +112,10 @@ int main(int argc, char *argv[])
     {
         Info<< nl << "Initializing electromagnetic controls\n" << endl;
     }
-    logElmerTime = false;
     int controlStepsTaken = 0;
     // Time == startTime() iteration
     #include "runElmerUpdate.H"
+    logElmerTime = false;
     controlStepsTaken++;
     if (solvers.isElectroHarmonic())
     {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
             // because it messes up runTime.writeTime() detection for adjustableRunTime during calculation
             thisTimeLabel++;
             runTime.setTime(startTime+controlStepsTaken*deltaT, thisTimeLabel);
-            Info<< "Time = " << runTime.userTimeName() << endl;
+            Info<< "TimeStep = " << runTime.userTimeName() << endl;
             #include "runElmerUpdate.H"
             controlStepsTaken++;
             Info<< "stepsTaken = " << controlStepsTaken << endl;

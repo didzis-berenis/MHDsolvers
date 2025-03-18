@@ -1047,8 +1047,8 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 writeControlValue_("coilVoltages/"+terminalName,control_values.first());//abs(control_values.first()));
                 writeControlValue_("coilPhases/"+terminalName,control_values.second());
                 
-                // TODO: current value raises very slowly for high frequencies
-                // Maybe updating coefficient can help? 
+                // Current value raises very slowly for high frequencies, because the initial estimate is wrong by several orders of magnitude.
+                // Updating coefficient later helps with that.
                 Pair<scalar> old_proportional_coeff = feedbackControllers_[terminalName].getProportionalCoefficient();
                 scalar target_value = feedbackControllers_[terminalName].getReference().first();
                 scalar old_value_coeff = old_proportional_coeff.first();

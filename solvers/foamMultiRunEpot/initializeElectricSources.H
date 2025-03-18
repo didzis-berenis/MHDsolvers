@@ -3,7 +3,7 @@ Info<< nl << "Initializing electromagnetic sources\n" << endl;
 bool solved = false;
 solvers.setGlobalPrefix();
 // Analoge for pimple.loop(), but only for selected regions.
-int nOuterPotECorrectors = pimple.nCorr();//pimple.lookup("nOuterPotECorrectors");
+int nOuterPotECorrectors = pimple.dict().lookupOrDefault<label>("nOuterPotECorrectors", 20);//pimple.nCorr();//
 for (int it=1; it<=nOuterPotECorrectors; it++)
 {
     pimple.read();
