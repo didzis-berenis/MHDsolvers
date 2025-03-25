@@ -140,7 +140,16 @@ int main(int argc, char *argv[])
         Info<< "periodSteps = " << periodSteps << endl;
         // Iterate until target values reached
         // Continue until reached multiple of oscillation period
-        while (solvers.controllersNeedUpdate() || (controlStepsTaken % periodSteps != 0))
+        while (
+                solvers.controllersNeedUpdate() // Continue while stil needs calibrating
+                ||
+                (
+                    (controlStepsTaken % periodSteps != 0) // Run until have done integer nuber of periods,
+                    // so that the time shift is matching at the beginning of calculation.
+                    &&
+                    controlStepsTaken > 1 // However, don't need to run if calibration didn't happen.
+                )
+            )
         {
             // Cannot use runTime++ here
             // because it messes up runTime.writeTime() detection for adjustableRunTime during calculation

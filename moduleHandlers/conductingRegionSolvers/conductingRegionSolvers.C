@@ -282,6 +282,13 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     regionOldB_[regionName]=oldB;
                 }
             }
+            // TODO: Could set up scalarField coilCoreIds
+            // 1) Construct line perpendicular to windingDirection, which originates in present cell point.
+            // Safe line direction could be constructed from cross product between windingDirection
+            // and coilCenter to terminalCenter vector.
+            // 2) Sample some points (like 1000) and interpolate to nearest cell surface.
+            // 3) Check if surface belongs to coil boundary.
+            // 4) If line goes through exactly 1 inner and 1 outer boundary of coil, then cell is inside coil.
             const word regionRole = electrPtr->electro.getRegionRole();//TODO: Should be some other tag
             if (regionRole == "coil_core")//TODO: should be some other tag
             {
