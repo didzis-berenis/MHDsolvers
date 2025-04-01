@@ -103,6 +103,9 @@ public:
         virtual void updatePotErefValue(const word terminalName, scalar newValue, bool imaginary);
         scalar getPotErefValue(const word terminalName, bool imaginary);
         bool hasBoundary(const word terminalName);
+        bool isElectricPotentialBoundary(const word terminalName);
+        word findGroundTerminal(const word terminalName);
+        Foam::vector getCenter(const word terminalName);
 
         //- Current density correction [A/m^2]
         virtual void initDeltaJ(bool imaginary=false);

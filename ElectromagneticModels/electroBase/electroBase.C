@@ -26,6 +26,7 @@ License
 #include "electroBase.H"
 #include "coupledCurrentDensityFvPatchVectorField.H"
 #include "coupledElectricPotentialFvPatchScalarField.H"
+#include "externalElectricPotentialFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -142,20 +143,74 @@ Foam::scalar Foam::electroBase::getPotErefValue(const word terminalName, bool im
     forAll(PotEBf, patchi)
     {
         fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() != terminalName) {continue;}
         if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
         {
             coupledElectricPotentialFvPatchScalarField& cpPotE =
             refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
-            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+            if (cpPotE.getTerminalRole() == "terminal")
+                return gAverage(cpPotE.refValue());
+        }
+        if (isA<externalElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            externalElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<externalElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.hasPotE())
                 return gAverage(cpPotE.refValue());
         }
     }
-    
-    FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
-    << exit(FatalIOError);
+    if (hasBoundary(terminalName))
+    {
+        FatalIOError << "Boundary named " << terminalName << " is not defined as electric terminal!\n"
+        << exit(FatalIOError);
+    }
+    else
+    {
+        FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
+        << exit(FatalIOError);
+    }
     return -1;
 }
 
+bool Foam::electroBase::isElectricPotentialBoundary(const word terminalName)
+{
+    volScalarField& PotE = electroPtr_->PotE();
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() != terminalName)
+            continue;
+        if (isA<externalElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            externalElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<externalElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.hasPotE())
+                return true;
+        }
+    }
+    return false;
+}
+
+Foam::word Foam::electroBase::findGroundTerminal(const word terminalName)
+{
+    volScalarField& PotE = electroPtr_->PotE();
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() == terminalName)
+            continue;
+        if (isA<externalElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            externalElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<externalElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.hasPotE())
+                return pPotE.patch().name();
+        }
+    }
+    return "";
+}
 
 bool Foam::electroBase::hasBoundary(const word terminalName)
 {
@@ -175,6 +230,34 @@ bool Foam::electroBase::hasBoundary(const word terminalName)
         }*/
     }
     return false;
+}
+
+
+Foam::vector Foam::electroBase::getCenter(const word terminalName)
+{
+    volScalarField& PotE = electroPtr_->PotE();
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() == terminalName)
+        {
+            const scalarField surface = pPotE.patch().magSf();
+            const vectorField points = pPotE.patch().Cf();
+            const scalarField points_x = points & Foam::vector(1,0,0);
+            const scalarField points_y = points & Foam::vector(0,1,0);
+            const scalarField points_z = points & Foam::vector(0,0,1);
+            scalar totVol = gSum(surface);
+            scalar totVolx = gSum(surface*points_x)/totVol;
+            scalar totVoly = gSum(surface*points_y)/totVol;
+            scalar totVolz = gSum(surface*points_z)/totVol;
+            Foam::vector centerPosition(totVolx,totVoly,totVolz);
+            return centerPosition;
+        }
+    }
+    FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
+    << exit(FatalIOError);
+    return Foam::vector(0,0,0);
 }
 
 
