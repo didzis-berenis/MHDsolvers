@@ -61,13 +61,18 @@ class coupledCurrentDensityFvPatchVectorField
     // Private Data
 
         //- Default name of field on this region
-        const word Jname_ = "deltaJ";
+        const word deltaJname_ = "deltaJ";
+        const word Jname_ = "J";
 
         //- Default name of electric potential
         const word ePotName_ = "PotE";
 
         //- Default name of velocity contribution
         const word UxBname_ = "deltaUxB";
+
+        //- Direction of current
+        //- Flips direction for source interfaces
+        int direction_ = 1;
 
         //- Coupled flag
         bool coupled_ = false;
@@ -82,6 +87,8 @@ protected:
     ) const;
 
     word suffix() const;
+
+    bool isTerminal(word) const;
 
 public:
 
@@ -136,6 +143,7 @@ public:
     // Member Functions
 
         //- One way switch to coupled boundary condition
+        //- Uncoupled interfaces will act as walls
         virtual void initCoupling();
 
         //- Update the coefficients associated with the patch field

@@ -69,6 +69,11 @@ Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
     return electroPtr_->J(imaginary);
 }
 
+Foam::volVectorField& Foam::electroBase::getJref(bool imaginary)
+{
+    return electroPtr_->Jref(imaginary);
+}
+
 Foam::volVectorField& Foam::electroBase::getB(bool imaginary)
 {
     return electroPtr_->B(imaginary);
@@ -93,6 +98,86 @@ void Foam::electroBase::initPotE(bool imaginary)
     }
 }
 
+
+void Foam::electroBase::updatePotErefGrad(scalar newGrad, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal")
+                cpPotE.refGrad() = newGrad;
+        }
+    }
+}
+
+
+void Foam::electroBase::updatePotErefValue(const word terminalName, scalar newValue, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+                cpPotE.refValue() = newValue;
+        }
+    }
+}
+
+
+Foam::scalar Foam::electroBase::getPotErefValue(const word terminalName, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+                return gAverage(cpPotE.refValue());
+        }
+    }
+    
+    FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
+    << exit(FatalIOError);
+    return -1;
+}
+
+
+bool Foam::electroBase::hasBoundary(const word terminalName)
+{
+    volScalarField& PotE = electroPtr_->PotE();
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() == terminalName)
+            return true;
+        /*if (isA<coupledElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            coupledElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<coupledElectricPotentialFvPatchScalarField>(pPotE);
+            if (cpPotE.getTerminalRole() == "terminal" && cpPotE.patch().name() == terminalName)
+                return true;
+        }*/
+    }
+    return false;
+}
+
+
 void Foam::electroBase::initDeltaJ(bool imaginary)
 {
         volVectorField& deltaJ = electroPtr_->deltaJ(imaginary);
@@ -108,6 +193,25 @@ void Foam::electroBase::initDeltaJ(bool imaginary)
                 //Switch to coupling mode
                 cpDeltaJ.initCoupling();
                 cpDeltaJ.evaluate();
+            }
+        }
+}
+
+void Foam::electroBase::initJ(bool imaginary)
+{
+        volVectorField& J = electroPtr_->J(imaginary);
+        volVectorField::Boundary& JBf = J.boundaryFieldRef();
+        forAll(JBf, patchi)
+        {
+            fvPatchVectorField& pJ = JBf[patchi];
+            if (isA<coupledCurrentDensityFvPatchVectorField>(pJ) )
+            {
+                //derived from directionMixedFvPatchVectorField
+                coupledCurrentDensityFvPatchVectorField& cpJ =
+                refCast<coupledCurrentDensityFvPatchVectorField>(pJ);
+                //Switch to coupling mode
+                cpJ.initCoupling();
+                cpJ.evaluate();
             }
         }
 }

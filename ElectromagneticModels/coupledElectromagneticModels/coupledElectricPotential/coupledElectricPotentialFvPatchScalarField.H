@@ -89,7 +89,10 @@ class coupledElectricPotentialFvPatchScalarField
         //- Default name of velocity contribution
         const word UxBname_ = "deltaUxB";
 
-        bool coupled_ = false;
+        //- Role name for distinguishing sides of an interface source
+        word terminalRole_ = "";
+
+        //bool coupled_ = false;
 
 
 protected:
@@ -109,7 +112,11 @@ protected:
         const tmp<scalarField>& field
     ) const;
 
+    //- Get suffix for complex cases (Re or Im)
     word suffix() const;
+
+    //- Checks if source patch is valid
+    bool isValidSource(word nbrRole) const;
 
 public:
 
@@ -164,6 +171,9 @@ public:
 
         //- Update the coefficients associated with the patch field
         virtual void updateCoeffs();
+
+        //- Returns role of the terminal
+        word getTerminalRole() const;
 
     // Friend class
     //- Allow coupledCurrentDensityFvPatchVectorField to access private data

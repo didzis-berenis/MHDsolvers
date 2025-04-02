@@ -19,6 +19,7 @@ EXE_INC = \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
+    -I../../feedbackLoopController/lnInclude \
     -I../../ElectromagneticModels/electromagneticModels/lnInclude \
     -I../../ElectromagneticModels/coupledElectromagneticModels/lnInclude \
     -I../../ElectromagneticModels/electroBase/lnInclude
@@ -26,5 +27,6 @@ EXE_INC = \
 EXE_LIBS = \
     -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
+    -lfeedbackLoopController \
     -lconductingFluid \
     -lconductingSolid

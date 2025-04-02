@@ -84,6 +84,32 @@ Foam::solvers::conductingSolid::~conductingSolid()
 
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
+void Foam::solvers::conductingSolid::thermophysicalPredictor()
+{
+    volScalarField& e = thermo_.he();
+    const volScalarField& rho = thermo_.rho();
+
+    while (pimple.correctNonOrthogonal())
+    {
+        fvScalarMatrix eEqn
+        (
+            fvm::ddt(rho, e)
+          + thermophysicalTransport->divq(e)
+          ==
+            fvModels().source(rho, e) + electro.JJsigma()
+        );
+
+        eEqn.relax();
+
+        fvConstraints().constrain(eEqn);
+
+        eEqn.solve();
+
+        fvConstraints().constrain(e);
+
+        thermo_.correct();
+    }
+}
 
 void Foam::solvers::conductingSolid::postCorrector()
 {

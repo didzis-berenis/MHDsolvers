@@ -43,7 +43,8 @@ externalElectricPotentialFvPatchScalarField
     I_(haveI_ ? dict.lookup<scalar>("I") : NaN),
     haveJ_(dict.found("J")),
     J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
-    ePotExt_(havePot_ ? Function1<scalar>::New("PotEa", dict).ptr() : nullptr)
+    havePot_(dict.found("PotE")),
+    ePotExt_(havePot_ ? scalarField("PotE", dict, p.size()) : scalarField())
     /*,
     thicknessLayers_
     (
@@ -104,7 +105,7 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(ptf.haveJ_),
     J_(haveJ_ ? mapper(ptf.J_)() : scalarField()),
     havePot_(ptf.havePot_),
-    ePotExt_(ptf.ePotExt_, false)
+    ePotExt_(ptf.ePotExt_)
     //thicknessLayers_(ptf.thicknessLayers_),
     //kappaLayers_(ptf.kappaLayers_)
 {}
@@ -123,7 +124,7 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(tppsf.haveJ_),
     J_(tppsf.J_),
     havePot_(tppsf.havePot_),
-    ePotExt_(tppsf.ePotExt_, false)
+    ePotExt_(tppsf.ePotExt_)
     //thicknessLayers_(tppsf.thicknessLayers_),
     //kappaLayers_(tppsf.kappaLayers_)
 {}
@@ -146,12 +147,12 @@ void Foam::externalElectricPotentialFvPatchScalarField::map
     {
         mapper(J_, tiptf.J_);
     }
-/*
+
     if (havePot_)
     {
         mapper(ePotExt_, tiptf.ePotExt_);
     }
-*/
+
 }
 
 
@@ -169,12 +170,12 @@ void Foam::externalElectricPotentialFvPatchScalarField::reset
     {
         J_.reset(tiptf.J_);
     }
-/*
+
     if (havePot_)
     {
         ePotExt_.reset(tiptf.ePotExt_);
     }
-*/
+
 }
 
 
@@ -192,31 +193,42 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
        .lookupType<electromagneticModel>();
 
     const scalarField sigma(em.sigma(patch().index()));
-    const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
 
     // Compute the total non-convective heat flux
-    scalarField ePotTot(ePotP.size(), 0);
+    scalarField gradPotE(ePotP.size(), 0);
+    scalarField potE(ePotP.size(), 0);
+    // J = -sigma*grad(PotE)
+    // However, terminal functions as an inlet
+    // and since patch normal is directed outwards
+    // we have to take the opposite value for gradient.
     if (haveI_)
     {
-        ePotTot += I_/gSum(patch().magSf())/snGrad()/sigma;
+        gradPotE += I_/gSum(patch().magSf())/(sigma + SMALL);
     }
     if (haveJ_)
     {
-        ePotTot += J_/snGrad()/sigma;
+        gradPotE += J_/(sigma + SMALL);
     }
-    if (!havePot_)
+    if (havePot_)
     {
-        ePotTot += ePotExt;
+        //const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
+        potE += ePotExt_;
     }
 
     // Evaluate
-    //if (!haveh_)
-    //{
-        refValue() = ePotTot;
+    if (haveI_ || haveJ_)
+    {
+        refValue() = 0;
+        valueFraction() = 0;
+        refGrad() = gradPotE;
+    }
+    if (havePot_)
+    {
+        refValue() = potE;
         //Switch to zero gradient condition if sigma->0
         valueFraction() = sigma/(sigma + SMALL);
-        //refGrad() = 0;
-    //}
+        refGrad() = 0;
+    }
     /*********************************************************
     Could introduce resistive layers here analogous to kappaLayers.
     *********************************************************/
@@ -286,17 +298,6 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     }
 }
 
-const Foam::scalarField& Foam::externalElectricPotentialFvPatchScalarField::getNbr() const
-{
-    const electromagneticModel& em =
-        patch().boundaryMesh().mesh()
-       .lookupType<electromagneticModel>();
-
-    // J_normal = sigma * ( grad(ePot) * n )
-    // Return patch normal current.
-    return em.sigma(patch().index())*snGrad();
-}
-
 
 void Foam::externalElectricPotentialFvPatchScalarField::write
 (
@@ -317,7 +318,7 @@ void Foam::externalElectricPotentialFvPatchScalarField::write
 
     if (havePot_)
     {
-        writeEntry(os, ePotExt_());
+        writeEntry(os, "PotE", ePotExt_);
 /*
         writeEntry(os, "h", h_);
         writeEntryIfDifferent

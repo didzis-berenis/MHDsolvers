@@ -66,6 +66,10 @@ class electromagneticModel
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        //- Determines if the region should be calculated as an electric source
+        //- or treated with corrections and updated with external values.
+        word regionRole_;
+
         //- Switch for updating electromagnetics
         bool correctElectromagnetics_ = false;
 
@@ -227,9 +231,6 @@ public:
         //- Set correctElectromagnetics switch to false
         virtual void setCorrected();
 
-        //- Get correctElectromagnetics switch value
-        virtual bool correctElectromagnetics() const;
-
         //- calculate and return J correction difference
         virtual void solve();
 
@@ -238,6 +239,9 @@ public:
 
         //- calculate and return J correction difference
         virtual void findDeltaJ(bool imaginary=false);
+
+        //- calculate and return J correction
+        virtual void findJ(bool imaginary=false);
 
         //- Inverse Electric conductivity [m/S]
         virtual volScalarField& sigmaInv();
@@ -274,6 +278,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) = 0;
+        virtual volVectorField& Jref(bool imaginary=false) = 0;
 
         //- Magnetic field [T]
         virtual volVectorField& B(bool imaginary=false) = 0;
@@ -295,6 +300,12 @@ public:
         //- return field from object registry
         const virtual volVectorField& getVectorField(const char* name) const;
 
+        //- Get regionRole switch value
+        virtual word getRegionRole() const;
+
+        //- Get correctElectromagnetics switch value
+        virtual bool correctElectromagnetics() const;
+
         //- Electric conductivity [S/m]
         virtual const volScalarField& sigma() const;
 
@@ -315,6 +326,7 @@ public:
 
         //- Current density [A/m^2]
         virtual const volVectorField& J(bool imaginary=false) const = 0;
+        virtual const volVectorField& Jref(bool imaginary=false) const = 0;
 
         //- Magnetic field [T]
         virtual const volVectorField& B(bool imaginary=false) const = 0;

@@ -92,15 +92,21 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
+        virtual volVectorField& getJref(bool imaginary=false);
 
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);
 
         //- Electric potential [V/m]
         virtual void initPotE(bool imaginary=false);
+        virtual void updatePotErefGrad(scalar newGrad, bool imaginary);
+        virtual void updatePotErefValue(const word terminalName, scalar newValue, bool imaginary);
+        scalar getPotErefValue(const word terminalName, bool imaginary);
+        bool hasBoundary(const word terminalName);
 
         //- Current density correction [A/m^2]
         virtual void initDeltaJ(bool imaginary=false);
+        virtual void initJ(bool imaginary=false);
 
 
     // Member Operators

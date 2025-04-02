@@ -54,6 +54,15 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
             lookupOrConstructVector(mesh, "J")
         )
     ),
+    Jreference_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "Jref",
+            lookupOrConstructVector(mesh, "J")
+        )
+    ),
     deltaUxBre_
     (
         lookupOrConstructVector
@@ -76,6 +85,11 @@ Foam::transientElectromagneticModel::~transientElectromagneticModel()
 Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
 {
     return PotE_;
+}
+
+Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imaginary)
+{
+    return Jreference_;
 }
 
 Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
@@ -103,6 +117,11 @@ const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imagi
 const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
 {
     return Jre_;
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imaginary) const
+{
+    return Jreference_;
 }
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const

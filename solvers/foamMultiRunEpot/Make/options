@@ -28,6 +28,7 @@ EXE_INC = \
     -I../../moduleHandlers/conductingRegionSolvers/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
+    -I../../feedbackLoopController/lnInclude \
     -DELMER_TIME=$(ELMER_TIME) \
     -DFOAM_MAJOR_VERSION=$(FOAM_MAJOR_VERSION) \
     $(EOF_INC) \

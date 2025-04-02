@@ -67,6 +67,24 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
             lookupOrConstructVector(mesh, "Jim")
         )
     ),
+    JreReference_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "JreRef",
+            lookupOrConstructVector(mesh, "Jre")
+        )
+    ),
+    JimReference_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "JimRef",
+            lookupOrConstructVector(mesh, "Jim")
+        )
+    ),
     deltaUxBre_
     (
         lookupOrConstructVector
@@ -100,6 +118,11 @@ Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
     return imaginary ? PotEim_ : PotEre_;
 }
 
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Jref(bool imaginary)
+{
+    return imaginary ? JimReference_ : JreReference_;
+}
+
 Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
     return imaginary ? Jim_ : Jre_;
@@ -125,6 +148,11 @@ const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imagin
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
 {
     return imaginary ? Jim_ : Jre_;
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::Jref(bool imaginary) const
+{
+    return imaginary ? JimReference_ : JreReference_;
 }
 
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary) const

@@ -81,6 +81,16 @@ Foam::word Foam::coupledElectricPotentialFvPatchScalarField::suffix() const
     return "";
 }
 
+bool Foam::coupledElectricPotentialFvPatchScalarField::
+isValidSource(Foam::word nbrRole) const
+{
+    if (terminalRole_ == "terminal" && nbrRole == "terminal" )
+        return true;
+    if (nbrRole == "ground" && terminalRole_ == "ground" )
+        return true;
+    return false;
+}
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::coupledElectricPotentialFvPatchScalarField::
@@ -100,10 +110,11 @@ coupledElectricPotentialFvPatchScalarField
         dict,
         mappedPatchBase::from::differentPatch
     );
+    // Source interface
+    terminalRole_ = dict.lookupOrDefault<word>("terminalRole","");
 
     if (dict.found("refValue"))
     {
-        // Full restart
         refValue() = scalarField("refValue", dict, p.size());
         refGrad() = scalarField("refGradient", dict, p.size());
         valueFraction() = scalarField("valueFraction", dict, p.size());
@@ -181,6 +192,43 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
     const coupledElectricPotentialFvPatchScalarField& coupledPotentialNbr =
         refCast<const coupledElectricPotentialFvPatchScalarField>(ePotpNbr);
 
+    // Patch serves as an electric source
+    if (terminalRole_ != "")
+    {
+        Foam::word nbrRole = coupledPotentialNbr.getTerminalRole();
+        if (!isValidSource(nbrRole))
+        {
+            FatalErrorInFunction
+                << "Patch field for " << internalField().name() << " on "
+                << this->patch().name() << " has terminalRole "
+                << terminalRole_
+                << endl << "The neighbouring patch field "
+                << internalField().name() << " on "
+                << patchNbr.name() << " is required to be the same"
+                //<< (terminalRole_ == "terminal" ? "ground" : "terminal")
+                << ", but is currently " << nbrRole << endl
+                << "Valid patch role pairs are terminal-terminal/ground-ground " << exit(FatalError);
+        }
+
+        if (terminalRole_ == "terminal")
+        {
+            // This side sets current or voltage
+        }
+        else
+        {
+            // This side acts as a reference or ground
+        }
+
+        mixedFvPatchScalarField::updateCoeffs();
+
+        // Restore tag
+        UPstream::msgType() = oldTag;
+
+        return;
+    }
+
+    // Patch is interface
+
     // Get patch values
     tmp<scalarField> sigma;
     tmp<scalarField> sigmaByDelta;
@@ -233,6 +281,11 @@ void Foam::coupledElectricPotentialFvPatchScalarField::updateCoeffs()
 
     // Restore tag
     UPstream::msgType() = oldTag;
+}
+
+Foam::word Foam::coupledElectricPotentialFvPatchScalarField::getTerminalRole() const
+{
+    return terminalRole_;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

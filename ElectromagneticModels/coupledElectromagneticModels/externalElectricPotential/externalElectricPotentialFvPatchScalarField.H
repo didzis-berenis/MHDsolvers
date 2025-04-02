@@ -93,7 +93,6 @@ SourceFiles
 #define externalElectricPotentialFvPatchScalarField_H
 
 #include "mixedFvPatchFields.H"
-#include "Function1.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -137,7 +136,7 @@ class externalElectricPotentialFvPatchScalarField
             bool havePot_;
 
             //- Ambient electric potential [V]
-            autoPtr<Function1<scalar>> ePotExt_;
+            scalarField ePotExt_;
 /*
             //- Heat transfer coefficient [S/m^2]
             scalarField Pot_;
@@ -231,9 +230,6 @@ public:
 
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
-
-            //- Return the field from the object registry
-            virtual const scalarField& getNbr() const;
 
 
         // I-O

@@ -30,14 +30,14 @@ Description
     motion and mesh topology changes.
 
 SourceFiles
-    conductingSolid.C
+    conductingMaterial.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef conductingSolid_H
-#define conductingSolid_H
+#ifndef conductingMaterial_H
+#define conductingMaterial_H
 
-#include "solid.H"
+#include "solver.H"
 #include "electroBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -48,12 +48,12 @@ namespace solvers
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class conductingSolid Declaration
+                          Class conductingMaterial Declaration
 \*---------------------------------------------------------------------------*/
 
-class conductingSolid
+class conductingMaterial
 :
-    public solid,
+    public solver,
     public electroBase
 {
 
@@ -65,34 +65,55 @@ public:
 
 
     //- Runtime type information
-    TypeName("conductingSolid");
+    TypeName("conductingMaterial");
 
 
     // Constructors
 
         //- Construct from region mesh
-        conductingSolid(fvMesh& mesh);
+        conductingMaterial(fvMesh& mesh);
 
         //- Disallow default bitwise copy construction
-        conductingSolid(const conductingSolid&) = delete;
+        conductingMaterial(const conductingMaterial&) = delete;
 
 
     //- Destructor
-    virtual ~conductingSolid();
+    virtual ~conductingMaterial();
 
 
     // Member Functions
+
+
+    // Member Functions
+
+        //- Return the current maximum time-step for stable solution
+        virtual scalar maxDeltaT() const;
+
+        //- Called at the start of the time-step, before the PIMPLE loop
+        virtual void preSolve();
+
+        //- Called at the start of the PIMPLE loop to move the mesh
+        virtual void moveMesh();
+
+        //- Called at the beginning of the PIMPLE loop
+        virtual void prePredictor();
+
+        //- Construct and optionally solve the momentum equation
+        virtual void momentumPredictor();
 
         //- Construct and solve the energy equation,
         //  convert to temperature
         //  and update thermophysical and transport properties
         virtual void thermophysicalPredictor();
-    
-        //non-const Temperature access for initialization purposes
-        volScalarField& getTemperature();
+
+        //- Construct and solve the pressure equation in the PISO loop
+        virtual void pressureCorrector();
 
         //- Correct the momentum and thermophysical transport modelling
         virtual void postCorrector();
+
+        //- Called after the PIMPLE loop at the end of the time-step
+        virtual void postSolve();
 
         //- Solve electromagnetic system
         virtual void solveElectromagnetics() override;
@@ -100,7 +121,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const conductingSolid&) = delete;
+        void operator=(const conductingMaterial&) = delete;
 };
 
 

@@ -71,7 +71,12 @@ SourceFiles
 #include "solver.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
+#include "feedbackLoopController.H"
 #include <map>
+#include <vector>
+#include <fstream>
+
+static const double MAX_CONTROL_ERROR = 0.01;//relative error of 1%
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -104,6 +109,32 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        std::map<word, scalar> conductorValues_;
+        std::map<word, scalar> conductorPhases_;
+
+        //List<word> controlTerminalNames_;
+
+        std::map<word, std::vector<word>> terminalToRegions_;
+
+        //- Feedback loop controllers
+        std::map<word, bool> voltageNeedsUpdate_;
+        std::map<word, feedbackLoopController> feedbackControllers_;
+        std::map<word, scalar> inducedVoltageValue_;
+        std::map<word, scalar> inducedVoltagePhase_;
+        struct coilParameters_
+        {
+            scalar target_value;
+            scalar target_phase;
+            //scalar inner_area;
+            //scalar outer_area;
+            Foam::vector winding_direction;
+        };
+        scalar target_value_error_;
+        scalar target_phase_error_;
+        std::map<word, coilParameters_> voltageControls_;
+        std::map<word, vectorField> regionOldB_;
+        std::map<word, std::vector<word>> terminalCoreRegions_;
+
         //- Region characteristic geometric size
         List<scalar> characteristicSizes_;
         
@@ -118,9 +149,19 @@ class conductingRegionSolvers
         bool adjustableRunTime_ = false;
         long long int cleanupCounter_ = 0;
         int restartInterval_;
+        int integrationSteps_ = 0;
+        //int integration_multiplier_ = 1;
+        int integrationCounter_ = 0;
+        bool controllerCheckTime_ = false;
+        std::map<word, scalar> integralCurrent_;
+        scalar tStepElectro_ = 0;
+
+        // Electromagnetic excitation frequency
+        const scalar frequency_;
 
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
+        const word electricSolverName_ = "conductingMaterial";
         //Perhaps better to construct set, if more solvers are implemented.
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
@@ -146,15 +187,41 @@ class conductingRegionSolvers
 
         //- Initialize electric potential boundary conditions
         void evaluatePotEBfs_(const word regionName, bool imaginary=false);
+        void updatePotErefGrad_(const word regionName, scalar newGrad, bool imaginary=false);
+        void updatePotErefValue_(const word terminalName, scalar newValue, bool imaginary=false);
+        scalar getPotErefValue_(const word terminalName, bool imaginary=false);
+        int initial_iter_ = 0;
+        int wait_iter_ = 0;
 
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
+        void evaluateJBfs_(const word regionName, bool imaginary=false);
 
+        // Set to true if any region is electromagnetic source
+        bool hasElectricSources_=false;
+        void checkIfAnyElectricSources_();
+
+        // Performs feedback control initialization
+        void setUpFeedbackControllers_();
+
+        // Calculates phase shift for transient simulation
+        scalar getTransientPhaseShift_(scalar argument, scalar step_shift);
+        // Calculates unit vector field from current density
+        volVectorField getJdirection_(word regionName, bool imaginary);
+        // Calculates integral current density for a region
+        scalar getCurrentSum_(word regionName,bool imaginary=false);//volVectorField JGlobal,
+        scalar getInductionSum_(word regionName, Foam::vector winding_direction, bool imaginary=false);
+        // Writes provided value to a file
+        void writeControlValue_(const word fileName, const scalar outputValue);
+        // Reads value from a file
+        scalar readControlValue_(const word fileName);
+        bool fileExists_(const word fileName);
 
 public:
     //constants
         const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
-        static constexpr scalar mu_0 = 4*3.14159*(std::pow(10,-7));
+        static constexpr double PI = 3.141592653589793;
+        static constexpr scalar mu_0 = 4*PI*(std::pow(10,-7));
         //- Magnetic field update controls
         const int waitInterval;
 
@@ -187,6 +254,9 @@ public:
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
+        void updateFeedbackControl();//volVectorField& JreGlobal,volVectorField& JimGlobal
+        bool controllersNeedUpdate();
+
         // Return global fvMesh
         const fvMesh& globalMesh();
 
@@ -205,6 +275,15 @@ public:
         //- Assign current density to solvers
         void setJ(volVectorField& field, bool imaginary=false);
 
+        // Check if any region is electric source
+        bool hasElectricSources();
+
+        // Get formatted current density from electric source regions
+        volVectorField getSourceJ(word regionName, bool imaginary);
+
+        //- Assign current density to specified region
+        void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
+
         //- Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
 
@@ -216,6 +295,17 @@ public:
 
         //- Check if solver type is solidSolverName_
         bool isSolid(const word regionName);
+
+        //- Check if solver type is electricSolverName_
+        bool isElectric(const word regionName);
+
+        // Check if region is electric source
+        bool isSource(const word regionName);
+
+        // Check if electromagnetics solved in OpenFOAM for specified region
+        bool isSolvedFor(const word regionName);
+        
+        bool hasAnyRole(const word regionRole);
 
         //- Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();
@@ -252,6 +342,9 @@ public:
 
         //- Get region-solver name pairs
         List<Pair<word>> getNames();
+
+        // Get solver id from region name
+        int getRegionId(const word regionName);
 
 
     // Iterator

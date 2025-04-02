@@ -70,6 +70,7 @@ volVectorField BimGlobal
 //Region fields
 PtrList<volScalarField> GeometryIdsRegion(regionNames.size());
 PtrList<volScalarField> alpha1Region(regionNames.size());
+//PtrList<volScalarField> sigmaRegion(regionNames.size());
 
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
@@ -146,6 +147,33 @@ forAll(regionNames, i)
     {
         alpha1Region[i] = solvers.mesh(regionNames[i]).lookupObject<volScalarField>(solverSolidificationName);
     }
+
+    /*sigmaGlobal.set
+    (
+        i,
+        new volScalarField
+        (
+            IOobject
+            (
+                "sigmaGlobal",
+                runTime.timeName(),
+                solvers.mesh(regionNames[i]),
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            solvers.mesh(regionNames[i]),
+            dimensionedScalar(pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength), 0)
+        )
+    );
+
+    const volScalarField sigmaRegion = solvers.getElectro(regionNames[i]).sigma();
+    solvers.scalarFieldToGlobal(
+        sigmaGlobal,
+        sigmaRegion,
+        regionNames[i]
+    );*/
+
+    
 }
 
 const dimensionedScalar absoluteZero(dimTemperature,-273.15);
