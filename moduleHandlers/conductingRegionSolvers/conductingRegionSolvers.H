@@ -202,7 +202,10 @@ class conductingRegionSolvers
         void checkIfAnyElectricSources_();
 
         // Performs feedback control initialization
-        void setUpFeedbackControllers_();
+        //void setUpFeedbackControllers_();
+        int surfaceHitCount_(const point otherRegionPoint,const Foam::vector perpendicularVector,const fvPatch&);
+        const Pair<scalar> getHitErrorParams_(const Foam::vector thisNormal, const Foam::vector error_vector);
+        const scalar getSurfaceBounds_(const Foam::vector faceCenterPoint,const pointField& thisFacePoints);
 
         // Calculates phase shift for transient simulation
         scalar getTransientPhaseShift_(scalar argument, scalar step_shift);
@@ -218,6 +221,7 @@ class conductingRegionSolvers
         bool fileExists_(const word fileName);
 
 public:
+        void setUpFeedbackControllers_();
     //constants
         const dimensionedScalar smallU = dimensionedScalar("smallU",dimVelocity,1e-6);
         static constexpr double PI = 3.141592653589793;
@@ -253,6 +257,10 @@ public:
 
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
+
+        Foam::vector getCenter(const word regionName, const word patchName);
+
+        void findWireProperties();
 
         void updateFeedbackControl();//volVectorField& JreGlobal,volVectorField& JimGlobal
         bool controllersNeedUpdate();

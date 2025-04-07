@@ -96,6 +96,12 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         prefixes_[i] = regionName;
         nRegionNameChars = max(nRegionNameChars, regionName.size());
     }
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        Pout << "regionName: " << regionName << endl;
+        Pout << "mesh(regionName).cells().size(): " << mesh(regionName).cells().size() << endl;
+    }
     //Initialize coupled boundary conditions after all solvers have been loaded,
     //because coupledElectricPotentialFvPatchScalarField constructor requires
     //also the solver of the neighbour patch to be loaded.
@@ -251,7 +257,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     }
     // Find regions, which need feedback control
     // And initialize feedback loop controller
-    setUpFeedbackControllers_();
+    //setUpFeedbackControllers_();
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -393,128 +399,221 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                 }
                 if (feedbackType == "voltage")
                 {
-                    // 1) Find coilCenter position.
-                    const scalarField volume = mesh(regionName).V();
-                    const vectorField cellPoints = mesh(regionName).C();
-                    const scalarField points_x = cellPoints & Foam::vector(1,0,0);
-                    const scalarField points_y = cellPoints & Foam::vector(0,1,0);
-                    const scalarField points_z = cellPoints & Foam::vector(0,0,1);
-                    scalar totVol = gSum(volume);
-                    scalar totVolx = gSum(volume*points_x)/totVol;
-                    scalar totVoly = gSum(volume*points_y)/totVol;
-                    scalar totVolz = gSum(volume*points_z)/totVol;
-                    Foam::vector coilCenter(totVolx,totVoly,totVolz);
-                    Info << "region: " << regionName << " weighted center: " << coilCenter << endl;
-                    // 2) Find terminalCenter position.
                     electroBase* electrPtr = getElectroBasePtr_(regionName);
-                    //if (electrPtr->hasBoundary(terminalName))
-                    //{
-                    Foam::vector terminalCenter = electrPtr->getCenter(terminalName);
-                    Info << "terminal: " << terminalName << " weighted center: " << terminalCenter << endl;
-                    //}
-                    // 3) Find groundCenter position.
-                    word groundTerminalName = electrPtr->findGroundTerminal(terminalName);
-                    Info << "groundTerminalName: " << groundTerminalName << endl;
-                    //if (electrPtr->hasBoundary(groundTerminalName))
-                    //{
-                    Foam::vector groundCenter = electrPtr->getCenter(groundTerminalName);
-                    Info << "groundTerminal: " << groundTerminalName << " weighted center: " << groundCenter << endl;
-                    //}
-                    // 4) Construct vector vt from coilCenter to terminalCenter.
-                    Foam::vector vt = terminalCenter - coilCenter;
-                    // 5) Construct vector vg from terminalCenter to groundCenter.
-                    Foam::vector vg = terminalCenter - groundCenter;
-                    // 6) Calculate approximate windingDirectionAP as a cross product between vt and vg.
-                    Foam::vector windingDirectionAP = (vt ^ vg)/mag(vt ^ vg);
-                    Info << "windingDirectionAP: " << windingDirectionAP << endl;
+                    IOdictionary electroDict = electrPtr->electro;
                     // Wire region boundary mesh
                     const fvBoundaryMesh& boundaryMesh = mesh(regionName).boundary();
-                    // 7) From min/max distance to coil center determine inner and outer coil boundary
-                    const fvPatch& terminalPatch = boundaryMesh[terminalName];
-                    const pointField terminalSurfacePoints = terminalPatch.patch().localPoints();
-                    label minLabel = -1;
-                    scalar minDistance = pow(10,10);
-                    label maxLabel = -1;
-                    scalar maxDistance = 0;
-                    forAll(terminalSurfacePoints,pointI)
+                    if (!electroDict.isDict("wireProperties"))
                     {
-                        point thisPoint = terminalSurfacePoints[pointI];
-                        scalar distance = mag(coilCenter - thisPoint);
-                        if (distance < minDistance)
+                        // The following proceedure is much easier, when run with a single thread.
+                        // So it is expected to be first initialized on a single thread.
+                        // The found wire properties are appended in the dictionary
+                        // and can be simply read when using multi-threading.
+                        // 1) Find coilCenter position.
+                        const scalarField volume = mesh(regionName).V();
+                        const vectorField cellPoints = mesh(regionName).C();
+                        const scalarField points_x = cellPoints & Foam::vector(1,0,0);
+                        const scalarField points_y = cellPoints & Foam::vector(0,1,0);
+                        const scalarField points_z = cellPoints & Foam::vector(0,0,1);
+                        scalar totVol = gSum(volume);
+                        scalar totVolx = gSum(volume*points_x)/totVol;
+                        scalar totVoly = gSum(volume*points_y)/totVol;
+                        scalar totVolz = gSum(volume*points_z)/totVol;
+                        Foam::vector coilCenter(totVolx,totVoly,totVolz);
+                        Pout << "region: " << regionName << " weighted center: " << coilCenter << endl;
+                        // 2) Find terminalCenter position.
+                        Foam::vector terminalCenter = getCenter(regionName,terminalName);
+                        Pout << "terminal: " << terminalName << " weighted center: " << terminalCenter << endl;
+                        // 3) Find groundCenter position.
+                        word groundTerminalName = electrPtr->findGroundTerminal(terminalName);
+                        Pout << "groundTerminalName: " << groundTerminalName << endl;
+                        Foam::vector groundCenter = getCenter(regionName,groundTerminalName);
+                        Pout << "groundTerminal: " << groundTerminalName << " weighted center: " << groundCenter << endl;
+                        // 4) Construct vector vt from coilCenter to terminalCenter.
+                        Foam::vector vt = terminalCenter - coilCenter;
+                        // 5) Construct vector vg from terminalCenter to groundCenter.
+                        Foam::vector vg = terminalCenter - groundCenter;
+                        // 6) Calculate approximate windingDirectionAP as a cross product between vt and vg.
+                        Foam::vector windingDirectionAP = (vt ^ vg)/mag(vt ^ vg);
+                        Pout << "windingDirectionAP: " << windingDirectionAP << endl;
+                        // 7) From min/max distance to coil center determine inner and outer coil boundary
+                        label terminalLabel = -1;
+                        forAll(boundaryMesh,patchI)
                         {
-                            minLabel = pointI;
-                            minDistance = distance;
+                            if (boundaryMesh[patchI].name() == terminalName)
+                                terminalLabel = patchI;
                         }
-                        if (distance > maxDistance)
+                        Pout << "terminalLabel: " << terminalLabel << endl;
+                        const fvPatch& terminalPatch = boundaryMesh[terminalLabel];
+                        const pointField terminalSurfacePoints = terminalPatch.patch().localPoints();
+                        label minLabel = -1;
+                        scalar minDistance = pow(10,10);
+                        label maxLabel = -1;
+                        scalar maxDistance = pow(10,10);
+                        forAll(terminalSurfacePoints,pointI)
                         {
-                            maxLabel = pointI;
-                            maxDistance = distance;
+                            point thisPoint = terminalSurfacePoints[pointI];
+                            scalar distance = mag(coilCenter - thisPoint);
+                            if (distance < minDistance)
+                            {
+                                minLabel = pointI;
+                                minDistance = distance;
+                            }
                         }
+                        // Easier to find closest point, so using mirror point
+                        Foam::vector mirrorCenter = coilCenter+2*vt;
+                        forAll(terminalSurfacePoints,pointI)
+                        {
+                            point thisPoint = terminalSurfacePoints[pointI];
+                            scalar distance = mag(mirrorCenter - thisPoint);
+                            if (distance < maxDistance)
+                            {
+                                maxLabel = pointI;
+                                maxDistance = distance;
+                            }
+                        }
+                        Pout << "minLabel: " << minLabel << endl;
+                        Pout << "minDistance: " << minDistance << endl;
+                        Pout << "maxLabel: " << maxLabel << endl;
+                        Pout << "maxDistance: " << maxDistance << endl;
+                        word innerBoundaryName = "";
+                        word outerBoundaryName = "";
+                        label innerBoundaryLabel = -1;
+                        label outerBoundaryLabel = -1;
+                        forAll(boundaryMesh,patchI)
+                        {
+                            const fvPatch& thisPatch = boundaryMesh[patchI];
+                            const pointField thisSurfacePoints = thisPatch.patch().localPoints();
+                            forAll(thisSurfacePoints,pointI)
+                            {
+                                // Find common points between patches
+                                if(thisSurfacePoints[pointI] == terminalSurfacePoints[minLabel])
+                                {
+                                    innerBoundaryName = thisPatch.name();
+                                    innerBoundaryLabel = patchI;
+                                }
+                                if(thisSurfacePoints[pointI] == terminalSurfacePoints[maxLabel])
+                                {
+                                    outerBoundaryName = thisPatch.name();
+                                    outerBoundaryLabel = patchI;
+                                }
+                            }
+                        }
+                        Pout << "innerBoundaryName: " << innerBoundaryName << endl;
+                        Pout << "innerBoundaryLabel: " << innerBoundaryLabel << endl;
+                        Pout << "outerBoundaryName: " << outerBoundaryName << endl;
+                        Pout << "outerBoundaryLabel: " << outerBoundaryLabel << endl;
+                        // 8) From the remaining coil boundaries + windingDirectionAP find top and bottom boundary centers.
+                        point topCenter(0,0,0);
+                        point botCenter(0,0,0);
+                        word topBoundaryName = "";
+                        word botBoundaryName = "";
+                        forAll(boundaryMesh,patchI)
+                        {
+                            word thisPatchName = boundaryMesh[patchI].name();
+                            if (thisPatchName == terminalName || thisPatchName == groundTerminalName || thisPatchName == innerBoundaryName || thisPatchName == outerBoundaryName)
+                                continue;
+                            Pout << "thisPatchName: " << thisPatchName << endl;
+                            if (topBoundaryName == "")
+                            {
+                                Pout << "assign top" << endl;
+                                topCenter = getCenter(regionName,thisPatchName);
+                                topBoundaryName = thisPatchName;
+                            }
+                            else
+                            {
+                                Pout << "assign bot" << endl;
+                                botCenter = getCenter(regionName,thisPatchName);
+                                botBoundaryName = thisPatchName;
+                                break;
+                            }
+                        }
+                        Info << "topBoundaryName: " << topBoundaryName << endl;
+                        Info << "topCenter: " << topCenter << endl;
+                        Info << "botBoundaryName: " << botBoundaryName << endl;
+                        Info << "botCenter: " << botCenter << endl;
+                        // 9) Define coil height as the distance between bot and top boundary centers.
+                        scalar coilHeight = mag(topCenter-botCenter);
+                        // 10 Define windingDirection as the vector from bot to top boundary center.
+                        Foam::vector windingDirection = (topCenter-botCenter)/coilHeight;
+                        Info << "windingDirection: " << windingDirection << endl;
+                        if ( (windingDirection & windingDirectionAP) < 0)
+                        {
+                            //reverse
+                            windingDirection *= -1;
+                            point topCenterTemp = topCenter;
+                            word topBoundaryNameTemp = topBoundaryName;
+                            topCenter = botCenter;
+                            topBoundaryName = botBoundaryName;
+                            botCenter = topCenterTemp;
+                            botBoundaryName = topBoundaryNameTemp;
+                        }
+                        windingDirection *= coilHeight;
+                        Info << "windingDirection: " << windingDirection << endl;
+                        Info << "topBoundaryName: " << topBoundaryName << endl;
+                        Info << "topCenter: " << topCenter << endl;
+                        Info << "botBoundaryName: " << botBoundaryName << endl;
+                        Pout << "botCenter: " << botCenter << endl;
+                        // Write found properties to the dictionary of this region
+                        dictionary wireProperties;
+                        wireProperties.add("windingDirection", windingDirection, true);
+                        wireProperties.add("terminalDirection", vt, true);
+                        wireProperties.add("innerBoundaryName", innerBoundaryName, true);
+                        wireProperties.add("outerBoundaryName", outerBoundaryName, true);
+                        electroDict.add("wireProperties", wireProperties, true); //true flag merges dictionaries
+                        electroDict.regIOobject::write();
+                        //continue;
                     }
-                    word innerBoundaryName = "";
-                    word outerBoundaryName = "";
+                    dictionary wireProperties(electroDict.subDict("wireProperties"));
+                    Foam::vector windingDirection = wireProperties.lookup<Foam::vector>("windingDirection");
+                    Foam::vector windingUnitDirection = windingDirection/mag(windingDirection);
+                    Foam::vector terminalDirection = wireProperties.lookup<Foam::vector>("terminalDirection");
+                    Foam::vector terminalUnitDirection = terminalDirection/mag(terminalDirection);
+                    word innerBoundaryName = wireProperties.lookup<word>("innerBoundaryName");
+                    word outerBoundaryName = wireProperties.lookup<word>("outerBoundaryName");
+                    label innerBoundaryLabel = -1;
+                    label outerBoundaryLabel = -1;
                     forAll(boundaryMesh,patchI)
                     {
-                        const fvPatch& thisPatch = boundaryMesh[patchI];
-                        const pointField thisSurfacePoints = thisPatch.patch().localPoints();
-                        forAll(thisSurfacePoints,pointI)
-                        {
-                            // Find common points between patches
-                            if(thisSurfacePoints[pointI] == terminalSurfacePoints[minLabel])
-                            {
-                                innerBoundaryName = thisPatch.name();
-                            }
-                            if(thisSurfacePoints[pointI] == terminalSurfacePoints[maxLabel])
-                            {
-                                outerBoundaryName = thisPatch.name();
-                            }
-                        }
+                        if (boundaryMesh[patchI].name() == innerBoundaryName)
+                            innerBoundaryLabel = patchI;
+                        if (boundaryMesh[patchI].name() == outerBoundaryName)
+                            outerBoundaryLabel = patchI;
                     }
-                    // 8) From the remaining coil boundaries + windingDirectionAP find top and bottom boundary centers.
-                    point topCenter(0,0,0);
-                    point botCenter(0,0,0);
-                    word topBoundaryName = "";
-                    word botBoundaryName = "";
-                    forAll(boundaryMesh,patchI)
-                    {
-                        word thisPatchName = boundaryMesh[patchI].name();
-                        if (thisPatchName == terminalName || thisPatchName == groundTerminalName || thisPatchName == innerBoundaryName || thisPatchName == outerBoundaryName)
-                            continue;
-                        if (topBoundaryName == "")
-                        {
-                            topCenter = electrPtr->getCenter(thisPatchName);
-                            topBoundaryName = thisPatchName;
-                        }
-                        else
-                        {
-                            botCenter = electrPtr->getCenter(thisPatchName);
-                            botBoundaryName = thisPatchName;
-                            break;
-                        }
-                    }
-                    // 9) Define coil height as the distance between bot and top boundary centers.
-                    scalar coilHeight = mag(topCenter-botCenter);
-                    // 10 Define windingDirection as the vector from bot to top boundary center.
-                    Foam::vector windingDirection = (topCenter-botCenter)/coilHeight;
-                    if ( (windingDirection & windingDirectionAP) < 0)
-                    {
-                        //reverse
-                        windingDirection *= -1;
-                        point topCenterTemp = topCenter;
-                        word topBoundaryNameTemp = topBoundaryName;
-                        topCenter = botCenter;
-                        topBoundaryName = botBoundaryName;
-                        botCenter = topCenterTemp;
-                        botBoundaryName = topBoundaryNameTemp;
-                    }
-                    windingDirection *= coilHeight;
+                    Pout << "innerBoundaryLabel: " << innerBoundaryLabel << endl;
+                    Pout << "outerBoundaryLabel: " << outerBoundaryLabel << endl;
                     // 11) Construct line perpendicular to windingDirection and vt, which originates in present cell point.
                     // (Cross product between windingDirection and coilCenter to terminalCenter vector, vt,
                     // should be a safe line direction.)
-                    Foam::vector perpendicularVector = (windingDirection ^ vt)/mag(windingDirection ^ vt);//v1
+                    Foam::vector perpendicularVector = (windingDirection ^ terminalDirection)/mag(windingDirection ^ terminalDirection);//v1
                     // TODO: Iterate through all other region points and populate scalarField coilCoreIds
                     const word coilCoreName = terminalName+"_core";
-                    if (!globalMesh().objectRegistry::foundObject<volScalarField>(coilCoreName))
+                    Info << "perpendicularVector: " << perpendicularVector << endl;
+                    Info << "coilCoreName: " << coilCoreName << endl;
+                    
+                    //PtrList<volScalarField> coilCoreIdsRegion(names_.size());
+                    //forAll(names_, j)
+                    //{
+                        //const word& otherRegionName = names_[j].first();
+                        //coilCoreIdsRegion.set
+                        //(
+                            //i,
+                            /*new volScalarField
+                            (
+                                IOobject
+                                (
+                                    "coilCoreName",
+                                    runTime_.timeName(),
+                                    mesh(otherRegionName),
+                                    IOobject::NO_READ,
+                                    IOobject::AUTO_WRITE
+                                ),
+                                mesh(otherRegionName),
+                                dimensionedScalar("",dimless,0)
+                            )*/
+                        //);
+                    //}
+                    /*if (!globalMesh().objectRegistry::foundObject<volScalarField>(coilCoreName))
                     {
                         volScalarField* fPtr
                         (
@@ -536,82 +635,80 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                         // Transfer ownership of this object to the objectRegistry
                         fPtr->store(fPtr);
                     }
-                    volScalarField coilCoreIds = globalMesh().objectRegistry::lookupObjectRef<volScalarField>(coilCoreName);
+                    volScalarField coilCoreIds = globalMesh().objectRegistry::lookupObjectRef<volScalarField>(coilCoreName);*/
                     // Inner boundary mesh
-                    const fvPatch& innerPatch = boundaryMesh[innerBoundaryName];
-                    const vectorField innerSurfaceCenters = innerPatch.Cf();
-                    const faceList innerSurfaceFaces = innerPatch.patch().localFaces();
-                    const pointField innerSurfacePoints = innerPatch.patch().localPoints();
+                    const fvPatch& innerPatch = boundaryMesh[innerBoundaryLabel];
                     // Outer boundary mesh
-                    const fvPatch& outerPatch = boundaryMesh[outerBoundaryName];
-                    const vectorField outerSurfaceCenters = innerPatch.Cf();
-                    const faceList outerSurfaceFaces = innerPatch.patch().localFaces();
-                    const pointField outerSurfacePoints = innerPatch.patch().localPoints();
+                    const fvPatch& outerPatch = boundaryMesh[outerBoundaryLabel];
                     forAll(names_, j)
                     {
+                        //volScalarField coilCoreIds = coilCoreIdsRegion[j];
                         const word& otherRegionName = names_[j].first();
+                        Info << "otherRegionName: " << otherRegionName << endl;
+                        if ( otherRegionName =="Solid_4") continue;
                         if (otherRegionName == regionName)
                             continue;
+                        if (!mesh(otherRegionName).objectRegistry::foundObject<volScalarField>(coilCoreName))
+                        {
+                            volScalarField* fPtr
+                            (
+                                new volScalarField
+                                (
+                                    IOobject
+                                    (
+                                        coilCoreName,
+                                        mesh(otherRegionName).time().name(),
+                                        mesh(otherRegionName),
+                                        IOobject::NO_READ,
+                                        IOobject::AUTO_WRITE
+                                    ),
+                                    mesh(otherRegionName),
+                                    dimensionedScalar("",dimless,0)
+                                )
+                            );
+
+                            // Transfer ownership of this object to the objectRegistry
+                            fPtr->store(fPtr);
+                        }
+                        volScalarField& coilCoreIds = mesh(otherRegionName).objectRegistry::lookupObjectRef<volScalarField>(coilCoreName);
+
                         vectorField regionCells = mesh(otherRegionName).C();
+                        Info << "Continuing for region: " << otherRegionName << endl;
+                        int counter = 0;
                         forAll(regionCells,cellI)
                         {
-                            // 12) For each mesh surface on coil inner and outer boundary get center position, p2,
-                            // and using cell center coordinates as p1 and calculate distance between p2 and p1, d1 = mag(p2-p1).
-                            // 13) Calculate surface bounds, tolerance = mag(max(vertex-p2)), from verteces.
-                            // Note: Approximates surface element with a circle, so could include some false cells,
-                            // if they are very small and near edges.
-                            // Check if surface crosses line and crossing point p2 inside surface element.
-                            // 14) Using unit vector (mag(v1) = 1) of the constructed line, v1,
-                            // a line r1 = p1 + C1*v1, where C1 is a coefficient, should go through surface if C1 = d1.
-                            // If mag(r1 - p2)<tolerance, then it's a hit and line goes through the surface element.
-                            point otherRegionPoint = regionCells[cellI];//p1
-                            int inner_hit_count = 0;
-                            forAll(innerSurfaceFaces, faceI)//inner boundary of the wire region
-                            {
-                                // 12)
-                                point faceCenterPoint = innerSurfaceCenters[faceI];//p2
-                                scalar distance = mag(otherRegionPoint-faceCenterPoint);//d1
-                                // 13)
-                                scalar bounds = 0;
-                                pointField thisFacePoints = innerSurfaceFaces[faceI].points(innerSurfacePoints);
-                                forAll (thisFacePoints,pointI)
-                                {
-                                    point thisPoint = thisFacePoints[pointI];
-                                    bounds = max(bounds,mag(thisPoint-faceCenterPoint));
-                                }
-                                // 14)
-                                bool in_bounds = mag(otherRegionPoint + distance*perpendicularVector - faceCenterPoint) <= bounds;
-                                if (in_bounds)
-                                {
-                                    inner_hit_count++;
-                                }
-                            }
-                            int outer_hit_count = 0;
-                            forAll(outerSurfaceFaces,faceI)//outer boundary of the wire region
-                            {
-                                // 12)
-                                point faceCenterPoint = outerSurfaceCenters[faceI];//p2
-                                scalar distance = mag(otherRegionPoint-faceCenterPoint);//d1
-                                // 13)
-                                scalar bounds = 0;
-                                pointField thisFacePoints = outerSurfaceFaces[faceI].points(outerSurfacePoints);
-                                forAll (thisFacePoints,pointI)
-                                {
-                                    point thisPoint = thisFacePoints[pointI];
-                                    bounds = max(bounds,mag(thisPoint-faceCenterPoint));
-                                }
-                                // 14)
-                                bool in_bounds = mag(otherRegionPoint + distance*perpendicularVector - faceCenterPoint) <= bounds;
-                                if (in_bounds)
-                                {
-                                    outer_hit_count++;
-                                }
-                            }
+                            const point otherRegionPoint = regionCells[cellI];//p1
+                            int inner_hit_count = surfaceHitCount_(otherRegionPoint,perpendicularVector,innerPatch);
+                            int outer_hit_count = surfaceHitCount_(otherRegionPoint,perpendicularVector,outerPatch);
                             // 15) If line goes through exactly 1 inner and 1 outer boundary of coil, then cell is inside coil.
+                            //Info << "inner_hit_count: " << inner_hit_count << endl;
+                            //Info << "outer_hit_count: " << outer_hit_count << endl << endl;
                             if (inner_hit_count == 1 && outer_hit_count == 1)
+                            {
+                                //coilCoreIds[regionToGlobalCellId[std::make_pair(otherRegionName,cellI)]] = 1;
                                 coilCoreIds[cellI] = 1;
+                                counter++;
+                                //Info << "inner_hit_count: " << inner_hit_count << " outer_hit_count: " << outer_hit_count << endl;
+                            }
+                            /*else// if ( otherRegionName =="Solid_1")//  && (inner_hit_count == 0 || outer_hit_count == 0))
+                            {
+                                Info << "cellId: " << cellI << endl;
+                            }*/
                         }
+                        Pout << "Region: " << otherRegionName << " cells " << regionCells.size() << " hits: " << counter << endl;
+                        /*if ( otherRegionName =="Solid_1")
+                        {
+                            forAll(regionCells,cellI)
+                            {
+                                if (coilCoreIds[cellI] ==0)
+                                {
+                                    Info << "cellId: " << cellI << endl;
+                                }
+                            }
+                        }*/
+                        //coilCoreIds.write();
                     }
+                    //coilCoreIds.write();
 
                     //setVoltage = target_value + induced_voltage
                     //induced_voltage = -0.5*windingDirection*(
@@ -623,7 +720,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     dimensionedScalar(
                         "voltage",
                         dimMass*dimLength*dimLength/(dimTime*dimTime*dimTime*dimCurrent),
-                        electrPtr->electro
+                        electroDict
                     ).value();
                     /*const scalar inner_area =
                     dimensionedScalar(
@@ -822,6 +919,161 @@ void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
     }
 }
 
+int Foam::conductingRegionSolvers::surfaceHitCount_(const point otherRegionPoint,const Foam::vector perpendicularVector,const fvPatch& outerPatch)
+{
+    const vectorField outerSurfaceCenters = outerPatch.Cf();
+    const vectorField outerSurfaceNormals = outerPatch.nf();
+    const faceList& outerSurfaceFaces = outerPatch.patch().localFaces();
+    const pointField& outerSurfacePoints = outerPatch.patch().localPoints();
+    int outer_hit_count = 0;
+    labelList previousHitList;
+    //forAll(outerSurfaceFaces,faceI)//outer boundary of the wire region
+    for(int faceI = 0; faceI < outerSurfaceFaces.size(); faceI++)
+    {
+        //scalar smallestCenterDistance = pow(10,10);
+        //label smallestBoundsLabel = -1;
+        // 12) For each mesh surface on coil inner and outer boundary get center position, p2,
+        // and using cell center coordinates as p1 and calculate distance between p2 and p1, d1 = mag(p2-p1).
+        const point faceCenterPoint = outerSurfaceCenters[faceI];//p2
+        const Foam::vector thisNormal = outerSurfaceNormals[faceI];
+        const scalar distance = mag((otherRegionPoint-faceCenterPoint)&perpendicularVector);//d1
+        // 13) Using unit vector (mag(v1) = 1) of the constructed line, v1,
+        // a line r1 = p1 + C1*v1, where C1 is a coefficient, should go through surface if C1 = d1.
+        // If mag(r1 - p2)<tolerance, then it's a hit and line goes through the surface element.
+        const Foam::vector error_vector = (otherRegionPoint + distance*perpendicularVector - faceCenterPoint);
+        const Pair<scalar> hitErrorParams = getHitErrorParams_(thisNormal, error_vector);
+        const scalar thisCenterDistance = hitErrorParams.first();
+        const scalar bounds_projection = hitErrorParams.second();
+        const scalar boundsError = mag(otherRegionPoint + (distance+bounds_projection)*perpendicularVector - faceCenterPoint);
+        const pointField& thisFacePoints = outerSurfaceFaces[faceI].points(outerSurfacePoints);
+        const scalar bounds = getSurfaceBounds_(faceCenterPoint,thisFacePoints);
+        const bool in_bounds = boundsError <= bounds;
+        // Assume this is the smallest distance
+        // Find if neighbour faces have smaller distance
+        bool smallest_distance = true;
+        if (in_bounds)
+        {
+            //Start from next face, because previous faces already checked.
+            for(int faceJ = faceI+1; faceJ < outerSurfaceFaces.size(); faceJ++)
+            {
+                const pointField& otherFacePoints = outerSurfaceFaces[faceJ].points(outerSurfacePoints);
+                const point otherfaceCenterPoint = outerSurfaceCenters[faceJ];//p2
+                const Foam::vector otherNormal = outerSurfaceNormals[faceJ];
+                const scalar otherDistance = mag((otherRegionPoint-otherfaceCenterPoint)&perpendicularVector);
+                const Foam::vector other_error_vector = (otherRegionPoint + otherDistance*perpendicularVector - otherfaceCenterPoint);
+                const Pair<scalar> otherHitErrorParams = getHitErrorParams_(otherNormal, other_error_vector);
+                const scalar otherCenterDistance = otherHitErrorParams.first();
+                if (otherCenterDistance > thisCenterDistance) continue;// Only interested in smaller distances
+                const scalar other_bounds_projection = otherHitErrorParams.second();
+                const scalar otherBoundsError = mag(otherRegionPoint + (otherDistance+other_bounds_projection)*perpendicularVector - otherfaceCenterPoint);
+                const scalar otherBounds = getSurfaceBounds_(otherfaceCenterPoint,otherFacePoints);
+                const bool other_in_bounds = otherBoundsError <= otherBounds;
+                if (!other_in_bounds) continue;// Only interested if in bounds
+                const scalar faceDistance = mag(otherfaceCenterPoint-faceCenterPoint);
+                const bool overlapping_bounds = (faceDistance < (otherCenterDistance+ otherBounds));
+                /*forAll (thisFacePoints,pointI)
+                {
+                    const point thisPoint = thisFacePoints[pointI];
+                    forAll (otherFacePoints,pointJ)
+                    {
+                        const point otherPoint = thisFacePoints[pointJ];
+                        common_point = (thisPoint == otherPoint);
+                        if (common_point) break;
+                    }
+                    if (common_point) break;
+                }*/
+                if (overlapping_bounds)
+                {
+                    //Found one instance with smaller distance
+                    smallest_distance = false;
+                }
+            }
+            //Start from next face, because previous faces already checked.
+            for(int k = 0; k < previousHitList.size(); k++)
+            {
+                int faceJ = previousHitList[k];
+                const pointField& otherFacePoints = outerSurfaceFaces[faceJ].points(outerSurfacePoints);
+                const point otherfaceCenterPoint = outerSurfaceCenters[faceJ];//p2
+                const Foam::vector otherNormal = outerSurfaceNormals[faceJ];
+                const scalar otherDistance = mag((otherRegionPoint-otherfaceCenterPoint)&perpendicularVector);
+                const Foam::vector other_error_vector = (otherRegionPoint + otherDistance*perpendicularVector - otherfaceCenterPoint);
+                const Pair<scalar> otherHitErrorParams = getHitErrorParams_(otherNormal, other_error_vector);
+                const scalar otherCenterDistance = otherHitErrorParams.first();
+                if (otherCenterDistance > thisCenterDistance) continue;// Only interested in smaller distances
+                const scalar other_bounds_projection = otherHitErrorParams.second();
+                const scalar otherBoundsError = mag(otherRegionPoint + (otherDistance+other_bounds_projection)*perpendicularVector - otherfaceCenterPoint);
+                const scalar otherBounds = getSurfaceBounds_(otherfaceCenterPoint,otherFacePoints);
+                const bool other_in_bounds = otherBoundsError <= otherBounds;
+                if (!other_in_bounds) continue;// Only interested if in bounds
+                const scalar faceDistance = mag(otherfaceCenterPoint-faceCenterPoint);
+                const bool overlapping_bounds = (faceDistance < (bounds+ otherBounds));
+                /*forAll (thisFacePoints,pointI)
+                {
+                    const point thisPoint = thisFacePoints[pointI];
+                    forAll (otherFacePoints,pointJ)
+                    {
+                        const point otherPoint = thisFacePoints[pointJ];
+                        common_point = (thisPoint == otherPoint);
+                        if (common_point) break;
+                    }
+                    if (common_point) break;
+                }*/
+                if (overlapping_bounds)
+                {
+                    //Found one instance with smaller distance
+                    smallest_distance = false;
+                }
+            }
+        }
+        // Assign hit only for smallest distance
+        // If neighbour has smaller error then continue
+        if (in_bounds && smallest_distance)
+        {
+            previousHitList.append(faceI);
+            outer_hit_count++;
+        }
+        /*if (cellI < 1)
+        {
+            //Info << "otherRegionPoint: " << otherRegionPoint << endl;
+            //Info << "faceCenterPoint: " << faceCenterPoint << endl;
+            //Info << "distance: " << distance << endl;
+            Info << "boundsError: " << boundsError << endl;
+            Info << "mag(error_vector): " << mag(error_vector) << endl;
+            Info << "bounds: " << bounds << endl;
+            Info << "bounds_projection: " << bounds_projection << endl << endl;
+            //Info << "inner_hit_count: " << inner_hit_count << endl << endl;
+        }*/
+    }
+    return outer_hit_count;
+}
+
+const Foam::Pair<Foam::scalar> Foam::conductingRegionSolvers::getHitErrorParams_(const Foam::vector thisNormal, const Foam::vector error_vector)
+{
+    const Foam::vector surface_parallel_vector_direction = (thisNormal ^ (thisNormal ^ error_vector));
+    const Foam::vector surface_parallel_vector = surface_parallel_vector_direction/mag(surface_parallel_vector_direction);
+    const scalar sign = (error_vector &  surface_parallel_vector) > 0 ? 1 : -1;
+    const scalar error_angle_cosine = mag(error_vector)/mag(error_vector & surface_parallel_vector);
+    const scalar thisCenterDistance = mag(error_vector)*error_angle_cosine;
+    const scalar bounds_projection = sign*mag(error_vector)*sqrt(pow(error_angle_cosine,2)-1);
+    return Pair<Foam::scalar>(thisCenterDistance,bounds_projection);
+}
+
+const Foam::scalar Foam::conductingRegionSolvers::getSurfaceBounds_(const Foam::vector faceCenterPoint,const pointField& thisFacePoints)
+{
+    // 14) Calculate surface bounds, tolerance = mag(max(vertex-p2)), from verteces.
+    // Note: Approximates surface element with a circle, so could include some false cells,
+    // if they are very small and near edges.
+    // Check if surface crosses line and crossing point p2 inside surface element.
+    scalar bounds = 0;
+    forAll (thisFacePoints,pointI)
+    {
+        const point thisPoint = thisFacePoints[pointI];
+        const Foam::vector bounds_vector = thisPoint-faceCenterPoint;
+        bounds = max(bounds,mag(bounds_vector));
+    }
+    return bounds;
+}
+
 Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionName, bool imaginary)
 {
     if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
@@ -962,6 +1214,43 @@ void Foam::conductingRegionSolvers::resetPrefix() const
 Foam::fvMesh& Foam::conductingRegionSolvers::mesh(const word regionName)
 {
     return regions_[regionIdx_[regionName]];
+}
+
+Foam::vector Foam::conductingRegionSolvers::getCenter(const word regionName, const word patchName)
+{
+    Pout << "In get center" << endl;
+    const fvBoundaryMesh& boundaryMesh = mesh(regionName).boundary();
+    forAll(boundaryMesh, patchi)
+    {
+        const fvPatch& thisPatch = boundaryMesh[patchi];
+        if (thisPatch.name() == patchName)//patch().
+        {
+            Pout << "thisPatch.size() " << thisPatch.size() << endl;
+            Pout << "Found patch " << thisPatch.name() << endl;
+            const scalarField surface = thisPatch.magSf();
+            Pout << "got surface" << endl;
+            const vectorField points = thisPatch.Cf();
+            Pout << "got points" << endl;
+            const scalarField points_x = points & Foam::vector(1,0,0);
+            const scalarField points_y = points & Foam::vector(0,1,0);
+            const scalarField points_z = points & Foam::vector(0,0,1);
+            Pout << "got point components" << endl;
+            scalar totVol = gSum(surface);
+            Pout << "totVol " << totVol << endl;
+            scalar totVolx = gSum(surface*points_x)/totVol;
+            scalar totVoly = gSum(surface*points_y)/totVol;
+            scalar totVolz = gSum(surface*points_z)/totVol;
+            Foam::vector centerPosition(totVolx,totVoly,totVolz);
+            return centerPosition;
+        }
+    }
+    FatalIOError << "Region " << regionName << " doesn't have a boundary named " << patchName << "!\n"
+    << exit(FatalIOError);
+    return Foam::vector(0,0,0);
+}
+
+void Foam::conductingRegionSolvers::findWireProperties()
+{
 }
 
 void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& JreGlobal,volVectorField& JimGlobal

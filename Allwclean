@@ -19,6 +19,7 @@ wclean moduleHandlers/conductingRegionSolvers
 wclean utilities/initializeTemperature
 wclean utilities/initializeMultiRegionTemperature
 wclean utilities/checkRegionCellZones
+wclean utilities/findWireProperties
 
 wclean solvers/foamRunEpot
 wclean solvers/foamMultiRunEpot

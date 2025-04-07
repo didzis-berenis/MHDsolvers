@@ -21,17 +21,17 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    initializeTemperature is based on OpenFOAM solvers and utilities
+    checkRegionCellZones is based on OpenFOAM solvers and utilities
 
 Description
-    Case is expected to be initialized with temperature distribution
+    Checks if Pstream master thread has zero cells for any fluid region.
 
 \*---------------------------------------------------------------------------*/
 
 
 #include "argList.H"
 #include "conductingRegionSolvers.H"
-
+#include <fstream>
 using namespace Foam;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -43,21 +43,7 @@ int main(int argc, char *argv[])
 
     // Create the region meshes and solvers
     conductingRegionSolvers solvers(runTime);
-    List<Pair<word>> solverNames = solvers.getNames();
-
-    forAll(solverNames, i)
-    {
-        const word& regionName = solverNames[i].first();
-        solvers.calcTemperatureGradient(regionName);
-    }
-    runTime++;
-    
-    solvers.setUpFeedbackControllers_();
-    runTime.writeNow();
-    runTime++;
-    runTime.writeNow();
-
-    Info<< "End\n" << endl;
+    solvers.findWireProperties();
 
     return 0;
 }
