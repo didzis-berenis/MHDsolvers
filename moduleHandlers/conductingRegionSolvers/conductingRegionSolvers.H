@@ -204,8 +204,6 @@ class conductingRegionSolvers
         // Performs feedback control initialization
         //void setUpFeedbackControllers_();
         int surfaceHitCount_(const point otherRegionPoint,const Foam::vector perpendicularVector,const fvPatch&);
-        const Pair<scalar> getHitErrorParams_(const Foam::vector thisNormal, const Foam::vector error_vector);
-        const scalar getSurfaceBounds_(const Foam::vector faceCenterPoint,const pointField& thisFacePoints);
 
         // Calculates phase shift for transient simulation
         scalar getTransientPhaseShift_(scalar argument, scalar step_shift);

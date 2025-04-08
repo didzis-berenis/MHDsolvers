@@ -25,6 +25,7 @@ License
 
 #include "conductingRegionSolvers.H"
 #include "Time.H"
+#include "triPointRef.H"
 #include "globalMeshNew.H"
 //#include <experimental/filesystem>
 using std::abs;
@@ -288,8 +289,9 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     regionOldB_[regionName]=oldB;
                 }
             }
-            const word regionRole = electrPtr->electro.getRegionRole();//TODO: Should be some other tag
-            if (regionRole == "coil_core")//TODO: should be some other tag
+            //TODO: Use prepared coilCoreIds field for a given terminal
+            const word regionRole = electrPtr->electro.getRegionRole();
+            if (regionRole == "coil_core")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");//TODO: should be a list
                 //forAll(terminalNames, terminalName) {
@@ -585,10 +587,10 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     // 11) Construct line perpendicular to windingDirection and vt, which originates in present cell point.
                     // (Cross product between windingDirection and coilCenter to terminalCenter vector, vt,
                     // should be a safe line direction.)
-                    Foam::vector perpendicularVector = (windingDirection ^ terminalDirection)/mag(windingDirection ^ terminalDirection);//v1
+                    Foam::vector search_vector = (windingDirection ^ terminalDirection)/mag(windingDirection ^ terminalDirection);//v1
                     // TODO: Iterate through all other region points and populate scalarField coilCoreIds
                     const word coilCoreName = terminalName+"_core";
-                    Info << "perpendicularVector: " << perpendicularVector << endl;
+                    Info << "search_vector: " << search_vector << endl;
                     Info << "coilCoreName: " << coilCoreName << endl;
                     
                     //PtrList<volScalarField> coilCoreIdsRegion(names_.size());
@@ -637,15 +639,15 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     }
                     volScalarField coilCoreIds = globalMesh().objectRegistry::lookupObjectRef<volScalarField>(coilCoreName);*/
                     // Inner boundary mesh
-                    const fvPatch& innerPatch = boundaryMesh[innerBoundaryLabel];
+                    const fvPatch& inner_patch = boundaryMesh[innerBoundaryLabel];
                     // Outer boundary mesh
-                    const fvPatch& outerPatch = boundaryMesh[outerBoundaryLabel];
+                    const fvPatch& outer_patch = boundaryMesh[outerBoundaryLabel];
                     forAll(names_, j)
                     {
                         //volScalarField coilCoreIds = coilCoreIdsRegion[j];
                         const word& otherRegionName = names_[j].first();
                         Info << "otherRegionName: " << otherRegionName << endl;
-                        if ( otherRegionName =="Solid_4") continue;
+                        //if ( otherRegionName =="Solid_4") continue;
                         if (otherRegionName == regionName)
                             continue;
                         if (!mesh(otherRegionName).objectRegistry::foundObject<volScalarField>(coilCoreName))
@@ -677,10 +679,12 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                         int counter = 0;
                         forAll(regionCells,cellI)
                         {
-                            const point otherRegionPoint = regionCells[cellI];//p1
-                            int inner_hit_count = surfaceHitCount_(otherRegionPoint,perpendicularVector,innerPatch);
-                            int outer_hit_count = surfaceHitCount_(otherRegionPoint,perpendicularVector,outerPatch);
-                            // 15) If line goes through exactly 1 inner and 1 outer boundary of coil, then cell is inside coil.
+                            const point test_point = regionCells[cellI];//p1
+                            // 12) For each mesh surface on coil inner and outer boundary get center position, face_center,
+                            // and using cell center coordinates as test_point and check if search_vector intersects a given face.
+                            int inner_hit_count = surfaceHitCount_(test_point,search_vector,inner_patch);
+                            int outer_hit_count = surfaceHitCount_(test_point,search_vector,outer_patch);
+                            // 13) If line goes through exactly 1 inner and 1 outer boundary of coil, then cell is inside coil.
                             //Info << "inner_hit_count: " << inner_hit_count << endl;
                             //Info << "outer_hit_count: " << outer_hit_count << endl << endl;
                             if (inner_hit_count == 1 && outer_hit_count == 1)
@@ -695,7 +699,11 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                                 Info << "cellId: " << cellI << endl;
                             }*/
                         }
+                        /*point testPoint(0,-0.15,-0.025);
+                        int inner_hit_count = surfaceHitCount_(testPoint,search_vector,innerPatch);
+                        int outer_hit_count = surfaceHitCount_(testPoint,search_vector,outerPatch);*/
                         Pout << "Region: " << otherRegionName << " cells " << regionCells.size() << " hits: " << counter << endl;
+                        //Info << "Test point " << "inner_hit_count: " << inner_hit_count << " outer_hit_count: " << outer_hit_count << endl;
                         /*if ( otherRegionName =="Solid_1")
                         {
                             forAll(regionCells,cellI)
@@ -919,159 +927,45 @@ void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
     }
 }
 
-int Foam::conductingRegionSolvers::surfaceHitCount_(const point otherRegionPoint,const Foam::vector perpendicularVector,const fvPatch& outerPatch)
+int Foam::conductingRegionSolvers::surfaceHitCount_(const point test_point,const Foam::vector search_vector,const fvPatch& patch)
 {
-    const vectorField outerSurfaceCenters = outerPatch.Cf();
-    const vectorField outerSurfaceNormals = outerPatch.nf();
-    const faceList& outerSurfaceFaces = outerPatch.patch().localFaces();
-    const pointField& outerSurfacePoints = outerPatch.patch().localPoints();
+    const vectorField centers = patch.Cf();
+    //const vectorField normals = outerPatch.nf();
+    const faceList& faces = patch.patch().localFaces();
+    const pointField& points = patch.patch().localPoints();
     int outer_hit_count = 0;
-    labelList previousHitList;
-    //forAll(outerSurfaceFaces,faceI)//outer boundary of the wire region
-    for(int faceI = 0; faceI < outerSurfaceFaces.size(); faceI++)
+
+    forAll(faces, faceI)
     {
-        //scalar smallestCenterDistance = pow(10,10);
-        //label smallestBoundsLabel = -1;
-        // 12) For each mesh surface on coil inner and outer boundary get center position, p2,
-        // and using cell center coordinates as p1 and calculate distance between p2 and p1, d1 = mag(p2-p1).
-        const point faceCenterPoint = outerSurfaceCenters[faceI];//p2
-        const Foam::vector thisNormal = outerSurfaceNormals[faceI];
-        const scalar distance = mag((otherRegionPoint-faceCenterPoint)&perpendicularVector);//d1
-        // 13) Using unit vector (mag(v1) = 1) of the constructed line, v1,
-        // a line r1 = p1 + C1*v1, where C1 is a coefficient, should go through surface if C1 = d1.
-        // If mag(r1 - p2)<tolerance, then it's a hit and line goes through the surface element.
-        const Foam::vector error_vector = (otherRegionPoint + distance*perpendicularVector - faceCenterPoint);
-        const Pair<scalar> hitErrorParams = getHitErrorParams_(thisNormal, error_vector);
-        const scalar thisCenterDistance = hitErrorParams.first();
-        const scalar bounds_projection = hitErrorParams.second();
-        const scalar boundsError = mag(otherRegionPoint + (distance+bounds_projection)*perpendicularVector - faceCenterPoint);
-        const pointField& thisFacePoints = outerSurfaceFaces[faceI].points(outerSurfacePoints);
-        const scalar bounds = getSurfaceBounds_(faceCenterPoint,thisFacePoints);
-        const bool in_bounds = boundsError <= bounds;
-        // Assume this is the smallest distance
-        // Find if neighbour faces have smaller distance
-        bool smallest_distance = true;
-        if (in_bounds)
+        const face& test_face = faces[faceI];
+        const point face_center = centers[faceI];//p2
+
+        // Defensive checks
+        if (test_face.size() < 3) continue;//Not a face
+        if (max(test_face) >= points.size()) continue;//Out of bounds check
+        if (((test_point-face_center)&search_vector) < 0) continue;//wrong direction
+
+        // Triangulate face and check for a hit
+        point p0 = points[test_face[0]];
+        for (label i = 1; i < test_face.size() - 1; ++i)
         {
-            //Start from next face, because previous faces already checked.
-            for(int faceJ = faceI+1; faceJ < outerSurfaceFaces.size(); faceJ++)
+            point p1 = points[test_face[i]];
+            point p2 = points[test_face[i+1]];
+        
+            Foam::triPointRef tri(p0, p1, p2);
+        
+            if (mag(search_vector) < SMALL) continue;
+        
+            pointHit hit = tri.ray(test_point, search_vector);
+        
+            if (hit.hit())
             {
-                const pointField& otherFacePoints = outerSurfaceFaces[faceJ].points(outerSurfacePoints);
-                const point otherfaceCenterPoint = outerSurfaceCenters[faceJ];//p2
-                const Foam::vector otherNormal = outerSurfaceNormals[faceJ];
-                const scalar otherDistance = mag((otherRegionPoint-otherfaceCenterPoint)&perpendicularVector);
-                const Foam::vector other_error_vector = (otherRegionPoint + otherDistance*perpendicularVector - otherfaceCenterPoint);
-                const Pair<scalar> otherHitErrorParams = getHitErrorParams_(otherNormal, other_error_vector);
-                const scalar otherCenterDistance = otherHitErrorParams.first();
-                if (otherCenterDistance > thisCenterDistance) continue;// Only interested in smaller distances
-                const scalar other_bounds_projection = otherHitErrorParams.second();
-                const scalar otherBoundsError = mag(otherRegionPoint + (otherDistance+other_bounds_projection)*perpendicularVector - otherfaceCenterPoint);
-                const scalar otherBounds = getSurfaceBounds_(otherfaceCenterPoint,otherFacePoints);
-                const bool other_in_bounds = otherBoundsError <= otherBounds;
-                if (!other_in_bounds) continue;// Only interested if in bounds
-                const scalar faceDistance = mag(otherfaceCenterPoint-faceCenterPoint);
-                const bool overlapping_bounds = (faceDistance < (otherCenterDistance+ otherBounds));
-                /*forAll (thisFacePoints,pointI)
-                {
-                    const point thisPoint = thisFacePoints[pointI];
-                    forAll (otherFacePoints,pointJ)
-                    {
-                        const point otherPoint = thisFacePoints[pointJ];
-                        common_point = (thisPoint == otherPoint);
-                        if (common_point) break;
-                    }
-                    if (common_point) break;
-                }*/
-                if (overlapping_bounds)
-                {
-                    //Found one instance with smaller distance
-                    smallest_distance = false;
-                }
-            }
-            //Start from next face, because previous faces already checked.
-            for(int k = 0; k < previousHitList.size(); k++)
-            {
-                int faceJ = previousHitList[k];
-                const pointField& otherFacePoints = outerSurfaceFaces[faceJ].points(outerSurfacePoints);
-                const point otherfaceCenterPoint = outerSurfaceCenters[faceJ];//p2
-                const Foam::vector otherNormal = outerSurfaceNormals[faceJ];
-                const scalar otherDistance = mag((otherRegionPoint-otherfaceCenterPoint)&perpendicularVector);
-                const Foam::vector other_error_vector = (otherRegionPoint + otherDistance*perpendicularVector - otherfaceCenterPoint);
-                const Pair<scalar> otherHitErrorParams = getHitErrorParams_(otherNormal, other_error_vector);
-                const scalar otherCenterDistance = otherHitErrorParams.first();
-                if (otherCenterDistance > thisCenterDistance) continue;// Only interested in smaller distances
-                const scalar other_bounds_projection = otherHitErrorParams.second();
-                const scalar otherBoundsError = mag(otherRegionPoint + (otherDistance+other_bounds_projection)*perpendicularVector - otherfaceCenterPoint);
-                const scalar otherBounds = getSurfaceBounds_(otherfaceCenterPoint,otherFacePoints);
-                const bool other_in_bounds = otherBoundsError <= otherBounds;
-                if (!other_in_bounds) continue;// Only interested if in bounds
-                const scalar faceDistance = mag(otherfaceCenterPoint-faceCenterPoint);
-                const bool overlapping_bounds = (faceDistance < (bounds+ otherBounds));
-                /*forAll (thisFacePoints,pointI)
-                {
-                    const point thisPoint = thisFacePoints[pointI];
-                    forAll (otherFacePoints,pointJ)
-                    {
-                        const point otherPoint = thisFacePoints[pointJ];
-                        common_point = (thisPoint == otherPoint);
-                        if (common_point) break;
-                    }
-                    if (common_point) break;
-                }*/
-                if (overlapping_bounds)
-                {
-                    //Found one instance with smaller distance
-                    smallest_distance = false;
-                }
+                outer_hit_count++;
+                break;
             }
         }
-        // Assign hit only for smallest distance
-        // If neighbour has smaller error then continue
-        if (in_bounds && smallest_distance)
-        {
-            previousHitList.append(faceI);
-            outer_hit_count++;
-        }
-        /*if (cellI < 1)
-        {
-            //Info << "otherRegionPoint: " << otherRegionPoint << endl;
-            //Info << "faceCenterPoint: " << faceCenterPoint << endl;
-            //Info << "distance: " << distance << endl;
-            Info << "boundsError: " << boundsError << endl;
-            Info << "mag(error_vector): " << mag(error_vector) << endl;
-            Info << "bounds: " << bounds << endl;
-            Info << "bounds_projection: " << bounds_projection << endl << endl;
-            //Info << "inner_hit_count: " << inner_hit_count << endl << endl;
-        }*/
     }
     return outer_hit_count;
-}
-
-const Foam::Pair<Foam::scalar> Foam::conductingRegionSolvers::getHitErrorParams_(const Foam::vector thisNormal, const Foam::vector error_vector)
-{
-    const Foam::vector surface_parallel_vector_direction = (thisNormal ^ (thisNormal ^ error_vector));
-    const Foam::vector surface_parallel_vector = surface_parallel_vector_direction/mag(surface_parallel_vector_direction);
-    const scalar sign = (error_vector &  surface_parallel_vector) > 0 ? 1 : -1;
-    const scalar error_angle_cosine = mag(error_vector)/mag(error_vector & surface_parallel_vector);
-    const scalar thisCenterDistance = mag(error_vector)*error_angle_cosine;
-    const scalar bounds_projection = sign*mag(error_vector)*sqrt(pow(error_angle_cosine,2)-1);
-    return Pair<Foam::scalar>(thisCenterDistance,bounds_projection);
-}
-
-const Foam::scalar Foam::conductingRegionSolvers::getSurfaceBounds_(const Foam::vector faceCenterPoint,const pointField& thisFacePoints)
-{
-    // 14) Calculate surface bounds, tolerance = mag(max(vertex-p2)), from verteces.
-    // Note: Approximates surface element with a circle, so could include some false cells,
-    // if they are very small and near edges.
-    // Check if surface crosses line and crossing point p2 inside surface element.
-    scalar bounds = 0;
-    forAll (thisFacePoints,pointI)
-    {
-        const point thisPoint = thisFacePoints[pointI];
-        const Foam::vector bounds_vector = thisPoint-faceCenterPoint;
-        bounds = max(bounds,mag(bounds_vector));
-    }
-    return bounds;
 }
 
 Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionName, bool imaginary)
