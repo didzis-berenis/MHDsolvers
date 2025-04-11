@@ -125,7 +125,7 @@ void Foam::solvers::conductingMaterial::postCorrector()
     if (electro.correctElectromagnetics())
     {
         //Calculate current density
-        electro_.findJ();
+        /*electro_.findJ();
         bool imaginary = electro.isComplex();
         if (imaginary)
         {
@@ -146,7 +146,7 @@ void Foam::solvers::conductingMaterial::postCorrector()
                 volVectorField& JimRef = electro_.Jref(imaginary);
                 JimRef = Jim;
             }
-        }
+        }*/
         electro_.setCorrected();
     }
 }
@@ -159,7 +159,7 @@ void Foam::solvers::conductingMaterial::solveElectromagnetics()
     // Solve only for source regions
     //if (electro.isSource())
     //{
-        electro_.solve();
+        //electro_.solve();
     //}
 }
 

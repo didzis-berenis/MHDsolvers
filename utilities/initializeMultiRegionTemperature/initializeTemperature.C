@@ -50,12 +50,12 @@ int main(int argc, char *argv[])
         const word& regionName = solverNames[i].first();
         solvers.calcTemperatureGradient(regionName);
     }
-    runTime++;
+    /*runTime++;
     
     solvers.setUpFeedbackControllers_();
     runTime.writeNow();
     runTime++;
-    runTime.writeNow();
+    runTime.writeNow();*/
 
     Info<< "End\n" << endl;
 
