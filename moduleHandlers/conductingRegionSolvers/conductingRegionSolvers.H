@@ -109,8 +109,8 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
-        std::map<word, scalar> conductorValues_;
-        std::map<word, scalar> conductorPhases_;
+        //std::map<word, scalar> conductorValues_;
+        //std::map<word, scalar> conductorPhases_;
 
         //List<word> controlTerminalNames_;
 
@@ -127,6 +127,7 @@ class conductingRegionSolvers
             word region_name;
             scalar target_value;
             scalar target_phase;
+            scalar value_multiplier;
             //scalar inner_area;
             //scalar outer_area;
             Foam::vector winding_direction;
@@ -260,7 +261,11 @@ public:
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
+        scalar getArea(const word regionName, const word patchName);
+
         Foam::vector getCenter(const word regionName, const word patchName);
+
+        Foam::vector getCenter(const word regionName);
 
         Foam::vector getNormal(const word regionName, const word patchName);
 
