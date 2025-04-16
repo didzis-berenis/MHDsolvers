@@ -1400,7 +1400,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     //newVoltageRe = 0.1*oldVoltageRe;
                     //newVoltageIm = 0.1*oldVoltageIm;
                 }*/
-                /*scalar max_ratio = 10;
+                scalar max_ratio = 10;
                 if ( oldVoltageValue/newVoltageValue > max_ratio)
                 {
                     newVoltageValue = oldVoltageValue/max_ratio;
@@ -1417,7 +1417,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 if ( oldVoltagePhase-newVoltagePhase < -max_angle)
                 {
                     newVoltagePhase = oldVoltagePhase+max_angle;
-                }*/
+                }
                 /*newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));//scalar 
                 newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;//scalar 
                 Info << "After "  << endl;
@@ -1472,7 +1472,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 scalar newVoltagePhase = getTransientPhaseShift_(
                     inducedVoltagePhase_[terminalName]//Induction value at latest time step
                     /newVoltageValue,//Integral value over integration time
-                1.0)*180/PI;//TODO: Does it really need 1 time step shift or half?
+                0.5)*180/PI;//TODO: Does it really need 1 time step shift or half?
                 Info << "inducedVoltageValue_[terminalName]: " << inducedVoltageValue_[terminalName] << endl;
                 Info << "inducedVoltagePhase_[terminalName]: " << inducedVoltagePhase_[terminalName] << endl;
                 Info << "inducedVoltageValue: " << newVoltageValue << endl;
@@ -1493,16 +1493,34 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 // Limit voltage if induced voltage creates opposite voltage to the input value.
                 // This will not allow opposite voltage to the target voltage.
                 // Note: This will not be correct if some external field induces large opposite voltage in the coil.
-                if ( oldVoltageRe*newVoltageRe < 0)
+                scalar max_ratio = 10;
+                if ( oldVoltageValue/newVoltageValue > max_ratio)
+                {
+                    newVoltageValue = oldVoltageValue/max_ratio;
+                }
+                if ( oldVoltageValue/newVoltageValue < 1.0/max_ratio)
+                {
+                    newVoltageValue = max_ratio*oldVoltageValue;
+                }
+                scalar max_angle = 90;
+                if ( oldVoltagePhase-newVoltagePhase > max_angle)
+                {
+                    newVoltagePhase = oldVoltagePhase-max_angle;
+                }
+                if ( oldVoltagePhase-newVoltagePhase < -max_angle)
+                {
+                    newVoltagePhase = oldVoltagePhase+max_angle;
+                }
+                /*if ( oldVoltageRe*newVoltageRe < 0)
                 {
                     newVoltageRe = 0.5*oldVoltageRe;
                 }
                 if ( oldVoltageIm*newVoltageIm < 0)
                 {
                     newVoltageIm = 0.5*oldVoltageIm;
-                }
-                newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
-                newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
+                }*/
+                //newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
+                //newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
                 Info << "newVoltageValue: " << newVoltageValue << endl;
                 Info << "newVoltagePhase: " << newVoltagePhase << endl;
 
