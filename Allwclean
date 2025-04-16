@@ -9,6 +9,7 @@ wclean ElectromagneticModels/electroBase
 wclean feedbackLoopController/feedbackLoopController
 
 wclean modules/incompressibleConductingFluid
+wclean modules/magneticMaterial
 wclean modules/conductingMaterial
 wclean modules/conductingFluid
 wclean modules/conductingSolid

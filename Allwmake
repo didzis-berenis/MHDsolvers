@@ -9,6 +9,7 @@ wmake ElectromagneticModels/electroBase
 wmake feedbackLoopController
 
 wmake modules/incompressibleConductingFluid
+wmake modules/magneticMaterial
 wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid

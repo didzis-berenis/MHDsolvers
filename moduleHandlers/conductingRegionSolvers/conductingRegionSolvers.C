@@ -814,7 +814,7 @@ void Foam::conductingRegionSolvers::vectorGlobalToField_(volVectorField& global,
 
 Foam::electroBase* Foam::conductingRegionSolvers::getElectroBasePtr_(const word regionName)
 {
-    if (isFluid(regionName) || isSolid(regionName) || isElectric(regionName))
+    if (isFluid(regionName) || isSolid(regionName) || isElectric(regionName) || isMagnetic(regionName))
     {
     Foam::solver* basePtr = solvers_(regionIdx_[regionName]);
         return dynamic_cast<Foam::electroBase*>(basePtr);
@@ -1856,6 +1856,11 @@ bool Foam::conductingRegionSolvers::isSolid(const word regionName)
 bool Foam::conductingRegionSolvers::isElectric(const word regionName)
 {
     return names_[regionIdx_[regionName]].second() == electricSolverName_;
+}
+
+bool Foam::conductingRegionSolvers::isMagnetic(const word regionName)
+{
+    return names_[regionIdx_[regionName]].second() == magneticSolverName_;
 }
 
 bool Foam::conductingRegionSolvers::needsReference(const word regionName)

@@ -165,6 +165,7 @@ class conductingRegionSolvers
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
         const word electricSolverName_ = "conductingMaterial";
+        const word magneticSolverName_ = "magneticMaterial";
         //Perhaps better to construct set, if more solvers are implemented.
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
@@ -316,6 +317,7 @@ public:
 
         //- Check if solver type is electricSolverName_
         bool isElectric(const word regionName);
+        bool isMagnetic(const word regionName);
 
         // Check if region is electric source
         bool needsReference(const word regionName);
