@@ -715,7 +715,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     Info << "inducedVoltageValue_: " << inducedVoltageValue_[terminalName] << endl;
                     Info << "inducedVoltagePhase_: " << inducedVoltagePhase_[terminalName] << endl;
                     // Electro dict values are rounded up to 6 significant digits after rewriting dict.
-                    if (mag(inducedVoltageValue_[terminalName]/target_value) < 1e-5)
+                    /*if (mag(inducedVoltageValue_[terminalName]/target_value) < 1e-5)
                     {
                         Info << "Estimating voltage: " << endl;
                         // Initialize with an estimate
@@ -757,7 +757,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                         Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
                         Info << "inducedVoltageValue_: " << inducedVoltageValue_[terminalName] << endl;
                         Info << "inducedVoltagePhase_: " << inducedVoltagePhase_[terminalName] << endl;
-                    }
+                    }*/
                     //if (isElectroHarmonic())
                     //{
                         /*scalar oldVoltageRe = getPotErefValue_(terminalName);
@@ -1248,17 +1248,18 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
         integrationCounter_++;
     }
     // Calculate total induced voltage from Faraday's law of induction
-    // induced_voltage = -number_of_turns*Integral((dB/dt)*d(area_perpendicular))
+    // value_multiplier = number_of_turns/fill_factor
+    // induced_voltage = -value_multiplier*Integral((dB/dt)*d(area_perpendicular))
     // induced_voltage is applied for the whole coil so assuming == const.
     // Additionally, calcuate integral average over coil height to get the effective voltage for coil terminal.
-    // induced_voltage *coil_height = -number_of_turns*perpendicular_vector*Integral((dB/dt)*d(volume))
+    // coil_height = mag(winding_direction)
+    // induced_voltage *coil_height = -value_multiplier*Integral((dB/dt)&(winding_direction/coil_height)*d(volume))
     // Coil has finite width, so let's calculate average over volume inside coil (inner_core)
     // and total volume (inner_core + coil_volume).
-    // Let's say, inner_area = coil_inner_length*coil_height, outer_area = coil_outer_length*coil_height,
-    // winding_direction = number_of_turns*perpendicular_vector/coil_height, integralCore = Integral((dB/dt)*d(core_volume))
+    // Let's say, integralCore = Integral((dB/dt)*d(core_volume))
     // and integralCoil = Integral((dB/dt)*d(coil_volume))
     // We get:
-    // induced_voltage = -winding_direction*(integralCore+0.5*integralCoil)
+    // induced_voltage = -(integralCore+0.5*integralCoil)*value_multiplier/coil_height
     // Update voltage on the coil terminal as the initially applied voltage plus the induced voltage.
     // Continue until change of induced voltage between two consecutive steps is sufficiently small.
     for (auto element : terminalToRegions_)
@@ -1360,8 +1361,8 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "oldVoltageValue: " << oldVoltageValue << endl;
                 Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
 
-                scalar newVoltageRe = inducedVoltageValue_[terminalName]*terminalControls.value_multiplier;
-                scalar newVoltageIm = inducedVoltagePhase_[terminalName]*terminalControls.value_multiplier;
+                scalar newVoltageRe = inducedVoltageValue_[terminalName]*terminalControls.value_multiplier/mag(terminalControls.winding_direction);
+                scalar newVoltageIm = inducedVoltagePhase_[terminalName]*terminalControls.value_multiplier/mag(terminalControls.winding_direction);
                 scalar inducedVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));//induced value
                 scalar inducedVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
                 Info << "Induced "  << endl;
@@ -1400,7 +1401,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     //newVoltageRe = 0.1*oldVoltageRe;
                     //newVoltageIm = 0.1*oldVoltageIm;
                 }*/
-                scalar max_ratio = 10;
+                /*scalar max_ratio = 10;
                 if ( oldVoltageValue/newVoltageValue > max_ratio)
                 {
                     newVoltageValue = oldVoltageValue/max_ratio;
@@ -1417,7 +1418,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 if ( oldVoltagePhase-newVoltagePhase < -max_angle)
                 {
                     newVoltagePhase = oldVoltagePhase+max_angle;
-                }
+                }*/
                 /*newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));//scalar 
                 newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;//scalar 
                 Info << "After "  << endl;
@@ -1458,8 +1459,8 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
             }
             else if (integrationCounter_ % integrationSteps_ == 0)
             {
-                inducedVoltageValue_[terminalName] *= terminalControls.value_multiplier;
-                inducedVoltagePhase_[terminalName] *= terminalControls.value_multiplier;
+                inducedVoltageValue_[terminalName] *= terminalControls.value_multiplier/mag(terminalControls.winding_direction);
+                inducedVoltagePhase_[terminalName] *= terminalControls.value_multiplier/mag(terminalControls.winding_direction);
                 Info << "calculating magnitude and phase: " << endl;
                 Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
                 // Transient case
@@ -1493,7 +1494,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 // Limit voltage if induced voltage creates opposite voltage to the input value.
                 // This will not allow opposite voltage to the target voltage.
                 // Note: This will not be correct if some external field induces large opposite voltage in the coil.
-                scalar max_ratio = 10;
+                /*scalar max_ratio = 10;
                 if ( oldVoltageValue/newVoltageValue > max_ratio)
                 {
                     newVoltageValue = oldVoltageValue/max_ratio;
@@ -1510,7 +1511,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 if ( oldVoltagePhase-newVoltagePhase < -max_angle)
                 {
                     newVoltagePhase = oldVoltagePhase+max_angle;
-                }
+                }*/
                 /*if ( oldVoltageRe*newVoltageRe < 0)
                 {
                     newVoltageRe = 0.5*oldVoltageRe;
