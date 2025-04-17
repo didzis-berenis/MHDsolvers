@@ -86,6 +86,18 @@ std::set<word> fieldsToKeep = {"U","p","JxB","JJsigma","T","GeometryIds",userSol
 //"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
 };
+if (solvers.isElectroHarmonic())
+{
+    fieldsToKeep.insert("Jre");
+    fieldsToKeep.insert("Jim");
+    fieldsToKeep.insert("Bre");
+    fieldsToKeep.insert("Bim");
+}
+else
+{
+    fieldsToKeep.insert("J");
+    fieldsToKeep.insert("B");
+}
 // See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H
 
 forAll(regionNames, i)
