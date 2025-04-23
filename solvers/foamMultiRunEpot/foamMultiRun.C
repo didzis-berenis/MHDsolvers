@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
     {
-        Info<< nl << "Initializing electromagnetic controls\n" << endl;
+        Info<< nl << "Initializing electromagnetic controls...\n" << endl;
     }
     int controlStepsTaken = 0;
     // Time == startTime() iteration
