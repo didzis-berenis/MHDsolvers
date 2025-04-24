@@ -19,8 +19,7 @@ wmake moduleHandlers/conductingRegionSolvers
 
 wmake utilities/initializeTemperature
 wmake utilities/initializeMultiRegionTemperature
-wmake utilities/checkRegionCellZones
-wmake utilities/findWireProperties
+wmake utilities/initializeRegionSolvers
 
 wmake solvers/foamRunEpot
 wmake solvers/foamMultiRunEpot

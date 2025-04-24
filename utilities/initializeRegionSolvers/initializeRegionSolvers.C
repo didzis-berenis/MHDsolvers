@@ -21,10 +21,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    checkRegionCellZones is based on OpenFOAM solvers and utilities
+    initializeRegionSolvers is based on OpenFOAM solvers and utilities
 
 Description
-    Checks if Pstream master thread has zero cells for any fluid region.
+    Initializes conductingRegionSolvers
 
 \*---------------------------------------------------------------------------*/
 
@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
 
     // Create the region meshes and solvers
     conductingRegionSolvers solvers(runTime);
-    solvers.findWireProperties();
 
     return 0;
 }

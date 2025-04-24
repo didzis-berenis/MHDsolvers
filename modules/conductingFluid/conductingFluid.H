@@ -22,26 +22,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::solvers::fluid
+    Foam::solvers::conductingFluid
 
 Description
-    Solver module for steady or transient turbulent flow of compressible fluids
-    with heat-transfer for HVAC and similar applications, with optional
-    mesh motion and change.
-
-    Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
-    pseudo-transient and steady simulations.
-
-    Optional fvModels and fvConstraints are provided to enhance the simulation
-    in many ways including adding various sources, Lagrangian particles,
-    radiation, surface film etc. and constraining or limiting the solution.
-
-    Reference:
-    \verbatim
-        Greenshields, C. J., & Weller, H. G. (2022).
-        Notes on Computational Fluid Dynamics: General Principles.
-        CFD Direct Ltd.: Reading, UK.
-    \endverbatim
+    Adds electromagnetic interaction to Foam::solvers::fluid
 
 SourceFiles
     conductingFluid.C

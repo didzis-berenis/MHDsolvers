@@ -94,8 +94,12 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
+
+        //- Current density reference value [A/m^2]
         virtual volVectorField& getJref(bool imaginary=false);
+        //- Sets current_reference_set_ flag to true
         virtual void markCurrentReferenceAsSet();
+        //- Returns current_reference_set_ value
         virtual bool currentReferenceSet();
 
         //- Magnetic field [T]

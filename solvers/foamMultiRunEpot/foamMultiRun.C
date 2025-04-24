@@ -103,10 +103,6 @@ int main(int argc, char *argv[])
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     // Initialize electromagnetic sources.
-    /*if (solvers.hasElectricSources() || solvers.hasAnyRole("wire"))//wire roles only need reference
-    {
-        #include "initializeElectricSources.H"
-    }*/
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
     {
@@ -115,8 +111,6 @@ int main(int argc, char *argv[])
     int controlStepsTaken = 0;
     // Time == startTime() iteration
     #include "runElmerUpdate.H"
-    //runTime++;
-    //runTime.write();
     logElmerTime = false;
     controlStepsTaken++;
     if (solvers.isElectroHarmonic())
