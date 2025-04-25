@@ -109,11 +109,6 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
-        //std::map<word, scalar> conductorValues_;
-        //std::map<word, scalar> conductorPhases_;
-
-        //List<word> controlTerminalNames_;
-
         std::map<word, std::vector<word>> terminalToRegions_;
 
         //- Feedback loop controllers
@@ -128,8 +123,6 @@ class conductingRegionSolvers
             scalar target_value;
             scalar target_phase;
             scalar value_multiplier;
-            //scalar inner_area;
-            //scalar outer_area;
             Foam::vector winding_direction;
         };
         scalar target_value_error_;
@@ -153,7 +146,6 @@ class conductingRegionSolvers
         long long int cleanupCounter_ = 0;
         int restartInterval_;
         int integrationSteps_ = 0;
-        //int integration_multiplier_ = 1;
         int integrationCounter_ = 0;
         bool controllerCheckTime_ = false;
         std::map<word, scalar> integralCurrent_;
@@ -200,10 +192,6 @@ class conductingRegionSolvers
         //- Initialize current correction boundary conditions
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
         void evaluateJBfs_(const word regionName, bool imaginary=false);
-
-        // Set to true if any region is electromagnetic source
-        //bool hasElectricSources_=false;
-        //void checkIfAnyElectricSources_();
 
         bool hasVoltageControl_=false;
         void checkIfAnyVoltageControl_();
@@ -270,9 +258,7 @@ public:
 
         Foam::vector getNormal(const word regionName, const word patchName);
 
-        void findWireProperties();
-
-        void updateFeedbackControl();//volVectorField& JreGlobal,volVectorField& JimGlobal
+        void updateFeedbackControl();
         bool controllersNeedUpdate();
 
         // Return global fvMesh
@@ -317,13 +303,12 @@ public:
 
         //- Check if solver type is electricSolverName_
         bool isElectric(const word regionName);
+
+        //- Check if solver type is magneticSolverName_
         bool isMagnetic(const word regionName);
 
         // Check if region is electric source
         bool needsReference(const word regionName);
-
-        // Check if electromagnetics solved in OpenFOAM for specified region
-        //bool isSolvedFor(const word regionName);
         
         bool hasAnyRole(const word regionRole);
 

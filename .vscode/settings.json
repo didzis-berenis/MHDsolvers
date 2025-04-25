@@ -92,6 +92,7 @@
         "ctime": "cpp",
         "ratio": "cpp",
         "sstream": "cpp",
-        "Time.C": "cpp"
+        "Time.C": "cpp",
+        "initializeRegionSolvers.C": "cpp"
     }
 }
