@@ -208,7 +208,6 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
-        //mesh(regionName).faceZones().write();
         if (getElectroBasePtr_(regionName))
         {
             electroBase* electrPtr = getElectroBasePtr_(regionName);
@@ -216,6 +215,8 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
             if (feedbackType == "current" || feedbackType == "voltage")
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
+                // Not tested for multiple regions,
+                // but also presently not possible configuration to have several regions for one wire.
                 terminalToRegions_[terminalName].push_back(regionName);
             }
             if (hasVoltageControl_)
@@ -354,7 +355,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             if (boundaryMesh[patchI].name() == terminalName)
                                 terminalLabel = patchI;
                         }
-                        Pout << "terminalLabel: " << terminalLabel << endl;
+                        //Pout << "terminalLabel: " << terminalLabel << endl;
                         const fvPatch& terminalPatch = boundaryMesh[terminalLabel];
                         const pointField terminalSurfacePoints = terminalPatch.patch().localPoints();
                         label minLabel = -1;
@@ -383,10 +384,10 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                                 maxDistance = distance;
                             }
                         }
-                        Pout << "minLabel: " << minLabel << endl;
+                        /*Pout << "minLabel: " << minLabel << endl;
                         Pout << "minDistance: " << minDistance << endl;
                         Pout << "maxLabel: " << maxLabel << endl;
-                        Pout << "maxDistance: " << maxDistance << endl;
+                        Pout << "maxDistance: " << maxDistance << endl;*/
                         word innerBoundaryName = "";
                         word outerBoundaryName = "";
                         label innerBoundaryLabel = -1;
@@ -413,9 +414,9 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             }
                         }
                         Pout << "innerBoundaryName: " << innerBoundaryName << endl;
-                        Pout << "innerBoundaryLabel: " << innerBoundaryLabel << endl;
+                        //Pout << "innerBoundaryLabel: " << innerBoundaryLabel << endl;
                         Pout << "outerBoundaryName: " << outerBoundaryName << endl;
-                        Pout << "outerBoundaryLabel: " << outerBoundaryLabel << endl;
+                        //Pout << "outerBoundaryLabel: " << outerBoundaryLabel << endl;
                         // 8) From the remaining coil boundaries + windingDirectionAP find top and bottom boundary centers.
                         point topCenter(0,0,0);
                         point botCenter(0,0,0);
@@ -428,27 +429,21 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             word thisPatchName = boundaryMesh[patchI].name();
                             if (thisPatchName == terminalName || thisPatchName == groundTerminalName || thisPatchName == innerBoundaryName || thisPatchName == outerBoundaryName)
                                 continue;
-                            Pout << "thisPatchName: " << thisPatchName << endl;
+                            //Pout << "thisPatchName: " << thisPatchName << endl;
                             if (topBoundaryName == "")
                             {
-                                Pout << "assign top" << endl;
                                 topCenter = getCenter(regionName,thisPatchName);
                                 topNormal = getNormal(regionName,thisPatchName);
                                 topBoundaryName = thisPatchName;
                             }
                             else
                             {
-                                Pout << "assign bot" << endl;
                                 botCenter = getCenter(regionName,thisPatchName);
                                 botNormal = getNormal(regionName,thisPatchName);
                                 botBoundaryName = thisPatchName;
                                 break;
                             }
                         }
-                        Info << "topBoundaryName: " << topBoundaryName << endl;
-                        Info << "topCenter: " << topCenter << endl;
-                        Info << "botBoundaryName: " << botBoundaryName << endl;
-                        Info << "botCenter: " << botCenter << endl;
                         // 9) Define coil height as the distance between bot and top boundary centers.
                         scalar coilHeight = mag(topCenter-botCenter);
                         // 10 Define windingDirection as the vector from bot to top boundary center.
@@ -516,7 +511,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             volScalarField& coilCoreIds = mesh(otherRegionName).objectRegistry::lookupObjectRef<volScalarField>(coilCoreName);
 
                             vectorField regionCells = mesh(otherRegionName).C();
-                            Info << "Continuing for region: " << otherRegionName << endl;
+                            //Info << "Continuing for region: " << otherRegionName << endl;
                             int counter = 0;
                             forAll(regionCells,cellI)
                             {
@@ -1042,7 +1037,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
         if (voltageControls_.find(terminalName) != voltageControls_.end() && voltageNeedsUpdate_[terminalName])
         {
             // In harmonic case
-            // real part of inductin is stored in inducedVoltageValue_
+            // real part of induction is stored in inducedVoltageValue_
             // and imaginary part in inducedVoltagePhase_
             // In transient case
             // Integration sum of deltaB * winding_direction is stored in inducedVoltageValue_
@@ -1051,9 +1046,10 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
             const coilParameters_ terminalControls = voltageControls_[terminalName];
             for (word regionName : element.second)
             {
+                // Reseting also for transient case, because used for storing momentary induction.
+                inducedVoltagePhase_[terminalName] = 0;
                 if (isElectroHarmonic())
                 {
-                    inducedVoltagePhase_[terminalName] = 0;
                     inducedVoltageValue_[terminalName] = 0;
                 }
                 forAll(names_, i)
@@ -1062,7 +1058,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     // Coefficients according to
                     // induced_voltage = -(integralCore+0.5*integralCoil)*value_multiplier/coil_height
                     scalar coeff = -terminalControls.value_multiplier/mag(terminalControls.winding_direction);
-                    if (otherRegionName == regionName)
+                    if (otherRegionName == regionName)//coil/wire region
                     {
                         coeff *= 0.5;
                     }
@@ -1093,75 +1089,16 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                         const scalar induction_component =
                         coeff*time_derivative*getInductionSum_(otherRegionName,terminalControls);
                         inducedVoltageValue_[terminalName] += abs(induction_component)*tStepElectro_;//Integration component
-                        inducedVoltagePhase_[terminalName] = induction_component;//Momentary induction component
+                        inducedVoltagePhase_[terminalName] += induction_component;//Momentary induction component
                         const vectorField oldB = getElectro(otherRegionName).B().internalField();
                         regionOldB_[otherRegionName]=oldB;
                     }
                 }
             }
             //Convert to value and phase
-            if (isElectroHarmonic())
+            if (isElectroHarmonic() || integrationCounter_ % integrationSteps_ == 0)
             {
-                // Harmonic case
-                Info << "Starting induced voltage update " << endl;
-                Info << "Updating voltage for terminal " << terminalName << endl;
-                const scalar oldVoltageValue = readControlValue_("coilVoltages/"+terminalName);
-                const scalar oldVoltagePhase = readControlValue_("coilPhases/"+terminalName);
-
-                // Induced values
-                scalar newVoltageRe = inducedVoltageValue_[terminalName];
-                scalar newVoltageIm = inducedVoltagePhase_[terminalName];
-
-                // Adding preset voltage value
-                newVoltageRe += terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
-                newVoltageIm += terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
-                scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
-                scalar newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
-
-                // Note: If simply adding induced voltage becomes unstable, try adding a limiter.
-                scalar errorValue = abs(newVoltageValue - oldVoltageValue)/max(abs(newVoltageValue),vSmall);
-                scalar errorPhase = abs(newVoltagePhase - oldVoltagePhase)/180.0;
-                /*Info << "Old "  << endl;
-                const scalar oldVoltageRe = oldVoltageValue*Foam::cos(oldVoltagePhase*PI/180.0);
-                const scalar oldVoltageIm = oldVoltageValue*Foam::sin(oldVoltagePhase*PI/180.0);
-                Info << "oldVoltageRe: " << oldVoltageRe << endl;
-                Info << "oldVoltageIm: " << oldVoltageIm << endl;
-                Info << "oldVoltageValue: " << oldVoltageValue << endl;
-                Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
-                Info << "Induced "  << endl;
-                Info << "inducedVoltageRe: " << newVoltageRe << endl;
-                Info << "inducedVoltageIm: " << newVoltageIm << endl;
-                scalar inducedVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));//induced value
-                scalar inducedVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
-                Info << "inducedVoltageValue: " << inducedVoltageValue << endl;
-                Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;
-                Info << "New "  << endl;
-                Info << "newVoltageRe: " << newVoltageRe << endl;
-                Info << "newVoltageIm: " << newVoltageIm << endl;
-                Info << "newVoltageValue: " << newVoltageValue << endl;
-                Info << "newVoltagePhase: " << newVoltagePhase << endl;*/
-
-                Info << "Previous voltage value: " << oldVoltageValue << "; phase: " << oldVoltagePhase << endl
-                << "New voltage value: " << newVoltageValue << "; phase: " << newVoltagePhase << endl
-                << "Value error: " << errorValue << "; phase error: " << errorPhase << endl;
-
-                if (errorValue < target_value_error_ && errorPhase < target_phase_error_ && 
-                    initial_iter_ > 1)//Has one extra initial iteration for harmonic case
-                {
-                    voltageNeedsUpdate_[terminalName] = false;
-                    Info << "Voltage requirements met!" << endl;
-                    continue;
-                }
-                if (initial_iter_ <= 1)
-                {
-                    initial_iter_++;
-                }
-                writeControlValue_("coilVoltages/"+terminalName,newVoltageValue);
-                writeControlValue_("coilPhases/"+terminalName,newVoltagePhase);
-            }
-            else if (integrationCounter_ % integrationSteps_ == 0)
-            {
-                // Transient case
+                // Harmonic case or half period of transient case
                 Info << "Starting induced voltage update " << endl;
                 Info << "Updating voltage for terminal " << terminalName << endl;
                 const scalar oldVoltageValue = readControlValue_("coilVoltages/"+terminalName);
@@ -1175,29 +1112,42 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "oldVoltageValue: " << oldVoltageValue << endl;
                 Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
 
-                Info << "calculating magnitude and phase: " << endl;
-                // Calculate induced voltage magnitude and phase from integral and latest time value
-                // Dividing integral by half-period
-                inducedVoltageValue_[terminalName] *= PI*frequency_;
-                // Induced value
-                scalar inducedVoltageValue = inducedVoltageValue_[terminalName];
-                Info << "integral induction: " << inducedVoltageValue << endl;
-                Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
-                Info << "division : " << inducedVoltagePhase_[terminalName]/inducedVoltageValue << endl;
-                scalar inducedVoltagePhase = getTransientPhaseShift_(
-                    inducedVoltagePhase_[terminalName]//Induction value at latest time step
-                    /inducedVoltageValue,//Integral value over integration time
-                0.5)*180/PI;//TODO: Check if using half time-step shift is correct
-                
-                scalar newVoltageRe = inducedVoltageValue*Foam::cos(inducedVoltagePhase*PI/180.0);
-                scalar newVoltageIm = inducedVoltageValue*Foam::sin(inducedVoltagePhase*PI/180.0);
-                Info << "Induced "  << endl;
-                Info << "inducedVoltageRe: " << newVoltageRe << endl;
-                Info << "inducedVoltageIm: " << newVoltageIm << endl;
-                Info << "inducedVoltageValue: " << inducedVoltageValue << endl;
-                Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;
-                
+                // Induced values
+                scalar newVoltageRe = 0;
+                scalar newVoltageIm = 0;
+                if (isElectroHarmonic())
+                {
+                    newVoltageRe = inducedVoltageValue_[terminalName];
+                    newVoltageIm = inducedVoltagePhase_[terminalName];
+                }
+                else
+                {
+                    // Calculate induced voltage magnitude and phase from integral and latest time value
+                    // Integral (A*sin(2*pi*f*t)) from 0 to 1/(2*f) = A/(pi*f)
+                    inducedVoltageValue_[terminalName] *= PI*frequency_;
+                    scalar inducedVoltageValue = inducedVoltageValue_[terminalName];
+                    scalar inducedVoltagePhase = getTransientPhaseShift_(
+                        inducedVoltagePhase_[terminalName]//Induction value at latest time step
+                        /inducedVoltageValue,//Integral value over integration time
+                    0.5)*180/PI;//TODO: Check if using half time-step shift works reliably
+                    
+                    newVoltageRe = inducedVoltageValue*Foam::cos(inducedVoltagePhase*PI/180.0);
+                    newVoltageIm = inducedVoltageValue*Foam::sin(inducedVoltagePhase*PI/180.0);
+                    Info << "integral induction: " << inducedVoltageValue << endl;
+                    Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
+                    Info << "division : " << inducedVoltagePhase_[terminalName]/inducedVoltageValue << endl;
+                    Info << "Induced "  << endl;
+                    Info << "inducedVoltageRe: " << newVoltageRe << endl;
+                    Info << "inducedVoltageIm: " << newVoltageIm << endl;
+                    Info << "inducedVoltageValue: " << inducedVoltageValue << endl;
+                    Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;
+                    // Reset for next integration
+                    inducedVoltageValue_[terminalName] = 0;
+                    inducedVoltagePhase_[terminalName] = 0;
+                }
+
                 // Adding preset voltage value
+                // Note: If simply adding induced voltage becomes unstable, try adding a limiter.
                 newVoltageRe += terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
                 newVoltageIm += terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
                 scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
@@ -1208,45 +1158,48 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "newVoltageValue: " << newVoltageValue << endl;
                 Info << "newVoltagePhase: " << newVoltagePhase << endl;
 
-                // Reset for next integration
-                inducedVoltageValue_[terminalName] = 0;
-                inducedVoltagePhase_[terminalName] = 0;
                 scalar errorValue = abs(newVoltageValue - oldVoltageValue)/max(abs(newVoltageValue),vSmall);
                 scalar errorPhase = abs(newVoltagePhase - oldVoltagePhase)/180.0;
-                Info << "target_value_error_: " << target_value_error_ << endl;
-                //Info << "errorValue: " << errorValue << endl;
-                Info << "target_phase_error_: " << target_phase_error_ << endl;
-                //Info << "errorPhase: " << errorPhase << endl;
-                //Info << "initial_iter_: " << initial_iter_ << endl;
 
                 Info << "Previous voltage value: " << oldVoltageValue << "; phase: " << oldVoltagePhase << endl
                 << "New voltage value: " << newVoltageValue << "; phase: " << newVoltagePhase << endl
                 << "Value error: " << errorValue << "; phase error: " << errorPhase << endl;
 
-                if (errorValue < target_value_error_ && errorPhase < target_phase_error_ && 
-                    initial_iter_ > 1 && wait_iter_ > waitInterval)//Start check after initialization + reference iter
+                const bool quit_requirement =
+                isElectroHarmonic()
+                ?
+                initial_iter_ > 1//Has one extra initial iteration for harmonic case, because first error will be zero.
+                :
+                initial_iter_ > 1 && wait_iter_ > waitInterval;//First go through initialization.
+
+                if (errorValue < target_value_error_ && errorPhase < target_phase_error_ && quit_requirement)
                 {
                     voltageNeedsUpdate_[terminalName] = false;
                     Info << "Voltage requirements met!" << endl;
                     continue;
                 }
-                if (initial_iter_ <= waitInterval+1)
+                const int max_initial_iter = isElectroHarmonic() ? 1 : waitInterval+1;
+                if (initial_iter_ <= max_initial_iter)
                 {
                     initial_iter_++;
                 }
-                // Save for restart
+                // Write new voltage values to file
                 writeControlValue_("coilVoltages/"+terminalName,newVoltageValue);
                 writeControlValue_("coilPhases/"+terminalName,newVoltagePhase);
             }
-            else
+            
+            if (!isElectroHarmonic())
             {
-                // Intermediate step between half-periods
-                Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
-                //Info << "initial_iter_: " << initial_iter_ << endl;
-            }
-            if (!isElectroHarmonic() && wait_iter_ <= waitInterval)
-            {
-                wait_iter_++;
+                if (integrationCounter_ % integrationSteps_ != 0)
+                {
+                    // Intermediate step between half-periods
+                    Info << "integral: " << inducedVoltageValue_[terminalName] << endl;
+                    Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
+                }
+                if (wait_iter_ <= waitInterval)
+                {
+                    wait_iter_++;
+                }
             }
         }
     }
@@ -1277,6 +1230,7 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     return;
                 }
                 integralCurrent_[terminalName] += abs(avgJre)*tStepElectro_;
+                // Integral (A*sin(2*pi*f*t)) from 0 to 1/(2*f) = A/(pi*f)
                 integralCurrent_[terminalName] *= PI*frequency_;
             }
             

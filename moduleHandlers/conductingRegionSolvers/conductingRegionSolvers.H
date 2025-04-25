@@ -109,6 +109,7 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
+        // Map from terminal name to wire regions
         std::map<word, std::vector<word>> terminalToRegions_;
 
         //- Feedback loop controllers

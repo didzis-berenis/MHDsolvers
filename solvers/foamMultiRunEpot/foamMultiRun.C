@@ -256,16 +256,6 @@ int main(int argc, char *argv[])
             {
                 forAll(regionNames, i)
                 {
-                    //if
-                    //(   // Do not solve for source electromagnetic regions.
-                        // Source regions are solved once before time-loop.
-                        // Other electric regions are presently considered passive.
-                        // So just skip all electric/conductingMaterial regions.
-                        //solvers.isSource(regionNames[i]) || solvers.isNotSolvedFor(regionNames[i])
-                        //solvers.isSolvedFor(regionNames[i]) && !solvers.isSource(regionNames[i])//solvers.isElectric(regionNames[i])
-                        // TODO: should be checked if needs solving
-                    //)
-                        //continue;
                     solvers.solveElectromagnetics(regionNames[i]);
                 }
             }
