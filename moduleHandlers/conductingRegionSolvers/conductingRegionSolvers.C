@@ -1117,14 +1117,18 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "Updating voltage for terminal " << terminalName << endl;
                 const scalar oldVoltageValue = readControlValue_("coilVoltages/"+terminalName);
                 const scalar oldVoltagePhase = readControlValue_("coilPhases/"+terminalName);
-
-                Info << "Old "  << endl;
                 scalar oldVoltageRe = oldVoltageValue*Foam::cos(oldVoltagePhase*PI/180.0);
                 scalar oldVoltageIm = oldVoltageValue*Foam::sin(oldVoltagePhase*PI/180.0);
+                Info << "Old "  << endl;
                 Info << "oldVoltageRe: " << oldVoltageRe << endl;
                 Info << "oldVoltageIm: " << oldVoltageIm << endl;
                 Info << "oldVoltageValue: " << oldVoltageValue << endl;
                 Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
+                // Calculate previous induction
+                const scalar setVoltageRe = terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
+                const scalar setVoltageIm = terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
+                oldVoltageRe -= setVoltageRe;
+                oldVoltageIm -= setVoltageIm;
 
                 // Induced values
                 scalar newVoltageRe = 0;
@@ -1160,14 +1164,23 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     inducedVoltagePhase_[terminalName] = 0;
                 }
 
-                // Apply coefficient to induced voltage to avoid instabilities/oscillations.
-                // Note: If induced voltage still becomes unstable, try adding a limiter.
-                const scalar control_coefficient = 0.5;
-                newVoltageRe *= control_coefficient;
-                newVoltageIm *= control_coefficient;
+                // Calculate induction difference
+                scalar deltaInducedRe = newVoltageRe-oldVoltageRe;
+                scalar deltaInducedIm = newVoltageIm-oldVoltageIm;
+                // Apply coefficient to induced voltage to avoid oscillations.
+                const scalar control_coefficient = 
+                min(
+                    0.5,
+                    // A limiter to reduce possibility of instabilities.
+                    0.5*sqrt(pow(setVoltageRe,2)+pow(setVoltageIm,2))/sqrt(pow(deltaInducedRe,2)+pow(deltaInducedIm,2))
+                );
+                deltaInducedRe *= control_coefficient;
+                deltaInducedIm *= control_coefficient;
+                newVoltageRe = oldVoltageRe + deltaInducedRe;
+                newVoltageIm = oldVoltageIm + deltaInducedIm;
                 // Adding preset voltage value
-                newVoltageRe += terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
-                newVoltageIm += terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
+                newVoltageRe += setVoltageRe;
+                newVoltageIm += setVoltageIm;
                 scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
                 scalar newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
                 Info << "New "  << endl;
