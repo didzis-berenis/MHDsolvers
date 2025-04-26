@@ -196,6 +196,16 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     // Find regions, which need feedback control
     // And initialize feedback loop controller
     setUpFeedbackControllers_();
+    for (auto element : terminalToRegions_)
+    {
+        // Coil regions
+        const word terminalName = element.first;
+        Info << "terminalName" << terminalName << endl;
+        for (word regionName : element.second)
+        {
+            Info << "regionName" << regionName << endl;
+        }
+    }
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -1088,11 +1098,15 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                         scalar time_derivative = 1.0/tStepElectro_;
                         const scalar induction_component =
                         coeff*time_derivative*getInductionSum_(otherRegionName,terminalControls);
-                        inducedVoltageValue_[terminalName] += abs(induction_component)*tStepElectro_;//Integration component
+                        //inducedVoltageValue_[terminalName] += abs(induction_component)*tStepElectro_;//Integration component
                         inducedVoltagePhase_[terminalName] += induction_component;//Momentary induction component
                         const vectorField oldB = getElectro(otherRegionName).B().internalField();
                         regionOldB_[otherRegionName]=oldB;
                     }
+                }
+                if (!isElectroHarmonic())
+                {
+                    inducedVoltageValue_[terminalName] += abs(inducedVoltagePhase_[terminalName])*tStepElectro_;//Integration component
                 }
             }
             //Convert to value and phase
@@ -1146,8 +1160,12 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     inducedVoltagePhase_[terminalName] = 0;
                 }
 
+                // Apply coefficient to induced voltage to avoid instabilities/oscillations.
+                // Note: If induced voltage still becomes unstable, try adding a limiter.
+                const scalar control_coefficient = 0.5;
+                newVoltageRe *= control_coefficient;
+                newVoltageIm *= control_coefficient;
                 // Adding preset voltage value
-                // Note: If simply adding induced voltage becomes unstable, try adding a limiter.
                 newVoltageRe += terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
                 newVoltageIm += terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
                 scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
