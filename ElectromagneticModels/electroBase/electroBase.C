@@ -65,14 +65,16 @@ void Foam::electroBase::electromagneticPredictor()
     electroPtr_->predict();
 }
 
-void Foam::electroBase::markCurrentReferenceAsSet()
+void Foam::electroBase::markCurrentReferenceAsSet(bool imaginary)
 {
-    current_reference_set_ = true;
+    if (imaginary) current_reference_set_im_ = true;
+    else current_reference_set_re_ = true;
 }
 
-bool Foam::electroBase::currentReferenceSet()
+bool Foam::electroBase::currentReferenceSet(bool imaginary)
 {
-    return current_reference_set_;
+    if (imaginary) return current_reference_set_im_;
+    else return current_reference_set_re_;
 }
 
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)

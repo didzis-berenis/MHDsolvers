@@ -57,7 +57,9 @@ protected:
         //- Non-const reference to the fluid fluid electromagnetic properties
         electromagneticModel& electro_;
 
-        bool current_reference_set_ = false;
+        bool current_reference_set_re_ = false;
+
+        bool current_reference_set_im_ = false;
 
 public:
 
@@ -98,9 +100,9 @@ public:
         //- Current density reference value [A/m^2]
         virtual volVectorField& getJref(bool imaginary=false);
         //- Sets current_reference_set_ flag to true
-        virtual void markCurrentReferenceAsSet();
+        virtual void markCurrentReferenceAsSet(bool imaginary=false);
         //- Returns current_reference_set_ value
-        virtual bool currentReferenceSet();
+        virtual bool currentReferenceSet(bool imaginary=false);
 
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);

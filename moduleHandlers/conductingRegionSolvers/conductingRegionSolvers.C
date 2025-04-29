@@ -783,10 +783,16 @@ int Foam::conductingRegionSolvers::surfaceHitCount_(const point test_point,const
 
 Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionName, bool imaginary)
 {
-    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->electro.getRegionRole() == "wire")
+    if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->currentReferenceSet(imaginary))
     {
         volVectorField regionField = getElectroBasePtr_(regionName)->getJref(imaginary);
         volScalarField magnitudeField = mag(regionField);
+        if (max(magnitudeField).value() == 0)
+        {
+            FatalIOError << "Region" << regionName 
+            << "reference field for J" << (isElectroHarmonic() ? (imaginary ? "im" : "re") : "") << " is equal to zero!\n"
+            << exit(FatalIOError);
+        }
         volVectorField directionField = regionField/magnitudeField;
         return directionField;
     }
@@ -1117,18 +1123,11 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "Updating voltage for terminal " << terminalName << endl;
                 const scalar oldVoltageValue = readControlValue_("coilVoltages/"+terminalName);
                 const scalar oldVoltagePhase = readControlValue_("coilPhases/"+terminalName);
-                scalar oldVoltageRe = oldVoltageValue*Foam::cos(oldVoltagePhase*PI/180.0);
-                scalar oldVoltageIm = oldVoltageValue*Foam::sin(oldVoltagePhase*PI/180.0);
-                Info << "Old "  << endl;
-                Info << "oldVoltageRe: " << oldVoltageRe << endl;
-                Info << "oldVoltageIm: " << oldVoltageIm << endl;
-                Info << "oldVoltageValue: " << oldVoltageValue << endl;
-                Info << "oldVoltagePhase: " << oldVoltagePhase << endl;
-                // Calculate previous induction
                 const scalar setVoltageRe = terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
                 const scalar setVoltageIm = terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
-                oldVoltageRe -= setVoltageRe;
-                oldVoltageIm -= setVoltageIm;
+                // Calculate previous induction
+                //oldVoltageRe -= setVoltageRe;
+                //oldVoltageIm -= setVoltageIm;
 
                 // Induced values
                 scalar newVoltageRe = 0;
@@ -1155,29 +1154,20 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                     Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
                     Info << "division : " << inducedVoltagePhase_[terminalName]/inducedVoltageValue << endl;
                     Info << "Induced "  << endl;
-                    Info << "inducedVoltageRe: " << newVoltageRe << endl;
-                    Info << "inducedVoltageIm: " << newVoltageIm << endl;
                     Info << "inducedVoltageValue: " << inducedVoltageValue << endl;
                     Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;
                     // Reset for next integration
                     inducedVoltageValue_[terminalName] = 0;
                     inducedVoltagePhase_[terminalName] = 0;
                 }
+                Info << "inducedVoltageRe: " << newVoltageRe << endl;
+                Info << "inducedVoltageIm: " << newVoltageIm << endl;
 
-                // Calculate induction difference
-                scalar deltaInducedRe = newVoltageRe-oldVoltageRe;
-                scalar deltaInducedIm = newVoltageIm-oldVoltageIm;
                 // Apply coefficient to induced voltage to avoid oscillations.
-                const scalar control_coefficient = 
-                min(
-                    0.5,
-                    // A limiter to reduce possibility of instabilities.
-                    0.5*sqrt(pow(setVoltageRe,2)+pow(setVoltageIm,2))/sqrt(pow(deltaInducedRe,2)+pow(deltaInducedIm,2))
-                );
-                deltaInducedRe *= control_coefficient;
-                deltaInducedIm *= control_coefficient;
-                newVoltageRe = oldVoltageRe + deltaInducedRe;
-                newVoltageIm = oldVoltageIm + deltaInducedIm;
+                const scalar relaxation_coefficient = 0.4;// Should reduce oscillations
+                Info << "relaxation_coefficient: " << relaxation_coefficient << endl;
+                newVoltageRe *= relaxation_coefficient;
+                newVoltageIm *= relaxation_coefficient;
                 // Adding preset voltage value
                 newVoltageRe += setVoltageRe;
                 newVoltageIm += setVoltageIm;
@@ -1186,8 +1176,6 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Info << "New "  << endl;
                 Info << "newVoltageRe: " << newVoltageRe << endl;
                 Info << "newVoltageIm: " << newVoltageIm << endl;
-                Info << "newVoltageValue: " << newVoltageValue << endl;
-                Info << "newVoltagePhase: " << newVoltagePhase << endl;
 
                 scalar errorValue = abs(newVoltageValue - oldVoltageValue)/max(abs(newVoltageValue),vSmall);
                 scalar errorPhase = abs(newVoltagePhase - oldVoltagePhase)/180.0;
@@ -1197,11 +1185,11 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 << "Value error: " << errorValue << "; phase error: " << errorPhase << endl;
 
                 const bool quit_requirement =
-                isElectroHarmonic()
+                (isElectroHarmonic()
                 ?
                 initial_iter_ > 1//Has one extra initial iteration for harmonic case, because first error will be zero.
                 :
-                initial_iter_ > 1 && wait_iter_ > waitInterval;//First go through initialization.
+                initial_iter_ > 1 && wait_iter_ > waitInterval);//First go through initialization.
 
                 if (errorValue < target_value_error_ && errorPhase < target_phase_error_ && quit_requirement)
                 {
@@ -1413,12 +1401,12 @@ void Foam::conductingRegionSolvers::setJRefToRegion(volVectorField& globalField,
     if (getElectroBasePtr_(regionName))
     {
         electroBase* electrPtr = getElectroBasePtr_(regionName);
-        if (electrPtr->currentReferenceSet()) return;// Set only once
+        if (electrPtr->currentReferenceSet(imaginary)) return;// Set only once
         volVectorField& regionField = electrPtr->getJref(imaginary);
         vectorGlobalToField_(globalField,regionField,regionName);
         // Update boundary values based on boundary conditions.
         regionField.correctBoundaryConditions();
-        electrPtr->markCurrentReferenceAsSet();
+        electrPtr->markCurrentReferenceAsSet(imaginary);
     }
 }
 //Assigns fluid and solid region values from global to each region field
@@ -1524,13 +1512,15 @@ bool Foam::conductingRegionSolvers::needsReference(const word regionName)
 {
     const electromagneticModel& electro = getElectro(regionName);
     const word regionRole = electro.getRegionRole();
-    bool hasVoltageControl = false;
     const word feedbackType = electro.lookupOrDefault<word>("feedbackControl","");
-    if (feedbackType == "voltage")
-    {
-        hasVoltageControl = true;
-    }
-    return isElectric(regionName) && (regionRole == "wire") && hasVoltageControl && !getElectroBasePtr_(regionName)->currentReferenceSet();
+    const bool regionNeedsReference = isElectric(regionName) && (regionRole == "wire") && (feedbackType == "current");
+    if (!regionNeedsReference) return false;
+    const bool referenceNotSet = isElectroHarmonic()
+    ?
+    !getElectroBasePtr_(regionName)->currentReferenceSet() || !getElectroBasePtr_(regionName)->currentReferenceSet(true)
+    :
+    !getElectroBasePtr_(regionName)->currentReferenceSet();
+    return referenceNotSet;
 }
 
 bool Foam::conductingRegionSolvers::hasAnyRole(const word regionRole)
