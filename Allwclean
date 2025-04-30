@@ -9,6 +9,7 @@ wclean ElectromagneticModels/electroBase
 wclean feedbackLoopController/feedbackLoopController
 
 wclean modules/incompressibleConductingFluid
+wclean modules/magneticMaterial
 wclean modules/conductingMaterial
 wclean modules/conductingFluid
 wclean modules/conductingSolid
@@ -18,7 +19,7 @@ wclean moduleHandlers/conductingRegionSolvers
 
 wclean utilities/initializeTemperature
 wclean utilities/initializeMultiRegionTemperature
-wclean utilities/checkRegionCellZones
+wclean utilities/initializeRegionSolvers
 
 wclean solvers/foamRunEpot
 wclean solvers/foamMultiRunEpot

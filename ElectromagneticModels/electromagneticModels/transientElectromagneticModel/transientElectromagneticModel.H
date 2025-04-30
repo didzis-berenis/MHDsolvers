@@ -106,6 +106,8 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+
+        //- Current density reference value [A/m^2]
         virtual volVectorField& Jref(bool imaginary=false) override;
 
         //- Magnetic field [T]

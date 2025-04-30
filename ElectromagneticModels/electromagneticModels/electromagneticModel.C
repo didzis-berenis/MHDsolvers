@@ -444,10 +444,8 @@ void Foam::electromagneticModel::findJ(bool imaginary)
     ---------------------------------------------------------------------------*/
     //Get J reference (boundary conditions should come from J)
     volVectorField& Jcorrect = this->J(imaginary);
-    //Interpolating cross product u x B over mesh faces
-    //surfaceScalarField psiUB = fvc::interpolate(UxB(imaginary)) & mesh_.Sf();//U_ ^ B(imaginary)
     //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf());// + psiUB;
+    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf());
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 

@@ -22,12 +22,10 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::solvers::solid
+    Foam::solvers::conductingSolid
 
 Description
-    Solver module for thermal transport in solid domains and regions for
-    conjugate heat transfer, HVAC and similar applications, with optional mesh
-    motion and mesh topology changes.
+    Adds electromagnetic interaction to Foam::solvers::solid
 
 SourceFiles
     conductingSolid.C

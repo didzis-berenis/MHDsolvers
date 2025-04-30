@@ -49,33 +49,28 @@ Foam::solvers::conductingMaterial::conductingMaterial
     solver(mesh),
     electroBase(mesh)
 {
-    // Non-source conductingMaterial regions are considered passive.
-    // Initialize only source regions.
-    //if (electro.isSource())
-    //{
-        label PotERefCell = 0;
-        scalar PotERefValue = 0.0;
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    setRefCell
+    (
+        electro.PotE(),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+    mesh.schemes().setFluxRequired(electro.PotE().name());
+
+    if (electro.isComplex())
+    {
         setRefCell
         (
-            electro.PotE(),
+            electro.PotE(true),
             pimple.dict(),
             PotERefCell,
             PotERefValue
         );
-        mesh.schemes().setFluxRequired(electro.PotE().name());
-
-        if (electro.isComplex())
-        {
-            setRefCell
-            (
-                electro.PotE(true),
-                pimple.dict(),
-                PotERefCell,
-                PotERefValue
-            );
-            mesh.schemes().setFluxRequired(electro.PotE(true).name());
-        }
-    //}
+        mesh.schemes().setFluxRequired(electro.PotE(true).name());
+    }
 }
 
 
@@ -121,11 +116,14 @@ void Foam::solvers::conductingMaterial::pressureCorrector()
 
 void Foam::solvers::conductingMaterial::postCorrector()
 {
+    // Presently set as passive.
+    // Uncomment to enable current calculation.
+
     // Solve only for source regions
     if (electro.correctElectromagnetics())
     {
         //Calculate current density
-        electro_.findJ();
+        /*electro_.findJ();
         bool imaginary = electro.isComplex();
         if (imaginary)
         {
@@ -146,7 +144,7 @@ void Foam::solvers::conductingMaterial::postCorrector()
                 volVectorField& JimRef = electro_.Jref(imaginary);
                 JimRef = Jim;
             }
-        }
+        }*/
         electro_.setCorrected();
     }
 }
@@ -159,7 +157,7 @@ void Foam::solvers::conductingMaterial::solveElectromagnetics()
     // Solve only for source regions
     //if (electro.isSource())
     //{
-        electro_.solve();
+        //electro_.solve();
     //}
 }
 

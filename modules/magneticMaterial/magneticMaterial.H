@@ -22,18 +22,18 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::solvers::conductingMaterial
+    Foam::solvers::magneticMaterial
 
 Description
-    Stores electromagnetic fields and calculates current density
+    Stores electromagnetic fields
 
 SourceFiles
-    conductingMaterial.C
+    magneticMaterial.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef conductingMaterial_H
-#define conductingMaterial_H
+#ifndef magneticMaterial_H
+#define magneticMaterial_H
 
 #include "solver.H"
 #include "electroBase.H"
@@ -46,10 +46,10 @@ namespace solvers
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class conductingMaterial Declaration
+                          Class magneticMaterial Declaration
 \*---------------------------------------------------------------------------*/
 
-class conductingMaterial
+class magneticMaterial
 :
     public solver,
     public electroBase
@@ -63,20 +63,20 @@ public:
 
 
     //- Runtime type information
-    TypeName("conductingMaterial");
+    TypeName("magneticMaterial");
 
 
     // Constructors
 
         //- Construct from region mesh
-        conductingMaterial(fvMesh& mesh);
+        magneticMaterial(fvMesh& mesh);
 
         //- Disallow default bitwise copy construction
-        conductingMaterial(const conductingMaterial&) = delete;
+        magneticMaterial(const magneticMaterial&) = delete;
 
 
     //- Destructor
-    virtual ~conductingMaterial();
+    virtual ~magneticMaterial();
 
 
     // Member Functions
@@ -119,7 +119,7 @@ public:
     // Member Operators
 
         //- Disallow default bitwise assignment
-        void operator=(const conductingMaterial&) = delete;
+        void operator=(const magneticMaterial&) = delete;
 };
 
 

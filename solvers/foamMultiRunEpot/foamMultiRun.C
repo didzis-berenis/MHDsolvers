@@ -103,14 +103,10 @@ int main(int argc, char *argv[])
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     // Initialize electromagnetic sources.
-    if (solvers.hasElectricSources() || solvers.hasAnyRole("wire"))//wire roles only need reference
-    {
-        #include "initializeElectricSources.H"
-    }
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
     {
-        Info<< nl << "Initializing electromagnetic controls\n" << endl;
+        Info<< nl << "Initializing electromagnetic controls...\n" << endl;
     }
     int controlStepsTaken = 0;
     // Time == startTime() iteration
@@ -260,16 +256,6 @@ int main(int argc, char *argv[])
             {
                 forAll(regionNames, i)
                 {
-                    if
-                    (   // Do not solve for source electromagnetic regions.
-                        // Source regions are solved once before time-loop.
-                        // Other electric regions are presently considered passive.
-                        // So just skip all electric/conductingMaterial regions.
-                        //solvers.isSource(regionNames[i]) || solvers.isNotSolvedFor(regionNames[i])
-                        solvers.isSolvedFor(regionNames[i]) && !solvers.isSource(regionNames[i])//solvers.isElectric(regionNames[i])
-                        // TODO: should be checked if needs solving
-                    )
-                        continue;
                     solvers.solveElectromagnetics(regionNames[i]);
                 }
             }

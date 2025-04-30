@@ -136,7 +136,7 @@ class externalElectricPotentialFvPatchScalarField
             bool havePot_;
 
             //- Ambient electric potential [V]
-            scalarField ePotExt_;
+            scalar ePotExt_;
 /*
             //- Heat transfer coefficient [S/m^2]
             scalarField Pot_;
@@ -211,6 +211,10 @@ public:
                 return false;
             }
 
+            //- Checks if has electric potential
+            bool hasPotE() const;
+            //- Returns potential of the terminal
+            //scalar getPotErefValue() const;
 
         // Mapping functions
 

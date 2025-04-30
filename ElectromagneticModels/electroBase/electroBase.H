@@ -57,6 +57,10 @@ protected:
         //- Non-const reference to the fluid fluid electromagnetic properties
         electromagneticModel& electro_;
 
+        bool current_reference_set_re_ = false;
+
+        bool current_reference_set_im_ = false;
+
 public:
 
     // Public Data
@@ -92,7 +96,13 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
+
+        //- Current density reference value [A/m^2]
         virtual volVectorField& getJref(bool imaginary=false);
+        //- Sets current_reference_set_ flag to true
+        virtual void markCurrentReferenceAsSet(bool imaginary=false);
+        //- Returns current_reference_set_ value
+        virtual bool currentReferenceSet(bool imaginary=false);
 
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);
@@ -103,6 +113,9 @@ public:
         virtual void updatePotErefValue(const word terminalName, scalar newValue, bool imaginary);
         scalar getPotErefValue(const word terminalName, bool imaginary);
         bool hasBoundary(const word terminalName);
+        bool isElectricPotentialBoundary(const word terminalName);
+        word findGroundTerminal(const word terminalName);
+        Foam::vector getCenter(const word terminalName);
 
         //- Current density correction [A/m^2]
         virtual void initDeltaJ(bool imaginary=false);

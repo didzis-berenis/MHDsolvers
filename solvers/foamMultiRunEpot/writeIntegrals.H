@@ -41,11 +41,7 @@ forAll(regionNames, i)
             TIntegral += T[cellI]*dV;
             JJsigmaIntegral += JJsigma[cellI]*dV;
         }
-        string regionNameStr = "_" + regionName + "_";//"";
-        /*if (fluidRegionsSize > 1)
-        {
-            regionNameStr = "_" + regionName + "_";
-        }*/
+        string regionNameStr = "_" + regionName + "_";
         // Write
         string velocityFileName = "postProcessing/velocityIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
         std::ofstream velocityFile(velocityFileName, std::ios::app);
@@ -85,11 +81,7 @@ forAll(regionNames, i)
             TIntegral += T[cellI]*dV;
             JJsigmaIntegral += JJsigma[cellI]*dV;
         }
-        string regionNameStr = "_" + regionName + "_";//"";
-        /*if (regionNames.size() > 1)
-        {
-            regionNameStr = "_" + regionName + "_";
-        }*/
+        string regionNameStr = "_" + regionName + "_";
 
         // Write
         string thermalFileName = "postProcessing/thermalIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
@@ -98,6 +90,32 @@ forAll(regionNames, i)
         if (thermalFile.is_open())
         {
             thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral << 
+            "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
+            thermalFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
+    }
+
+    if (solvers.isElectric(regionName))
+    {
+        scalarField V = solvers.mesh(regionNames[i]).V();
+        const volScalarField& JJsigma = solvers.getElectro(regionNames[i]).JJsigma;
+        scalar JJsigmaIntegral = 0;
+
+        forAll (V, cellI)
+        {
+            scalar dV = V[cellI];
+            JJsigmaIntegral += JJsigma[cellI]*dV;
+        }
+        string regionNameStr = "_" + regionName + "_";
+
+        // Write
+        string thermalFileName = "postProcessing/thermalIntegrals" + regionNameStr + std::to_string(Pstream::myProcNo()) + ".dat";
+        std::ofstream thermalFile(thermalFileName, std::ios::app);
+
+        if (thermalFile.is_open())
+        {
+            thermalFile << runTime.timeName() << "\t" << 0 << "\t" << 0 << "\t" << 0 << 
             "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
             thermalFile.close();
         }

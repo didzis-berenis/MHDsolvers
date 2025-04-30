@@ -109,11 +109,7 @@ class conductingRegionSolvers
 
         std::map<word, label> regionIdx_;
 
-        std::map<word, scalar> conductorValues_;
-        std::map<word, scalar> conductorPhases_;
-
-        //List<word> controlTerminalNames_;
-
+        // Map from terminal name to wire regions
         std::map<word, std::vector<word>> terminalToRegions_;
 
         //- Feedback loop controllers
@@ -123,14 +119,16 @@ class conductingRegionSolvers
         std::map<word, scalar> inducedVoltagePhase_;
         struct coilParameters_
         {
+            word terminal_name;
+            word region_name;
             scalar target_value;
             scalar target_phase;
-            //scalar inner_area;
-            //scalar outer_area;
+            scalar value_multiplier;
             Foam::vector winding_direction;
         };
         scalar target_value_error_;
         scalar target_phase_error_;
+        scalar induced_voltage_relaxation_factor_;
         std::map<word, coilParameters_> voltageControls_;
         std::map<word, vectorField> regionOldB_;
         std::map<word, std::vector<word>> terminalCoreRegions_;
@@ -150,7 +148,6 @@ class conductingRegionSolvers
         long long int cleanupCounter_ = 0;
         int restartInterval_;
         int integrationSteps_ = 0;
-        //int integration_multiplier_ = 1;
         int integrationCounter_ = 0;
         bool controllerCheckTime_ = false;
         std::map<word, scalar> integralCurrent_;
@@ -162,6 +159,7 @@ class conductingRegionSolvers
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
         const word electricSolverName_ = "conductingMaterial";
+        const word magneticSolverName_ = "magneticMaterial";
         //Perhaps better to construct set, if more solvers are implemented.
         //std::set<word> conductingFluidNames_;
         //std::set<word> conductingSolidNames_;
@@ -197,12 +195,12 @@ class conductingRegionSolvers
         void evaluateDeltaJBfs_(const word regionName, bool imaginary=false);
         void evaluateJBfs_(const word regionName, bool imaginary=false);
 
-        // Set to true if any region is electromagnetic source
-        bool hasElectricSources_=false;
-        void checkIfAnyElectricSources_();
+        bool hasVoltageControl_=false;
+        void checkIfAnyVoltageControl_();
 
         // Performs feedback control initialization
         void setUpFeedbackControllers_();
+        int surfaceHitCount_(const point otherRegionPoint,const Foam::vector perpendicularVector,const fvPatch&);
 
         // Calculates phase shift for transient simulation
         scalar getTransientPhaseShift_(scalar argument, scalar step_shift);
@@ -210,7 +208,7 @@ class conductingRegionSolvers
         volVectorField getJdirection_(word regionName, bool imaginary);
         // Calculates integral current density for a region
         scalar getCurrentSum_(word regionName,bool imaginary=false);//volVectorField JGlobal,
-        scalar getInductionSum_(word regionName, Foam::vector winding_direction, bool imaginary=false);
+        scalar getInductionSum_(word regionName, coilParameters_ terminalControls, bool imaginary=false);
         // Writes provided value to a file
         void writeControlValue_(const word fileName, const scalar outputValue);
         // Reads value from a file
@@ -254,7 +252,15 @@ public:
         //- Return region fvMesh
         fvMesh& mesh(const word regionName);
 
-        void updateFeedbackControl();//volVectorField& JreGlobal,volVectorField& JimGlobal
+        scalar getArea(const word regionName, const word patchName);
+
+        Foam::vector getCenter(const word regionName, const word patchName);
+
+        Foam::vector getCenter(const word regionName);
+
+        Foam::vector getNormal(const word regionName, const word patchName);
+
+        void updateFeedbackControl();
         bool controllersNeedUpdate();
 
         // Return global fvMesh
@@ -276,13 +282,14 @@ public:
         void setJ(volVectorField& field, bool imaginary=false);
 
         // Check if any region is electric source
-        bool hasElectricSources();
+        //bool hasElectricSources();
 
         // Get formatted current density from electric source regions
-        volVectorField getSourceJ(word regionName, bool imaginary);
+        //volVectorField getSourceJ(word regionName, bool imaginary);
 
         //- Assign current density to specified region
         void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
+        void setJRefToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
 
         //- Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
@@ -299,11 +306,11 @@ public:
         //- Check if solver type is electricSolverName_
         bool isElectric(const word regionName);
 
-        // Check if region is electric source
-        bool isSource(const word regionName);
+        //- Check if solver type is magneticSolverName_
+        bool isMagnetic(const word regionName);
 
-        // Check if electromagnetics solved in OpenFOAM for specified region
-        bool isSolvedFor(const word regionName);
+        // Check if region is electric source
+        bool needsReference(const word regionName);
         
         bool hasAnyRole(const word regionRole);
 

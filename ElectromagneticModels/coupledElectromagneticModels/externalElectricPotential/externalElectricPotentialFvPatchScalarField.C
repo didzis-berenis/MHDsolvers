@@ -44,7 +44,8 @@ externalElectricPotentialFvPatchScalarField
     haveJ_(dict.found("J")),
     J_(haveJ_ ? scalarField("J", dict, p.size()) : scalarField()),
     havePot_(dict.found("PotE")),
-    ePotExt_(havePot_ ? scalarField("PotE", dict, p.size()) : scalarField())
+    ePotExt_(havePot_ ? dict.lookup<scalar>("PotE") : NaN)//,
+    //ePotExt_(havePot_ ? scalarField("PotE", dict, p.size()) : scalarField())
     /*,
     thicknessLayers_
     (
@@ -132,6 +133,24 @@ externalElectricPotentialFvPatchScalarField
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+
+bool Foam::externalElectricPotentialFvPatchScalarField::hasPotE() const
+{
+    return havePot_;
+}
+
+/*Foam::scalar Foam::externalElectricPotentialFvPatchScalarField::getPotErefValue()
+{
+    if (hasPotE())
+    {
+        const scalar potEref = this->lookup<scalar>("PotE");
+        return potEref;
+    }
+    FatalIOError << "Boundary named " << patch().name() << " doesn't have properties PotE!\n"
+    << exit(FatalIOError);
+    return -1;
+}*/
+
 void Foam::externalElectricPotentialFvPatchScalarField::map
 (
     const fvPatchScalarField& ptf,
@@ -148,10 +167,10 @@ void Foam::externalElectricPotentialFvPatchScalarField::map
         mapper(J_, tiptf.J_);
     }
 
-    if (havePot_)
+    /*if (havePot_)
     {
         mapper(ePotExt_, tiptf.ePotExt_);
-    }
+    }*/
 
 }
 
@@ -171,10 +190,10 @@ void Foam::externalElectricPotentialFvPatchScalarField::reset
         J_.reset(tiptf.J_);
     }
 
-    if (havePot_)
+    /*if (havePot_)
     {
         ePotExt_.reset(tiptf.ePotExt_);
-    }
+    }*/
 
 }
 
@@ -196,7 +215,7 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
 
     // Compute the total non-convective heat flux
     scalarField gradPotE(ePotP.size(), 0);
-    scalarField potE(ePotP.size(), 0);
+    //scalarField potE(ePotP.size(), 0);
     // J = -sigma*grad(PotE)
     // However, terminal functions as an inlet
     // and since patch normal is directed outwards
@@ -209,11 +228,11 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     {
         gradPotE += J_/(sigma + SMALL);
     }
-    if (havePot_)
+    /*if (havePot_)
     {
         //const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
         potE += ePotExt_;
-    }
+    }*/
 
     // Evaluate
     if (haveI_ || haveJ_)
@@ -224,6 +243,8 @@ void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
     }
     if (havePot_)
     {
+        //const scalar ePotExt = ePotExt_->value(this->db().time().userTimeValue());
+        scalarField potE(ePotP.size(), ePotExt_);
         refValue() = potE;
         //Switch to zero gradient condition if sigma->0
         valueFraction() = sigma/(sigma + SMALL);

@@ -9,6 +9,7 @@ wmake ElectromagneticModels/electroBase
 wmake feedbackLoopController
 
 wmake modules/incompressibleConductingFluid
+wmake modules/magneticMaterial
 wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
@@ -18,7 +19,7 @@ wmake moduleHandlers/conductingRegionSolvers
 
 wmake utilities/initializeTemperature
 wmake utilities/initializeMultiRegionTemperature
-wmake utilities/checkRegionCellZones
+wmake utilities/initializeRegionSolvers
 
 wmake solvers/foamRunEpot
 wmake solvers/foamMultiRunEpot

@@ -51,3 +51,13 @@
 * Added conductingMaterial for regions with electromagnetics, but w/o thermal and fluid dynamics
 * Added class feedbackLoopController for controlling voltage input of ElmerFEM conducting region to acheive the required current
 * Complemented conductingRegionSolvers and foamMultiRunEpot for setting current conditions on conducting region terminals
+* Complemented module conductingRegionSolvers and solver foamMultiRunEpot to store electromagnetic fields for all Elmer regions
+## v2.3: Improved Electromagnetic models ##
+* Introduced feedback control for pre-set current or voltage in "wire" role regions
+## Added new materials ##
+* magneticMaterial
+## Added new utility initializeRegionSolvers ##
+* initializeRegionSolvers
+## Removed checkRegionCellZones utility
+* checkRegionCellZones
+
