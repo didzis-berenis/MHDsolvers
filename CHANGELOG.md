@@ -43,13 +43,21 @@
 * electroBase
 * coupledElectricPotentialFvPatchScalarField
 * coupledCurrentDensityFvPatchVectorField
-## v2.1: Improved Electromagnetic models ##
-* Complemented module conductingRegionSolvers and solver foamMultiRunEpot store electromagnetic fields for all Elmer regions
+## v2.1: Added Electromagnetic models ##
+* Combined foamRunEpot and foamRunEpotTransient into one solver foamRunEpot
+* Combined foamMultiRunEpot and foamMultiRunEpotTransient into one solver foamMultiRunEpot
+* Added boundary condition module externalElectricPotentialFvPatchScalarField
+## v2.2: Added Electromagnetic models ##
+* Added conductingMaterial for regions with electromagnetics, but w/o thermal and fluid dynamics
+* Added class feedbackLoopController for controlling voltage input of ElmerFEM conducting region to acheive the required current
+* Complemented conductingRegionSolvers and foamMultiRunEpot for setting current conditions on conducting region terminals
+* Complemented module conductingRegionSolvers and solver foamMultiRunEpot to store electromagnetic fields for all Elmer regions
+## v2.3: Improved Electromagnetic models ##
 * Introduced feedback control for pre-set current or voltage in "wire" role regions
 ## Added new materials ##
-* conductingMaterial
 * magneticMaterial
 ## Added new utility initializeRegionSolvers ##
 * initializeRegionSolvers
 ## Removed checkRegionCellZones utility
 * checkRegionCellZones
+
