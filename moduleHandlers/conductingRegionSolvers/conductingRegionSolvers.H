@@ -128,6 +128,7 @@ class conductingRegionSolvers
         };
         scalar target_value_error_;
         scalar target_phase_error_;
+        scalar induced_voltage_relaxation_factor_;
         std::map<word, coilParameters_> voltageControls_;
         std::map<word, vectorField> regionOldB_;
         std::map<word, std::vector<word>> terminalCoreRegions_;

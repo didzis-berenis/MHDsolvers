@@ -215,6 +215,14 @@ Foam::conductingRegionSolvers::~conductingRegionSolvers()
 
 void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
 {
+    if (hasVoltageControl_)
+    {
+        target_value_error_ = 0.01;// 1%
+        target_phase_error_ = 0.05;// 5%
+        // Relaxation factor may need to be smaller for cases with
+        // high-frequency, high-mu ferromagnetic core or large number of windings.
+        induced_voltage_relaxation_factor_ = 0.4;
+    }
     forAll(names_, i)
     {
         const word& regionName = names_[i].first();
@@ -609,8 +617,6 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     terminalControls.value_multiplier = value_multiplier;
                     terminalControls.winding_direction = winding_direction;
                     voltageControls_[terminalName] = terminalControls;
-                    target_value_error_ = 0.01;
-                    target_phase_error_ = 0.05;
                     voltageNeedsUpdate_[terminalName] = true;
                     scalar oldVoltageValue = readControlValue_("coilVoltages/"+terminalName);
                     scalar oldVoltagePhase = readControlValue_("coilPhases/"+terminalName);
@@ -1125,17 +1131,19 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 const scalar oldVoltagePhase = readControlValue_("coilPhases/"+terminalName);
                 const scalar setVoltageRe = terminalControls.target_value*Foam::cos(terminalControls.target_phase*PI/180.0);
                 const scalar setVoltageIm = terminalControls.target_value*Foam::sin(terminalControls.target_phase*PI/180.0);
+                const scalar oldVoltageRe = oldVoltageValue*Foam::cos(oldVoltagePhase*PI/180.0);
+                const scalar oldVoltageIm = oldVoltageValue*Foam::sin(oldVoltagePhase*PI/180.0);
                 // Calculate previous induction
-                //oldVoltageRe -= setVoltageRe;
-                //oldVoltageIm -= setVoltageIm;
+                const scalar oldInducedVoltageRe = oldVoltageRe - setVoltageRe;
+                const scalar oldInducedVoltageIm = oldVoltageIm - setVoltageIm;
 
                 // Induced values
-                scalar newVoltageRe = 0;
-                scalar newVoltageIm = 0;
+                scalar newInducedVoltageRe = 0;
+                scalar newInducedVoltageIm = 0;
                 if (isElectroHarmonic())
                 {
-                    newVoltageRe = inducedVoltageValue_[terminalName];
-                    newVoltageIm = inducedVoltagePhase_[terminalName];
+                    newInducedVoltageRe = inducedVoltageValue_[terminalName];
+                    newInducedVoltageIm = inducedVoltagePhase_[terminalName];
                 }
                 else
                 {
@@ -1148,34 +1156,61 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                         /inducedVoltageValue,//Integral value over integration time
                     0.5)*180/PI;//TODO: Check if using half time-step shift works reliably
                     
-                    newVoltageRe = inducedVoltageValue*Foam::cos(inducedVoltagePhase*PI/180.0);
-                    newVoltageIm = inducedVoltageValue*Foam::sin(inducedVoltagePhase*PI/180.0);
-                    Info << "integral induction: " << inducedVoltageValue << endl;
+                    newInducedVoltageRe = inducedVoltageValue*Foam::cos(inducedVoltagePhase*PI/180.0);
+                    newInducedVoltageIm = inducedVoltageValue*Foam::sin(inducedVoltagePhase*PI/180.0);
+                    /*Info << "integral induction: " << inducedVoltageValue << endl;
                     Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
                     Info << "division : " << inducedVoltagePhase_[terminalName]/inducedVoltageValue << endl;
                     Info << "Induced "  << endl;
                     Info << "inducedVoltageValue: " << inducedVoltageValue << endl;
-                    Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;
+                    Info << "inducedVoltagePhase: " << inducedVoltagePhase << endl;*/
                     // Reset for next integration
                     inducedVoltageValue_[terminalName] = 0;
                     inducedVoltagePhase_[terminalName] = 0;
                 }
-                Info << "inducedVoltageRe: " << newVoltageRe << endl;
-                Info << "inducedVoltageIm: " << newVoltageIm << endl;
+                //Info << "inducedVoltageRe: " << newInducedVoltageRe << endl;
+                //Info << "inducedVoltageIm: " << newInducedVoltageIm << endl;
 
-                // Apply coefficient to induced voltage to avoid oscillations.
-                const scalar relaxation_coefficient = 0.4;// Should reduce oscillations
-                Info << "relaxation_coefficient: " << relaxation_coefficient << endl;
-                newVoltageRe *= relaxation_coefficient;
-                newVoltageIm *= relaxation_coefficient;
-                // Adding preset voltage value
-                newVoltageRe += setVoltageRe;
-                newVoltageIm += setVoltageIm;
+                // Calculate induction difference
+                scalar deltaInducedRe = newInducedVoltageRe-oldInducedVoltageRe;
+                scalar deltaInducedIm = newInducedVoltageIm-oldInducedVoltageIm;
+                //Info << "deltaInducedRe: " << deltaInducedRe << endl;
+                //Info << "deltaInducedIm: " << deltaInducedIm << endl;
+
+                // Apply relaxation to induced value difference to improve control stability.
+                deltaInducedRe *= induced_voltage_relaxation_factor_;
+                deltaInducedIm *= induced_voltage_relaxation_factor_;
+                scalar newVoltageRe = setVoltageRe// Adding preset voltage value
+                + oldInducedVoltageRe// Adding previous induced voltage value
+                + deltaInducedRe// Adding voltage difference value induced by previous imaginary value
+                //Account for backreaction on next step
+                + deltaInducedIm//New imaginary induced by previous real
+                *(
+                    (abs(oldVoltageIm) > SMALL)
+                    ?
+                    (newInducedVoltageRe/oldVoltageIm)//Weight of how much imaginary part induces real
+                    :
+                    //Next best guess if oldVoltageIm unavailable
+                    (sqrt(pow(newInducedVoltageRe,2)+pow(newInducedVoltageIm,2))/oldVoltageValue)
+                )*induced_voltage_relaxation_factor_;//This is what will be induced on the next step, so relax that as well.
+                scalar newVoltageIm = setVoltageIm// Adding preset voltage value
+                + oldInducedVoltageIm// Adding previous induced voltage value
+                + deltaInducedIm// Adding voltage difference value induced by previous real value
+                //Account for backreaction on next step
+                - deltaInducedRe//New real induced by previous imaginary
+                *(
+                    abs(oldVoltageRe) > SMALL
+                    ?
+                    (newInducedVoltageIm/oldVoltageRe)//Weight of how much real part induces imaginary
+                    :
+                    //Next best guess if oldVoltageRe unavailable
+                    (sqrt(pow(newInducedVoltageRe,2)+pow(newInducedVoltageIm,2))/oldVoltageValue)
+                )*induced_voltage_relaxation_factor_;//This is what will be induced on the next step, so relax that as well.
+
                 scalar newVoltageValue = sqrt(pow(newVoltageRe,2)+pow(newVoltageIm,2));
                 scalar newVoltagePhase = atan2(newVoltageIm,newVoltageRe)*180/PI;
-                Info << "New "  << endl;
-                Info << "newVoltageRe: " << newVoltageRe << endl;
-                Info << "newVoltageIm: " << newVoltageIm << endl;
+                //Info << "newVoltageRe: " << newVoltageRe << endl;
+                //Info << "newVoltageIm: " << newVoltageIm << endl;
 
                 scalar errorValue = abs(newVoltageValue - oldVoltageValue)/max(abs(newVoltageValue),vSmall);
                 scalar errorPhase = abs(newVoltagePhase - oldVoltagePhase)/180.0;
@@ -1209,12 +1244,12 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
             
             if (!isElectroHarmonic())
             {
-                if (integrationCounter_ % integrationSteps_ != 0)
+                /*if (integrationCounter_ % integrationSteps_ != 0)
                 {
                     // Intermediate step between half-periods
                     Info << "integral: " << inducedVoltageValue_[terminalName] << endl;
                     Info << "momentary induction: " << inducedVoltagePhase_[terminalName] << endl;
-                }
+                }*/
                 if (wait_iter_ <= waitInterval)
                 {
                     wait_iter_++;
