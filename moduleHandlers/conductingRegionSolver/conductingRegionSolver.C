@@ -241,6 +241,10 @@ void Foam::conductingRegionSolver::storeU()
     {
         getFluidPtr_()->storeU();
     }
+    else if(getIncompressibleFluidPtr_())
+    {
+        getIncompressibleFluidPtr_()->storeU();
+    }
 }
 //returns read-only access to electro module
 const Foam::electromagneticModel& Foam::conductingRegionSolver::getElectro()
