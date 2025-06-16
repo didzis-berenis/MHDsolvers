@@ -189,7 +189,10 @@ public:
         // Read-only access
 
         // Get Velocity
-        const volVectorField& getVelocity();
+        const volVectorField& getU();
+
+        // Get Old Velocity
+        const volVectorField& getUold();
 
         // Get Temperature
         const volScalarField& getTemperature();

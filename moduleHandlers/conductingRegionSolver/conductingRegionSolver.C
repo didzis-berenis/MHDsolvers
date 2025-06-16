@@ -168,8 +168,8 @@ void Foam::conductingRegionSolver::electromagneticPredictor()
     }
 }
 
-// GetVelocity
-const Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
+// Get velocity
+const Foam::volVectorField& Foam::conductingRegionSolver::getU()
 {
     if (isFluid())
     {
@@ -178,6 +178,26 @@ const Foam::volVectorField& Foam::conductingRegionSolver::getVelocity()
     else if (isIncompressibleFluid())
     {
         return getIncompressibleFluid().U;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not " << fluidSolverName_
+        << " or " << incompressibleFluidSolverName_ << "!\n" << "Cannot get Velocity field!\n"
+        << exit(FatalIOError);
+    }
+}
+
+// Get old velocity
+const Foam::volVectorField& Foam::conductingRegionSolver::getUold()
+{
+    if (isFluid())
+    {
+        return getFluid().U_old;
+    }
+    else if (isIncompressibleFluid())
+    {
+        return getIncompressibleFluid().U_old;
     }
     else
     {
@@ -339,8 +359,8 @@ bool Foam::conductingRegionSolver::updateMagneticField()
 
         if (isFluid())
         {
-            const volVectorField& U = getFluid().U;
-            const volVectorField& U_old = getFluid().U_old;
+            const volVectorField& U = getU();
+            const volVectorField& U_old = getUold();
             maxRemDiff_local = max(
                 mu_0 * characteristicSize_ *
                 max(getElectro().sigmaInv()*mag(U_old-U)).value(),
