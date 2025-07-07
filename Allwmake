@@ -20,6 +20,9 @@ wmake moduleHandlers/conductingRegionSolvers
 wmake utilities/initializeTemperature
 wmake utilities/initializeMultiRegionTemperature
 wmake utilities/initializeRegionSolvers
+wmake utilities/calcKineticEnergy
+wmake utilities/calcCurlU
+wmake utilities/calcPressurePoints
 
 wmake solvers/foamRunEpot
 wmake solvers/foamMultiRunEpot
