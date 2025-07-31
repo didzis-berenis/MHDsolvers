@@ -361,13 +361,15 @@ bool Foam::conductingRegionSolver::updateMagneticField()
         {
             const volVectorField& U = getU();
             const volVectorField& U_old = getUold();
+            scalar maxMagneticReynoldsDifference = mu_0 * characteristicSize_ *
+                gMax(getElectro().sigmaInv()*mag(U_old-U)).value();
+            scalar maxRelativeVelocityDifference = (gMax(mag(U_old-U)/(gAverage(mag(U))+smallU))).value();
             maxRemDiff_local = max(
-                mu_0 * characteristicSize_ *
-                max(getElectro().sigmaInv()*mag(U_old-U)).value(),
+                maxMagneticReynoldsDifference,
                 maxRemDiff_local);        
 
             maxRelDiff_local = max(
-                (max(mag(U_old-U)/(average(mag(U))+smallU))).value(),
+                maxRelativeVelocityDifference,
                 maxRemDiff_local);
         }
 

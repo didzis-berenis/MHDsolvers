@@ -844,7 +844,7 @@ Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(word regionName,bool 
     const scalarField Jprojection(JRegion & Jdirection);//Project to a reference
     const scalarField volume = mesh(regionName).V();
     //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
-    scalar sumJ = gSum(volume*Jprojection)/max(gSum(volume), vSmall);//Find volume average
+    scalar sumJ = gSum(volume*Jprojection)/gMax(gSum(volume), vSmall);//Find volume average
     return sumJ;
 }
 
@@ -1617,13 +1617,15 @@ bool Foam::conductingRegionSolvers::updateMagneticField()
             {
                 const volVectorField& U = getFluid(regionName).U;
                 const volVectorField& U_old = getFluid(regionName).U_old;
+                scalar maxMagneticReynoldsDifference = mu_0 * characteristicSizes_[i] *
+                    gMax(getElectro(regionName).sigmaInv()*mag(U_old-U)).value();
+                scalar maxRelativeVelocityDifference = (gMax(mag(U_old-U)/(gAverage(mag(U))+smallU))).value();
                 maxRemDiff_local = max(
-                    mu_0 * characteristicSizes_[i] *
-                    max(getElectro(regionName).sigmaInv()*mag(U_old-U)).value(),
+                    maxMagneticReynoldsDifference,
                     maxRemDiff_local);        
 
                 maxRelDiff_local = max(
-                    (max(mag(U_old-U)/(average(mag(U))+smallU))).value(),
+                    maxRelativeVelocityDifference,
                     maxRemDiff_local);
             }
         }
