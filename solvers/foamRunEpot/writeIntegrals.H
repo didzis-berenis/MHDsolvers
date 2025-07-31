@@ -1,5 +1,6 @@
 
 volScalarField magU(mag(U));
+scalar magUmax = gMax(magU);
 scalarField volume = mesh.V();
 scalar totalVolume = gSum(volume);
 
@@ -18,7 +19,7 @@ if (Pstream::master())
 
     if (velocityFile.is_open())
     {
-        velocityFile << runTime.timeName() << "\t" << max(magU).value() << "\t" << UmagIntegral << "\t"
+        velocityFile << runTime.timeName() << "\t" << magUmax << "\t" << UmagIntegral << "\t"
         << UxIntegral << "\t" << UyIntegral << "\t" << UzIntegral << std::endl;
         velocityFile.close();
     }
@@ -30,6 +31,10 @@ if (regionSolver.isFluid())//fluid == hydro + thermo
     volScalarField T = regionSolver.getTemperature() + absoluteZero;
     scalar TIntegral = gSum(T*volume)/totalVolume;
     scalar JJsigmaIntegral = gSum(JJsigma*volume);
+    scalar Tmax = gMax(T);
+    scalar Tmin = gMin(T);
+    scalar JJsigmaMax = gMax(JJsigma);
+    scalar JJsigmaMin = gMin(JJsigma);
     if (Pstream::master())
     {
         // Write
@@ -38,8 +43,8 @@ if (regionSolver.isFluid())//fluid == hydro + thermo
 
         if (thermalFile.is_open())
         {
-            thermalFile << runTime.timeName() << "\t" << max(T).value() << "\t" << min(T).value() << "\t" << TIntegral <<
-            "\t" << max(JJsigma).value() << "\t" << min(JJsigma).value() << "\t" << JJsigmaIntegral << std::endl;
+            thermalFile << runTime.timeName() << "\t" << Tmax << "\t" << Tmin << "\t" << TIntegral <<
+            "\t" << JJsigmaMax << "\t" << JJsigmaMin << "\t" << JJsigmaIntegral << std::endl;
             thermalFile.close();
         }
         else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
