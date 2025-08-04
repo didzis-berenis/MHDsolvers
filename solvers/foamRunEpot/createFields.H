@@ -13,12 +13,19 @@ volVectorField Usent = U;
 //Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
 bool needsCleanup = false;
-std::set<word> fieldsToKeep = {"U", "p", "JxB", "JJsigma", "T",
+std::set<word> fieldsToKeep = {
+    "U", "p", "JxB",
+    //"k", "nut"
 // Uncomment for debugging
 //"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
 };
 // See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H};
+if (regionSolver.isFluid())//fluid == hydro + thermo
+{
+    fieldsToKeep.insert("JJsigma");
+    fieldsToKeep.insert("T");
+}
 
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
