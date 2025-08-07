@@ -4,61 +4,59 @@ pointField coordinates = meshes.completeMesh().C();
 scalar totalVolume = gSum(volume);
 
 volVectorField curlU(fvc::curl(U));
-volScalarField magCurlU(mag(curlU));
 volScalarField curlUx((curlU & Foam::vector(1,0,0)));
 volScalarField curlUy((curlU & Foam::vector(0,1,0)));
 volScalarField curlUz((curlU & Foam::vector(0,0,1)));
-scalar curlUxIntegral = gSum(curlUx*volume)/totalVolume;
-scalar curlUyIntegral = gSum(curlUy*volume)/totalVolume;
-scalar curlUzIntegral = gSum(curlUz*volume)/totalVolume;
 
-scalar maxCurlU = -vGreat;
-scalar minCurlU = vGreat;
-vector maxPosition = vector(0,0,0);
-vector minPosition = vector(0,0,0);
-forAll (curlUx, cellI)
+scalar curlUxIntegralAbs = gSum(mag(curlUx)*volume)/totalVolume;
+scalar curlUyIntegralAbs = gSum(mag(curlUy)*volume)/totalVolume;
+scalar curlUzIntegralAbs = gSum(mag(curlUz)*volume)/totalVolume;
+
+scalar maxX, maxY, maxZ;
+maxX = maxY = maxZ = -vGreat;
+scalar minX, minY, minZ;
+minX = minY = minZ = vGreat;
+forAll (coordinates, cellI)
 {
-    scalar cellCurlUx = curlUx[cellI];
-    scalar cellCurlUy = curlUy[cellI];
-    scalar cellCurlUz = curlUz[cellI];
-    scalar maxCellCurlU = max(max(cellCurlUx,cellCurlUy),cellCurlUz);
-    scalar minCellCurlU = min(min(cellCurlUx,cellCurlUy),cellCurlUz);
     point location = coordinates[cellI];
-    if (maxCellCurlU > maxCurlU)
+    scalar cellX = location.x();
+    if (cellX > maxX)
     {
-        maxCurlU = maxCellCurlU;
-        maxPosition = location;
+        maxX = cellX;
     }
-    if (minCellCurlU < minCurlU)
+    if (cellX < minX)
     {
-        minCurlU = minCellCurlU;
-        minPosition = location;
+        minX = cellX;
+    }
+    scalar cellY = location.y();
+    if (cellY > maxY)
+    {
+        maxY = cellY;
+    }
+    if (cellY < minY)
+    {
+        minY = cellY;
+    }
+    scalar cellZ = location.z();
+    if (cellZ > maxZ)
+    {
+        maxZ = cellZ;
+    }
+    if (cellZ < minZ)
+    {
+        minZ = cellZ;
     }
 }
-scalar signedAbsCurlU = maxCurlU;
-vector signedAbsPosition = maxPosition;
-int attractorState = 1;
-if (abs(minCurlU)>maxCurlU)
-{
-    signedAbsCurlU = minCurlU;
-    signedAbsPosition = minPosition;
-    attractorState = 0;
-}
-
-string curlFileName = "postProcessing/curlIntegrals.dat";
-std::ofstream curlFile(curlFileName, std::ios::app);
+scalar sizeX = maxX - minX;
+scalar sizeY = maxY - minY;
+scalar sizeZ = maxZ - minZ;
 
 if (curlFile.is_open())
 {
-    curlFile << runTimes.completeTime().timeName() << "\t" << max(magCurlU).value()
-    << "\t" << max(curlUx).value() << "\t" << max(curlUy).value() << "\t" << max(curlUz).value()
-    << "\t" << min(curlUx).value() << "\t" << min(curlUy).value() << "\t" << min(curlUz).value()
-    << "\t" << maxCurlU << "\t" << maxPosition[0]  << "\t" << maxPosition[1]  << "\t" << maxPosition[2]
-    << "\t" << minCurlU << "\t" << minPosition[0]  << "\t" << minPosition[1]  << "\t" << minPosition[2]
-    << "\t" << signedAbsCurlU << "\t" << signedAbsPosition[0]  << "\t" << signedAbsPosition[1]  << "\t" << signedAbsPosition[2]
-    << "\t" << curlUxIntegral << "\t" << curlUyIntegral << "\t" << curlUzIntegral
-    << "\t" << attractorState
+    curlFile << runTimes.completeTime().timeName()
+    << "\t" << max(curlUx).value()*sizeY*sizeZ << "\t" << max(curlUy).value()*sizeX*sizeZ << "\t" << max(curlUz).value()*sizeY*sizeX
+    << "\t" << min(curlUx).value()*sizeY*sizeZ << "\t" << min(curlUy).value()*sizeX*sizeZ << "\t" << min(curlUz).value()*sizeY*sizeX
+    << "\t" << curlUxIntegralAbs*sizeY*sizeZ << "\t" << curlUyIntegralAbs*sizeX*sizeZ << "\t" << curlUzIntegralAbs*sizeY*sizeX
     << std::endl;
-    curlFile.close();
 }
 else FatalErrorInFunction << "ERROR: Couldn't open " << curlFileName << " for writing!\n" << abort(FatalError);

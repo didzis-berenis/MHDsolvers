@@ -94,6 +94,19 @@ int main(int argc, char *argv[])
     {
         const word& regionName = regionNames[regioni];//singleRegion = "region0"
 
+        string curlFileName = "postProcessing/curlIntegrals.dat";
+        std::ofstream curlFile(curlFileName, std::ios::app);
+
+        if (curlFile.is_open())
+        {
+            curlFile << "Time"
+            << "\t" << "maxValueX" << "\t" << "maxValueY" << "\t" << "maxValueZ"
+            << "\t" << "minValueX" << "\t" << "minValueY" << "\t" << "minValueZ"
+            << "\t" << "IntegralX" << "\t" << "IntegralY" << "\t" << "IntegralZ"
+            << std::endl;
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << curlFileName << " for writing!\n" << abort(FatalError);
+
         // Create meshes
         Info<< "\n\nReconstructing mesh " << regionName << nl << endl;
         domainDecomposition meshes(runTimes, regionName);
@@ -135,6 +148,7 @@ int main(int argc, char *argv[])
             )());
             #include "writeIntegrals.H"
         }
+        curlFile.close();
     }
     Info<< "End\n" << endl;
 

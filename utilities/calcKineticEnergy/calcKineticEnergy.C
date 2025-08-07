@@ -93,6 +93,16 @@ int main(int argc, char *argv[])
     {
         const word& regionName = regionNames[regioni];//singleRegion = "region0"
 
+        string energyFileName = "postProcessing/energyIntegrals.dat";
+        std::ofstream energyFile(energyFileName, std::ios::app);
+
+        if (energyFile.is_open())
+        {
+            energyFile << "Time" << "\t" << "Value"
+            << std::endl;
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << energyFileName << " for writing!\n" << abort(FatalError);
+
         // Create meshes
         Info<< "\n\nReconstructing mesh " << regionName << nl << endl;
         domainDecomposition meshes(runTimes, regionName);
@@ -134,6 +144,7 @@ int main(int argc, char *argv[])
             )());
             #include "writeIntegrals.H"
         }
+        energyFile.close();
     }
     Info<< "End\n" << endl;
 

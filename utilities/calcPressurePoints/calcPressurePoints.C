@@ -93,6 +93,18 @@ int main(int argc, char *argv[])
     {
         const word& regionName = regionNames[regioni];//singleRegion = "region0"
 
+        string pressureFileName = "postProcessing/pressureIntegrals.dat";
+        std::ofstream pressureFile(pressureFileName, std::ios::app);
+
+        if (pressureFile.is_open())
+        {
+            pressureFile << "Time"  << "\t" << "Integral"
+            << "\t" << "maxValue" << "\t" << "maxPositionX" << "\t" << "maxPositionY" << "\t" << "maxPositionZ"
+            << "\t" << "minValue" << "\t" << "minPositionX" << "\t" << "minPositionY" << "\t" << "minPositionZ"
+            << std::endl;
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << pressureFileName << " for writing!\n" << abort(FatalError);
+
         // Create meshes
         Info<< "\n\nReconstructing mesh " << regionName << nl << endl;
         domainDecomposition meshes(runTimes, regionName);
@@ -134,6 +146,7 @@ int main(int argc, char *argv[])
             )());
             #include "writeIntegrals.H"
         }
+        pressureFile.close();
     }
     Info<< "End\n" << endl;
 

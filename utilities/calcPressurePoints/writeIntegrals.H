@@ -25,15 +25,11 @@ forAll (p, cellI)
 //Info << "Pressure check: max " << maxP << " == " << max(p).value() << "; min "
 //<< minP << " == " << min(p).value() << endl;
 
-string pressureFileName = "postProcessing/pressureIntegrals.dat";
-std::ofstream pressureFile(pressureFileName, std::ios::app);
-
 if (pressureFile.is_open())
 {
     pressureFile << runTimes.completeTime().timeName()  << "\t" << pressureIntegral
     << "\t" << maxP << "\t" << maxPosition[0]  << "\t" << maxPosition[1]  << "\t" << maxPosition[2]
     << "\t" << minP << "\t" << minPosition[0]  << "\t" << minPosition[1]  << "\t" << minPosition[2]
     << std::endl;
-    pressureFile.close();
 }
 else FatalErrorInFunction << "ERROR: Couldn't open " << pressureFileName << " for writing!\n" << abort(FatalError);
