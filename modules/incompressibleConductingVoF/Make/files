@@ -1,0 +1,6 @@
+$(FOAM_MODULES)/incompressibleVoF/incompressibleTwoPhaseVoFMixture/incompressibleTwoPhaseVoFMixture.C
+$(FOAM_MODULES)/incompressibleVoF/incompressibleInterPhaseTransportModel/incompressibleInterPhaseTransportModel.C
+alphaSuSp.C
+incompressibleConductingVoF.C
+
+LIB = $(FOAM_USER_LIBBIN)/libincompressibleConductingVoF

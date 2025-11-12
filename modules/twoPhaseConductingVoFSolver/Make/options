@@ -1,0 +1,30 @@
+EXE_INC = \
+    -I$(FOAM_MODULES)/twoPhaseSolver/twoPhaseVoFMixture/ \
+    -I$(FOAM_MODULES)/VoFSolver/VoFMixture/ \
+    -I$(FOAM_MODULES)/fluidSolver/lnInclude \
+    -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/VoF \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceCompression/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/twoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I../conductingVoFSolver/lnInclude \
+    -I../twoPhaseConductingSolver/lnInclude \
+    -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/electroBase/lnInclude
+
+LIB_LIBS = \
+    -lphysicalProperties \
+    -linterfaceCompression \
+    -linterfaceProperties \
+    -ltwoPhaseMixture \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lfvModels \
+    -lfvConstraints \
+    -lsampling \
+    -L$(FOAM_USER_LIBBIN) \
+    -ltwoPhaseConductingSolver \
+    -lelectroBase
