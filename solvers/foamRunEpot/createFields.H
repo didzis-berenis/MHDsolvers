@@ -6,18 +6,21 @@ volVectorField Jim = regionSolver.getElectro().J(true);
 volVectorField Bre = regionSolver.getElectro().B();
 volVectorField Bim = regionSolver.getElectro().B(true);
 const volVectorField& U = regionSolver.getU();
+const volScalarField& sigma = regionSolver.getElectro().sigma();
 // Cannot use const reference for Elmer functions,
 // so preparing designated field for sending velocity to Elmer.
 volVectorField Usent = U;
+volScalarField sigmaSent = sigma;
 
 //Initialize field names and paths
 List<Pair<word>> fieldPaths = getFieldPaths(mesh);
 bool needsCleanup = false;
 std::set<word> fieldsToKeep = {
     "U", "p", "JxB",
-    //"k", "nut"
+    "k", "nut",
+    "sigma"
 // Uncomment for debugging
-//"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
+//"sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
 };
 // See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H};

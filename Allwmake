@@ -22,10 +22,10 @@ wmake modules/incompressibleConductingVoF
 wmake moduleHandlers/conductingRegionSolver
 wmake moduleHandlers/conductingRegionSolvers
 
-wmake utilities/initializeTemperature
+#wmake utilities/initializeTemperature
 wmake utilities/initializeMultiRegionTemperature
 wmake utilities/initializeRegionSolvers
-wmake utilities/calcJxB
+#wmake utilities/calcJxB
 wmake utilities/calcKineticEnergy
 wmake utilities/calcCurlU
 wmake utilities/calcPressurePoints

@@ -51,6 +51,36 @@ Foam::solvers::twoPhaseConductingSolver::twoPhaseConductingSolver
     alpha1(mixture.alpha1()),
     alpha2(mixture.alpha2()),
 
+    alpha1_old_
+    (
+        IOobject
+        (
+            "alpha1_old",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        alpha1
+    ),
+
+    alpha1_old(alpha1_old_),
+
+    U_old_
+    (
+        IOobject
+        (
+            "U_old",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        U_
+    ),
+
+    U_old(U_old_),
+
     alphaRestart
     (
         typeIOobject<surfaceScalarField>
@@ -111,6 +141,32 @@ void Foam::solvers::twoPhaseConductingSolver::prePredictor()
     conductingVoFSolver::prePredictor();
     alphaPredictor();
     mixture.correct();
+}
+
+const Foam::volScalarField& Foam::solvers::twoPhaseConductingSolver::getAlpha1Old() const
+{
+    return alpha1_old_;
+}
+
+void Foam::solvers::twoPhaseConductingSolver::storeAlpha1()
+{
+    alpha1_old_ = alpha1;
+}
+
+void Foam::solvers::twoPhaseConductingSolver::storeU()
+{
+    U_old_ = U_;
+}
+
+void Foam::solvers::twoPhaseConductingSolver::momentumPredictor()
+{
+    conductingVoFSolver::momentumPredictor();
+    storeAlpha1();
+    storeU();
+    // Might be unnecessary since electromagnetics is updated more often, due to surface change
+    // Update deltaU for electromagnetic model
+    volVectorField deltaU = U_ - U_old_;
+    electro_.updateDeltaU(deltaU);
 }
 
 

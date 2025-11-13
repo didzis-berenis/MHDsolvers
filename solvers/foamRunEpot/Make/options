@@ -10,12 +10,22 @@ EXE_INC = \
     -IelectromagneticControls \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(FOAM_MODULES)/incompressibleVoF/incompressibleInterPhaseTransportModel/ \
+    -I$(FOAM_MODULES)/incompressibleVoF/incompressibleTwoPhaseVoFMixture/ \
+    -I$(FOAM_MODULES)/twoPhaseSolver/twoPhaseVoFMixture/ \
+    -I$(FOAM_MODULES)/VoFSolver/VoFMixture/ \
     -I$(FOAM_MODULES)/fluidSolver/lnInclude \
     -I$(FOAM_MODULES)/isothermalFluid/lnInclude \
     -I$(FOAM_MODULES)/solid/lnInclude \
     -I$(FOAM_MODULES)/incompressibleFluid/lnInclude \
     -I$(FOAM_MODULES)/fluidSolver/lnInclude \
     -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/VoF \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceCompression/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/twoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/incompressibleTwoPhases/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/phaseIncompressible/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude \
     -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
@@ -31,8 +41,13 @@ EXE_INC = \
     -I../../ElectromagneticModels/electroBase/lnInclude \
     -I../../moduleHandlers/conductingRegionSolver \
     -I../../modules/incompressibleConductingFluid/lnInclude \
+    -I../../modules/incompressibleConductingVoF/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
+    -I../../modules/conductingVoFSolver/lnInclude \
+    -I../../modules/twoPhaseConductingSolver/lnInclude \
+    -I../../modules/twoPhaseConductingVoFSolver/lnInclude \
+    -I../../modules/incompressibleConductingVoF/lnInclude \
     -DELMER_TIME=$(ELMER_TIME) \
     -DFOAM_MAJOR_VERSION=$(FOAM_MAJOR_VERSION) \
     $(EOF_INC) \

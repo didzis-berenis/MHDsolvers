@@ -1,12 +1,21 @@
 
 // Save old U field
 regionSolver.storeU();
+
+// Save old phase-fraction field
+regionSolver.storeAlpha1();
+
 // Send fields to Elmer
 if (initialize_elmer) sending.initialize();
 sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
 //cannot use const reference, so assign to new field 
 Usent = U;
+sigmaSent = sigma;
 sending.sendVector(Usent);
+if (regionSolver.isIncompressibleConductingVoF())
+{
+    sending.sendScalar(sigmaSent);
+}
 // Receive fields from Elmer
 Info<< "\nReceiving fields from Elmer " << endl;
 if (initialize_elmer) receiving.initialize();

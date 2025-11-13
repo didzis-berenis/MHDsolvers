@@ -130,6 +130,26 @@ Foam::solvers::incompressibleConductingVoF::~incompressibleConductingVoF()
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
+const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha1()
+{
+    return mixture.alpha1();
+}
+
+const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha2()
+{
+    return mixture.alpha2();
+}
+
+const Foam::word& Foam::solvers::incompressibleConductingVoF::getPhase1Name()
+{
+    return mixture.phase1Name();
+}
+
+const Foam::word& Foam::solvers::incompressibleConductingVoF::getPhase2Name()
+{
+    return mixture.phase2Name();
+}
+
 void Foam::solvers::incompressibleConductingVoF::prePredictor()
 {
     twoPhaseConductingVoFSolver::prePredictor();
@@ -163,18 +183,31 @@ void Foam::solvers::incompressibleConductingVoF::postCorrector()
     {
         momentumTransport.correct();
     }
-    /*if (electro.correctElectromagnetics())
+    if (electro.correctElectromagnetics())
     {
         //Correct current density
         electro_.correct();
-    }*/
+
+        // Set as corrected
+        //electro_.setCorrected();
+    }
 }
 
-/*void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
+void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
 {
     //Solve potential equation
     electro_.solve();
-}*/
 
+    // Doesn't solve for new currents, but at least makes sure that currents stay in the conducting phase.
+    /*volScalarField sigmaNormalized = electro.sigma()/gMax((electro.sigma())());
+    volVectorField Jre = electro.J()*sigmaNormalized;
+    electro_.setJ(Jre);
+    if (electro.isHarmonic())
+    {
+        volVectorField Jim = electro.J(true)*sigmaNormalized;
+        electro_.setJ(Jim,true);
+    }
+    electromagneticPredictor();*/
+}
 
 // ************************************************************************* //

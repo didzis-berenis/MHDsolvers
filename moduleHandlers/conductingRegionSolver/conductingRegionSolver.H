@@ -70,6 +70,7 @@ SourceFiles
 
 #include "solver.H"
 #include "incompressibleConductingFluid.H"
+#include "incompressibleConductingVoF.H"
 #include "conductingFluid.H"
 #include "conductingSolid.H"
 #include <map>
@@ -94,8 +95,14 @@ class conductingRegionSolver
         //- Solver name
         word name_;
 
+        //- Phase names
+        Pair<word> phaseNames_ = Pair<word>("","");
+
+        //-Phase electrical conductivities
+        Pair<scalar> phaseConductivities_ = Pair<scalar>(0,0);
+
         //- Region characteristic geometric size
-        scalar characteristicSize_;
+        scalar characteristicSize_ = 0;
         
         //- Magnetic field update controls
         scalar maxRemDiff_ = 0;
@@ -113,6 +120,7 @@ class conductingRegionSolver
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
         const word fluidSolverName_ = "conductingFluid";
         const word solidSolverName_ = "conductingSolid";
+        const word incompressibleConductingVoFSolverName_ = "incompressibleConductingVoF";
 
         //- Get pointer electroBase class from region
         electroBase* getElectroBasePtr_();
@@ -121,6 +129,7 @@ class conductingRegionSolver
         solvers::incompressibleConductingFluid* getIncompressibleFluidPtr_();
         solvers::conductingFluid* getFluidPtr_();
         solvers::conductingSolid* getSolidPtr_();
+        solvers::incompressibleConductingVoF* getIncompressibleConductingVoFPtr_();
 
 
 public:
@@ -156,6 +165,9 @@ public:
         // save old velocity
         void storeU();
 
+        // save old phase-fraction field
+        void storeAlpha1();
+
         // Check if solver type is incompressibleFluidSolverName_
         bool isIncompressibleFluid();
 
@@ -165,11 +177,17 @@ public:
         // Check if solver type is solidSolverName_
         bool isSolid();
 
+        // Check if solver type is incompressibleConductingVoFSolverName_
+        bool isIncompressibleConductingVoF();
+
         // Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();
 
         // Check if magnetic field needs updating
         bool updateMagneticField();
+
+        // Update mixture conductivity from phase conductivities and volume fractions
+        void updateMixtureConductivity();
 
         //- solve electromagnetics for region
         void solveElectromagnetics();
@@ -194,6 +212,12 @@ public:
         // Get Old Velocity
         const volVectorField& getUold();
 
+        // Get volume fraction
+        const volScalarField& getAlpha1();
+
+        // Get old volume fraction
+        const volScalarField& getAlpha1Old();
+
         // Get Temperature
         const volScalarField& getTemperature();
 
@@ -205,6 +229,9 @@ public:
 
         //- Return solid solver
         const Foam::solvers::conductingSolid& getSolid();
+
+        //- Return incompressible conducting VoF solver
+        const Foam::solvers::incompressibleConductingVoF& getIncompressibleConductingVoF();
 
 
         // Getsolver name

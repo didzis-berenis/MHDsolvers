@@ -93,9 +93,6 @@ protected:
 
     // Kinematic properties
 
-    //- Store old velocity field
-        //volVectorField U_old_;
-
         //- Velocity field
         volVectorField U_;
 
@@ -236,11 +233,6 @@ public:
 
 
     // Member Functions
-
-    //- Store old velocity field
-        //const volVectorField& U_old;
-        //- Set U_old = U
-        //virtual void storeU();
 
         //- Return the current maximum time-step for stable solution
         virtual scalar maxDeltaT() const;

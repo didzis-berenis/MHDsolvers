@@ -77,6 +77,11 @@ bool Foam::electroBase::currentReferenceSet(bool imaginary)
     else return current_reference_set_re_;
 }
 
+Foam::volScalarField& Foam::electroBase::getSigma()
+{
+    return electroPtr_->sigma();
+}
+
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 {
     return electroPtr_->J(imaginary);

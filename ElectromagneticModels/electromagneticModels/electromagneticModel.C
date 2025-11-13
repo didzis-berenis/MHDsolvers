@@ -555,6 +555,13 @@ Foam::volScalarField& Foam::electromagneticModel::sigma()
 
 Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
 {
+    // Update inverse of sigma
+    forAll(sigma_, cellI)
+    {
+        sigmaInv_[cellI] = 
+        sigma_[cellI] == 0 ? //Perhaps better to use "< SMALL" instead of "== 0"
+        0 : 1/sigma_[cellI];
+    }
     return sigmaInv_;
 }
 

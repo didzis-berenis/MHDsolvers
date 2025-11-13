@@ -94,6 +94,9 @@ public:
         //- Update electromagnetic system without solving
         virtual void electromagneticPredictor();
 
+        //- Electric conductivity [S/m]
+        virtual volScalarField& getSigma();
+
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
 

@@ -167,6 +167,18 @@ public:
 
     // Member Functions
 
+        //- Get phase-fraction field alpha1
+        const virtual volScalarField& getAlpha1();
+
+        //- Get phase-fraction field alpha2
+        const virtual volScalarField& getAlpha2();
+
+        //- Get phase1 name
+        const virtual word& getPhase1Name();
+
+        //- Get phase2 name
+        const virtual word& getPhase2Name();
+
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
 
@@ -181,7 +193,8 @@ public:
         //- Correct the momentum and thermophysical transport modelling
         virtual void postCorrector();
 
-        //virtual void solveElectromagnetics();
+        //- Solve electromagnetic modelling
+        virtual void solveElectromagnetics();
 
 
     // Member Operators

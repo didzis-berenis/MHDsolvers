@@ -28,6 +28,7 @@ License
 #include "linear.H"
 #include "fvcDiv.H"
 #include "fvcMeshPhi.H"
+#include "findRefCell.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -146,6 +147,26 @@ Foam::solvers::conductingVoFSolver::conductingVoFSolver
     U(U_),
     phi(phi_)
 {
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    setRefCell
+    ( 
+        electro.PotE(),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+
+    if (electro.isComplex())
+    {
+        setRefCell
+        ( 
+            electro.PotE(true),
+            pimple.dict(),
+            PotERefCell,
+            PotERefValue
+        );
+    }
     mesh.schemes().setFluxRequired(p_rgh.name());
 
     if (LTS)
@@ -260,11 +281,6 @@ void Foam::solvers::conductingVoFSolver::postSolve()
 {
     divU.clear();
 }
-
-/*void Foam::solvers::conductingVoFSolver::storeU()
-{
-    U_old_ = U_;
-}*/
 
 
 // ************************************************************************* //

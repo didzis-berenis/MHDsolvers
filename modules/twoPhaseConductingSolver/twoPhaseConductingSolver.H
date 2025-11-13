@@ -86,6 +86,12 @@ protected:
         //- Reference to the phase2-fraction
         volScalarField& alpha2;
 
+        //- Store old velocity field
+        volVectorField U_old_;
+
+        // Store old alpha1 field
+        volScalarField alpha1_old_;
+
         //- Switch indicating if this is a restart
         bool alphaRestart;
 
@@ -164,11 +170,27 @@ public:
 
     // Member Functions
 
+        //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
+
+        //- Get phase-fraction field alpha1_old
+        const volScalarField& alpha1_old;
+        //- Store old phase-fraction field
+        virtual void storeAlpha1();
+
+        //- Get phase-fraction field alpha1Old
+        const virtual volScalarField& getAlpha1Old() const;
+
         //- Called at the start of the time-step, before the PIMPLE loop
         virtual void preSolve();
 
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
+
+        //- Construct and optionally solve the momentum equation
+        virtual void momentumPredictor();
 
 
     // Member Operators

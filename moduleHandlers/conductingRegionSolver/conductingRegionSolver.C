@@ -53,30 +53,77 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
 
     // Load the solver library
     solver::load(name_);
-
     // Instantiate the selected solver
     Foam::autoPtr<solver> solverAutoPtr(solver::New(name_, mesh));
     // get pointer to solver
     solverPtr_ = solverAutoPtr.ptr();
-    
-    IOdictionary physicalProperties
-    (
-        IOobject
+
+    if (isIncompressibleConductingVoF())
+    {
+        phaseNames_ = Pair<word>(
+            getIncompressibleConductingVoFPtr_()->getPhase1Name(),
+            getIncompressibleConductingVoFPtr_()->getPhase2Name()
+        );
+
+        IOdictionary physicalPropertiesPhase1
         (
-            "physicalProperties",
-            runTime.constant(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    );
-    //get region characteristic size
-    characteristicSize_ =
-    (
-        physicalProperties.found("Lchar") ?
-        dimensionedScalar("Lchar",dimLength,physicalProperties) :
-        dimensionedScalar("Lchar",dimLength,0)
-    ).value();
+            IOobject
+            (
+                "physicalProperties."+phaseNames_.first(),
+                runTime.constant(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        );
+        IOdictionary physicalPropertiesPhase2
+        (
+            IOobject
+            (
+                "physicalProperties."+phaseNames_.second(),
+                runTime.constant(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        );
+
+        phaseConductivities_ = Pair<scalar>(
+            physicalPropertiesPhase1.lookup<scalar>("sigma"),
+            physicalPropertiesPhase2.lookup<scalar>("sigma")
+        );
+
+        updateMixtureConductivity();
+
+    }
+    else
+    {
+        IOdictionary physicalProperties
+        (
+            IOobject
+            (
+                "physicalProperties",
+                runTime.constant(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        );
+        //get region characteristic size
+        characteristicSize_ =
+        (
+            physicalProperties.found("Lchar") ?
+            dimensionedScalar("Lchar",dimLength,physicalProperties) :
+            dimensionedScalar("Lchar",dimLength,0)
+        ).value();
+    }
+    /*else 
+    {
+        FatalIOErrorInFunction(runTime.constant())
+            << "physicalProperties missing from "
+            << runTime.constant()
+            << exit(FatalIOError);
+    }*/
     
     // get write controls / magnetic field update controls
     if (isElectroHarmonic())
@@ -116,7 +163,7 @@ Foam::conductingRegionSolver::~conductingRegionSolver()
 
 Foam::electroBase* Foam::conductingRegionSolver::getElectroBasePtr_()
 {
-    if (isFluid() || isSolid() || isIncompressibleFluid())
+    if (isFluid() || isSolid() || isIncompressibleFluid() || isIncompressibleConductingVoF())
     {
         return dynamic_cast<Foam::electroBase*>(solverPtr_);
     }
@@ -150,10 +197,38 @@ Foam::solvers::conductingSolid* Foam::conductingRegionSolver::getSolidPtr_()
     return nullptr;
 }
 
+Foam::solvers::incompressibleConductingVoF* Foam::conductingRegionSolver::getIncompressibleConductingVoFPtr_()
+{
+    if (isIncompressibleConductingVoF())
+    {
+        return dynamic_cast<Foam::solvers::incompressibleConductingVoF*>(solverPtr_);
+    }
+    return nullptr;
+}
+
 // * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
+
+void Foam::conductingRegionSolver::updateMixtureConductivity()
+{
+    if (isIncompressibleConductingVoF())
+    {
+        getElectroBasePtr_()->getSigma() = 
+        dimensionedScalar
+        (
+            "sigmaDimensions",
+            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+            1
+        )*(
+            phaseConductivities_.first()*getIncompressibleConductingVoFPtr_()->getAlpha1()
+            + phaseConductivities_.second()*getIncompressibleConductingVoFPtr_()->getAlpha2()
+        );
+    }
+}
 
 void Foam::conductingRegionSolver::solveElectromagnetics()
 {
+    //updateMixtureConductivity();
+
     if (getElectroBasePtr_())
     {
         getElectroBasePtr_()->solveElectromagnetics();
@@ -169,6 +244,38 @@ void Foam::conductingRegionSolver::electromagneticPredictor()
 }
 
 // Get velocity
+const Foam::volScalarField& Foam::conductingRegionSolver::getAlpha1()
+{
+    if (isIncompressibleConductingVoF())
+    {
+        return getIncompressibleConductingVoFPtr_()->getAlpha1();
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not " << incompressibleConductingVoFSolverName_
+        << "!\n" << "Cannot get Alpha1 field!\n"
+        << exit(FatalIOError);
+    }
+}
+
+// Get old velocity
+const Foam::volScalarField& Foam::conductingRegionSolver::getAlpha1Old()
+{
+    if (isIncompressibleConductingVoF())
+    {
+        return getIncompressibleConductingVoFPtr_()->getAlpha1Old();
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not " << incompressibleConductingVoFSolverName_
+        << "!\n" << "Cannot get Alpha1 field!\n"
+        << exit(FatalIOError);
+    }
+}
+
+// Get velocity
 const Foam::volVectorField& Foam::conductingRegionSolver::getU()
 {
     if (isFluid())
@@ -178,6 +285,10 @@ const Foam::volVectorField& Foam::conductingRegionSolver::getU()
     else if (isIncompressibleFluid())
     {
         return getIncompressibleFluid().U;
+    }
+    else if (isIncompressibleConductingVoF())
+    {
+        return getIncompressibleConductingVoF().U;
     }
     else
     {
@@ -198,6 +309,10 @@ const Foam::volVectorField& Foam::conductingRegionSolver::getUold()
     else if (isIncompressibleFluid())
     {
         return getIncompressibleFluid().U_old;
+    }
+    else if (isIncompressibleConductingVoF())
+    {
+        return getIncompressibleConductingVoF().U_old;
     }
     else
     {
@@ -266,6 +381,13 @@ void Foam::conductingRegionSolver::storeU()
         getIncompressibleFluidPtr_()->storeU();
     }
 }
+void Foam::conductingRegionSolver::storeAlpha1()
+{
+    if(getIncompressibleConductingVoFPtr_())
+    {
+        getIncompressibleConductingVoFPtr_()->storeAlpha1();
+    }
+}
 //returns read-only access to electro module
 const Foam::electromagneticModel& Foam::conductingRegionSolver::getElectro()
 {
@@ -325,6 +447,22 @@ const Foam::solvers::conductingSolid& Foam::conductingRegionSolver::getSolid()
     }
 }
 
+const Foam::solvers::incompressibleConductingVoF& Foam::conductingRegionSolver::getIncompressibleConductingVoF()
+{
+    if (getIncompressibleConductingVoFPtr_())
+    {
+        const Foam::solvers::incompressibleConductingVoF& vofRef(*getIncompressibleConductingVoFPtr_());
+        return vofRef;
+    }
+    else
+    {
+        FatalIOError
+        << " region " << name_ << " solver is not "
+        << incompressibleConductingVoFSolverName_ << "!\n" << "Cannot get reference!\n"
+        << exit(FatalIOError);
+    }
+}
+
 bool Foam::conductingRegionSolver::isIncompressibleFluid()
 {
     return name_ == incompressibleFluidSolverName_;
@@ -340,9 +478,14 @@ bool Foam::conductingRegionSolver::isSolid()
     return name_ == solidSolverName_;
 }
 
+bool Foam::conductingRegionSolver::isIncompressibleConductingVoF()
+{
+    return name_ == incompressibleConductingVoFSolverName_;
+}
+
 bool Foam::conductingRegionSolver::isElectroHarmonic()
 {
-    if (isFluid() || isSolid() || isIncompressibleFluid())
+    if (isFluid() || isSolid() || isIncompressibleFluid() || isIncompressibleConductingVoF())
     {
         return getElectro().isComplex();
     }
@@ -370,7 +513,18 @@ bool Foam::conductingRegionSolver::updateMagneticField()
 
             maxRelDiff_local = max(
                 maxRelativeVelocityDifference,
-                maxRemDiff_local);
+                maxRelDiff_local);
+        }
+
+        if (isIncompressibleConductingVoF())
+        {
+            const volScalarField& alpha1 = getAlpha1();
+            const volScalarField& alpha1_old = getAlpha1Old();
+            scalar maxRelativePhaseDifference =gMax(mag(alpha1_old-alpha1)());
+
+            maxRelDiff_local = max(
+                maxRelativePhaseDifference,
+                maxRelDiff_local);
         }
 
         if((maxRelDiff_local>maxRelDiff_ || maxRelDiff_<SMALL) && maxRelDiff_+SMALL<=1.0) {
