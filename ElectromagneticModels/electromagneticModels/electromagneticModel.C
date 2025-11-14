@@ -468,12 +468,12 @@ void Foam::electromagneticModel::predict()
     JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
-    JJsigma_ =
+    /*JJsigma_ =
     0.5*(
         (J() & J())
         +(J(imaginary) & J(imaginary))
     )*sigmaInv();
-    JJsigma_.correctBoundaryConditions();
+    JJsigma_.correctBoundaryConditions();*/
 }
 
 void Foam::electromagneticModel::correct()

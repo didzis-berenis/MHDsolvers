@@ -196,6 +196,9 @@ public:
         //- Solve electromagnetic modelling
         virtual void solveElectromagnetics();
 
+        //- Called after the PIMPLE loop at the end of the time-step
+        //virtual void postSolve();
+
 
     // Member Operators
 

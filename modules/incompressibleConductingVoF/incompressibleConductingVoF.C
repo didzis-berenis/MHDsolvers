@@ -132,11 +132,13 @@ Foam::solvers::incompressibleConductingVoF::~incompressibleConductingVoF()
 
 const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha1()
 {
+    Info << "Getting alpha1 field" << endl;
     return mixture.alpha1();
 }
 
 const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha2()
 {
+    Info << "Getting alpha2 field" << endl;
     return mixture.alpha2();
 }
 
@@ -186,17 +188,43 @@ void Foam::solvers::incompressibleConductingVoF::postCorrector()
     if (electro.correctElectromagnetics())
     {
         //Correct current density
-        electro_.correct();
+        //electro_.correct();
 
         // Set as corrected
-        //electro_.setCorrected();
+        electro_.setCorrected();
     }
 }
 
 void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
 {
+    volScalarField sigmaNormalized = electro.sigma()/dimensionedScalar
+    (
+        "sigmaMag",
+        pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+        gMax((electro.sigma())())
+    );
+    volVectorField new_Jre = electro.J()*sigmaNormalized;
+    volVectorField& Jre = getJ();
+    forAll(new_Jre, cellI)
+    {
+        Jre[cellI] = new_Jre[cellI];
+    }
+    Jre.correctBoundaryConditions();
+    //Jre.write();
+    if (electro.isComplex())
+    {
+        volVectorField new_Jim = electro.J(true)*sigmaNormalized;
+        volVectorField& Jim = getJ(true);
+        forAll(new_Jim, cellI)
+        {
+            Jim[cellI] = new_Jim[cellI];
+        }
+        Jim.correctBoundaryConditions();
+        //Jim.write();
+    }
+    electromagneticPredictor();
     //Solve potential equation
-    electro_.solve();
+    //electro_.solve();
 
     // Doesn't solve for new currents, but at least makes sure that currents stay in the conducting phase.
     /*volScalarField sigmaNormalized = electro.sigma()/gMax((electro.sigma())());
@@ -209,5 +237,38 @@ void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
     }
     electromagneticPredictor();*/
 }
+
+
+/*void Foam::solvers::incompressibleConductingVoF::postSolve()
+{
+    twoPhaseConductingSolver::postSolve();
+    Pout << "Solving electromagnetics" << endl;
+    volScalarField sigmaNormalized = electro.sigma()/dimensionedScalar
+    (
+        "sigmaMag",
+        pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+        gMax((electro.sigma())())
+    );
+    volVectorField new_Jre = electro.J()*sigmaNormalized;
+    volVectorField& Jre = getJ();
+    forAll(new_Jre, cellI)
+    {
+        Jre[cellI] = new_Jre[cellI];
+    }
+    Jre.correctBoundaryConditions();
+    //Jre.write();
+    if (electro.isComplex())
+    {
+        volVectorField new_Jim = electro.J(true)*sigmaNormalized;
+        volVectorField& Jim = getJ(true);
+        forAll(new_Jim, cellI)
+        {
+            Jim[cellI] = new_Jim[cellI];
+        }
+        Jim.correctBoundaryConditions();
+        //Jim.write();
+    }
+    electromagneticPredictor();
+}*/
 
 // ************************************************************************* //

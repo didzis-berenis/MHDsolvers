@@ -210,9 +210,10 @@ Foam::solvers::incompressibleConductingVoF* Foam::conductingRegionSolver::getInc
 
 void Foam::conductingRegionSolver::updateMixtureConductivity()
 {
+    //Pout << "Updating mixture conductivity in region " << name_ << endl;
     if (isIncompressibleConductingVoF())
     {
-        getElectroBasePtr_()->getSigma() = 
+        volScalarField new_sigma = 
         dimensionedScalar
         (
             "sigmaDimensions",
@@ -222,12 +223,18 @@ void Foam::conductingRegionSolver::updateMixtureConductivity()
             phaseConductivities_.first()*getIncompressibleConductingVoFPtr_()->getAlpha1()
             + phaseConductivities_.second()*getIncompressibleConductingVoFPtr_()->getAlpha2()
         );
+        volScalarField& sigma = getElectroBasePtr_()->getSigma();
+        forAll(new_sigma, cellI)
+        {
+            sigma[cellI] = new_sigma[cellI];
+        }
+        sigma.correctBoundaryConditions();
     }
 }
 
 void Foam::conductingRegionSolver::solveElectromagnetics()
 {
-    //updateMixtureConductivity();
+    updateMixtureConductivity();
 
     if (getElectroBasePtr_())
     {
@@ -500,13 +507,13 @@ bool Foam::conductingRegionSolver::updateMagneticField()
         scalar maxRemDiff_local = SMALL;        
         scalar maxRelDiff_local = SMALL;
 
-        if (isFluid())
+        if (isFluid() || isIncompressibleFluid())
         {
             const volVectorField& U = getU();
             const volVectorField& U_old = getUold();
             scalar maxMagneticReynoldsDifference = mu_0 * characteristicSize_ *
                 gMax((getElectro().sigmaInv()*mag(U_old-U))());
-            scalar maxRelativeVelocityDifference =gMax((mag(U_old-U)/(gAverage((mag(U))())+smallU))());
+            scalar maxRelativeVelocityDifference =gMax((mag(U_old-U)/(gAverage((mag(U))())+smallU.value()))());
             maxRemDiff_local = max(
                 maxMagneticReynoldsDifference,
                 maxRemDiff_local);        
@@ -521,11 +528,20 @@ bool Foam::conductingRegionSolver::updateMagneticField()
             const volScalarField& alpha1 = getAlpha1();
             const volScalarField& alpha1_old = getAlpha1Old();
             scalar maxRelativePhaseDifference =gMax(mag(alpha1_old-alpha1)());
+            Info << "maxRelativePhaseDifference: " << maxRelativePhaseDifference
+            //<< ", maxRemDiff: " << maxRemDiff_local
+            << endl;
 
-            maxRelDiff_local = max(
-                maxRelativePhaseDifference,
-                maxRelDiff_local);
+                maxRelDiff_local = max(
+                    maxRelativePhaseDifference,
+                    maxRelDiff_local);
+            Info << "maxRelDiff_local: " << maxRelDiff_local
+            //<< ", maxRemDiff: " << maxRemDiff_local
+            << endl;
         }
+        Info << "maxRelDiff: " << maxRelDiff_local
+        //<< ", maxRemDiff: " << maxRemDiff_local
+        << endl;
 
         if((maxRelDiff_local>maxRelDiff_ || maxRelDiff_<SMALL) && maxRelDiff_+SMALL<=1.0) {
             doUpdate = true;
