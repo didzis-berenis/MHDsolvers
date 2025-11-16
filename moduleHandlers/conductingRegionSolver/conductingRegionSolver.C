@@ -32,6 +32,7 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
 :
     runTime_(runTime),
     restartInterval_(runTime.controlDict().lookupOrDefault("restartInterval",0)),
+    disableCleanup_(runTime.controlDict().lookupOrDefault("disableCleanup",false)),
     waitInterval(runTime.controlDict().lookupOrDefault("waitInterval",0))
 {
 
@@ -567,6 +568,10 @@ bool Foam::conductingRegionSolver::updateMagneticField()
 
 bool Foam::conductingRegionSolver::needsCleanup()
 {
+    if (disableCleanup_)
+    {
+        return false;
+    }
     bool doCleanup = true;
     if (restartInterval_ > 0 && cleanupCounter_ % restartInterval_ == 0)
     {

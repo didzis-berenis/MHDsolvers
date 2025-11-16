@@ -23,14 +23,14 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "conductingVoFSolver.H"
+#include "incompressibleConductingVoF.H"
 #include "fvmDiv.H"
 #include "fvcSnGrad.H"
 #include "fvcReconstruct.H"
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-void Foam::solvers::conductingVoFSolver::momentumPredictor()
+void Foam::solvers::incompressibleConductingVoF::momentumPredictor()
 {
     volVectorField& U = U_;
 
@@ -66,6 +66,10 @@ void Foam::solvers::conductingVoFSolver::momentumPredictor()
 
         fvConstraints().constrain(U);
     }
+    // Might be unnecessary since electromagnetics is updated more often, due to surface change
+    // Update deltaU for electromagnetic model
+    volVectorField deltaU = U_ - U_old_;
+    electro_.updateDeltaU(deltaU);
 }
 
 

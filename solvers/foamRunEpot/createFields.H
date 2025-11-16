@@ -17,16 +17,18 @@ List<Pair<word>> fieldPaths = getFieldPaths(mesh);
 bool needsCleanup = false;
 std::set<word> fieldsToKeep = {
     "U", "p", "JxB",
-    "k", "nut",
-    "sigma"
+    "k", "nut", "omega",
+    "sigma", "JJsigma",
+    "p_rgh", "rho",
+    "alpha.liquidmetal"
 // Uncomment for debugging
 //"sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE","PotEre","PotEim",
 };
 // See also defaultWriteOption_ in ElectromagneticModels/electromagneticModels/electromagneticModel.H};
-if (regionSolver.isFluid())//fluid == hydro + thermo
+if (regionSolver.isFluid() || regionSolver.isSolid())//fluid == hydro + thermo
 {
-    fieldsToKeep.insert("JJsigma");
+    //fieldsToKeep.insert("JJsigma");
     fieldsToKeep.insert("T");
 }
 

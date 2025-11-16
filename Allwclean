@@ -13,9 +13,6 @@ wclean modules/magneticMaterial
 wclean modules/conductingMaterial
 wclean modules/conductingFluid
 wclean modules/conductingSolid
-wclean modules/conductingVoFSolver
-wclean modules/twoPhaseConductingSolver
-wclean modules/twoPhaseConductingVoFSolver
 wclean modules/incompressibleConductingVoF
 
 wclean moduleHandlers/conductingRegionSolver

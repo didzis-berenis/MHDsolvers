@@ -50,7 +50,7 @@ SourceFiles
 
 See also
     Foam::solvers::VoFSolver
-    Foam::solvers::twoPhaseConductingVoFSolver
+    Foam::solvers::twoPhaseVoFSolver
     Foam::solvers::compressibleVoF
 
 \*---------------------------------------------------------------------------*/
@@ -58,9 +58,10 @@ See also
 #ifndef incompressibleConductingVoF_H
 #define incompressibleConductingVoF_H
 
-#include "twoPhaseConductingVoFSolver.H"
+#include "twoPhaseVoFSolver.H"
 #include "incompressibleTwoPhaseVoFMixture.H"
 #include "incompressibleInterPhaseTransportModel.H"
+#include "electroBase.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -75,7 +76,8 @@ namespace solvers
 
 class incompressibleConductingVoF
 :
-    public twoPhaseConductingVoFSolver
+    public twoPhaseVoFSolver,
+    public electroBase
 {
 
 protected:
@@ -90,6 +92,12 @@ protected:
 
         //- Static pressure field
         volScalarField p;
+
+        //- Store old velocity field
+        volVectorField U_old_;
+
+        // Store old alpha1 field
+        volScalarField alpha1_old_;
 
 
     // Pressure reference
@@ -167,6 +175,19 @@ public:
 
     // Member Functions
 
+        //- Store old velocity field
+        const volVectorField& U_old;
+        //- Set U_old = U
+        virtual void storeU();
+
+        //- Get phase-fraction field alpha1_old
+        const volScalarField& alpha1_old;
+        //- Store old phase-fraction field
+        virtual void storeAlpha1();
+
+        //- Get phase-fraction field alpha1Old
+        const virtual volScalarField& getAlpha1Old() const;
+
         //- Get phase-fraction field alpha1
         const virtual volScalarField& getAlpha1();
 
@@ -186,6 +207,9 @@ public:
         //  convert to temperature
         //  and update thermophysical and transport properties
         virtual void thermophysicalPredictor();
+
+        //- Construct and optionally solve the momentum equation
+        virtual void momentumPredictor();
 
         //- Construct and solve the pressure equation in the PISO loop
         virtual void pressureCorrector();

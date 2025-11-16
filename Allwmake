@@ -13,9 +13,6 @@ wmake modules/magneticMaterial
 wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
-wmake modules/conductingVoFSolver
-wmake modules/twoPhaseConductingSolver
-wmake modules/twoPhaseConductingVoFSolver
 wmake modules/incompressibleConductingVoF
 
 

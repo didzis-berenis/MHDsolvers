@@ -115,6 +115,7 @@ class conductingRegionSolver
         bool adjustableRunTime_ = false;
         long long int cleanupCounter_ = 0;
         int restartInterval_;
+        bool disableCleanup_;
 
         //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";

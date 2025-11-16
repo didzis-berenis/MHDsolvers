@@ -27,6 +27,7 @@ License
 #include "localEulerDdtScheme.H"
 #include "fvCorrectPhi.H"
 #include "geometricZeroField.H"
+#include "findRefCell.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -45,7 +46,7 @@ namespace solvers
 
 Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& mesh)
 :
-    twoPhaseConductingVoFSolver
+    twoPhaseVoFSolver
     (
         mesh,
         autoPtr<twoPhaseVoFMixture>(new incompressibleTwoPhaseVoFMixture(mesh))
@@ -53,8 +54,9 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
 
     mixture
     (
-        refCast<incompressibleTwoPhaseVoFMixture>(twoPhaseConductingVoFSolver::mixture)
+        refCast<incompressibleTwoPhaseVoFMixture>(twoPhaseVoFSolver::mixture)
     ),
+    electroBase(mesh),
 
     p
     (
@@ -68,6 +70,36 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
         ),
         p_rgh + rho*buoyancy.gh
     ),
+
+    alpha1_old_
+    (
+        IOobject
+        (
+            "alpha1_old",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        alpha1
+    ),
+
+    alpha1_old(alpha1_old_),
+
+    U_old_
+    (
+        IOobject
+        (
+            "U_old",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        U_
+    ),
+
+    U_old(U_old_),
 
     pressureReference_
     (
@@ -84,6 +116,26 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
         mixture
     )
 {
+    label PotERefCell = 0;
+    scalar PotERefValue = 0.0;
+    setRefCell
+    ( 
+        electro.PotE(),
+        pimple.dict(),
+        PotERefCell,
+        PotERefValue
+    );
+
+    if (electro.isComplex())
+    {
+        setRefCell
+        ( 
+            electro.PotE(true),
+            pimple.dict(),
+            PotERefCell,
+            PotERefValue
+        );
+    }
     // Read the controls
     readControls();
 
@@ -132,13 +184,11 @@ Foam::solvers::incompressibleConductingVoF::~incompressibleConductingVoF()
 
 const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha1()
 {
-    Info << "Getting alpha1 field" << endl;
     return mixture.alpha1();
 }
 
 const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha2()
 {
-    Info << "Getting alpha2 field" << endl;
     return mixture.alpha2();
 }
 
@@ -154,7 +204,7 @@ const Foam::word& Foam::solvers::incompressibleConductingVoF::getPhase2Name()
 
 void Foam::solvers::incompressibleConductingVoF::prePredictor()
 {
-    twoPhaseConductingVoFSolver::prePredictor();
+    twoPhaseVoFSolver::prePredictor();
 
     const dimensionedScalar& rho1 = mixture.rho1();
     const dimensionedScalar& rho2 = mixture.rho2();
@@ -177,6 +227,21 @@ void Foam::solvers::incompressibleConductingVoF::pressureCorrector()
 
 void Foam::solvers::incompressibleConductingVoF::thermophysicalPredictor()
 {}
+
+const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getAlpha1Old() const
+{
+    return alpha1_old_;
+}
+
+void Foam::solvers::incompressibleConductingVoF::storeAlpha1()
+{
+    alpha1_old_ = alpha1;
+}
+
+void Foam::solvers::incompressibleConductingVoF::storeU()
+{
+    U_old_ = U_;
+}
 
 
 void Foam::solvers::incompressibleConductingVoF::postCorrector()

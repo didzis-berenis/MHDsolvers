@@ -12,8 +12,9 @@ EXE_INC = \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(FOAM_MODULES)/incompressibleVoF/incompressibleInterPhaseTransportModel/ \
     -I$(FOAM_MODULES)/incompressibleVoF/incompressibleTwoPhaseVoFMixture/ \
-    -I$(FOAM_MODULES)/twoPhaseSolver/twoPhaseVoFMixture/ \
-    -I$(FOAM_MODULES)/VoFSolver/VoFMixture/ \
+    -I$(FOAM_MODULES)/twoPhaseSolver/lnInclude \
+    -I$(FOAM_MODULES)/twoPhaseVoFSolver/lnInclude \
+    -I$(FOAM_MODULES)/VoFSolver/lnInclude \
     -I$(FOAM_MODULES)/fluidSolver/lnInclude \
     -I$(FOAM_MODULES)/isothermalFluid/lnInclude \
     -I$(FOAM_MODULES)/solid/lnInclude \
@@ -44,9 +45,6 @@ EXE_INC = \
     -I../../modules/incompressibleConductingVoF/lnInclude \
     -I../../modules/conductingFluid/lnInclude \
     -I../../modules/conductingSolid/lnInclude \
-    -I../../modules/conductingVoFSolver/lnInclude \
-    -I../../modules/twoPhaseConductingSolver/lnInclude \
-    -I../../modules/twoPhaseConductingVoFSolver/lnInclude \
     -I../../modules/incompressibleConductingVoF/lnInclude \
     -DELMER_TIME=$(ELMER_TIME) \
     -DFOAM_MAJOR_VERSION=$(FOAM_MAJOR_VERSION) \
