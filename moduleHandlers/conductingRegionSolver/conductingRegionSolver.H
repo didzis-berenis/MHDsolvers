@@ -234,6 +234,9 @@ public:
         //- Return incompressible conducting VoF solver
         const Foam::solvers::incompressibleConductingVoF& getIncompressibleConductingVoF();
 
+        // Get updated conductivity field based on phase conductivities and volume fractions
+        volScalarField getUpdatedConductivity(bool oldAlpha=false);
+
 
         // Getsolver name
         word getName();

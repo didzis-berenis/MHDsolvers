@@ -209,27 +209,54 @@ Foam::solvers::incompressibleConductingVoF* Foam::conductingRegionSolver::getInc
 
 // * * * * * * * * * * * * * * * Public Member Functions  * * * * * * * * * * * * * //
 
+Foam::volScalarField Foam::conductingRegionSolver::getUpdatedConductivity(bool oldAlpha)
+{
+    if (isIncompressibleConductingVoF())
+    {
+        return
+        dimensionedScalar
+        (
+            "sigmaDimensions",
+            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+            1.0
+        )*(
+            phaseConductivities_.first()*getIncompressibleConductingVoFPtr_()->getAlpha1()
+            + phaseConductivities_.second()*getIncompressibleConductingVoFPtr_()->getAlpha2()
+        );
+    }
+    else if (isIncompressibleConductingVoF() && oldAlpha)
+    {
+
+        return
+        dimensionedScalar
+        (
+            "sigmaDimensions",
+            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+            1.0
+        )*(
+            phaseConductivities_.first()*getAlpha1Old()
+            + phaseConductivities_.second()*(1-getAlpha1Old())
+        );
+    }
+    else
+    {
+        return getElectro().sigma();
+    }
+}
+
 void Foam::conductingRegionSolver::updateMixtureConductivity()
 {
     //Pout << "Updating mixture conductivity in region " << name_ << endl;
     if (isIncompressibleConductingVoF())
     {
-        volScalarField new_sigma = 
-        dimensionedScalar
-        (
-            "sigmaDimensions",
-            pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
-            1
-        )*(
-            phaseConductivities_.first()*getIncompressibleConductingVoFPtr_()->getAlpha1()
-            + phaseConductivities_.second()*getIncompressibleConductingVoFPtr_()->getAlpha2()
-        );
+        volScalarField new_sigma = getUpdatedConductivity();
+        //scalar sigmaCutoff = gMax(new_sigma())*SMALL;
         volScalarField& sigma = getElectroBasePtr_()->getSigma();
         forAll(new_sigma, cellI)
         {
-            sigma[cellI] = new_sigma[cellI];
+            sigma[cellI] = new_sigma[cellI];// < sigmaCutoff ? 0 : new_sigma[cellI];
         }
-        sigma.correctBoundaryConditions();
+        //sigma.correctBoundaryConditions();
     }
 }
 
@@ -526,23 +553,40 @@ bool Foam::conductingRegionSolver::updateMagneticField()
 
         if (isIncompressibleConductingVoF())
         {
+            /*volScalarField sigmaNormalized = getElectro().sigma()/
+            dimensionedScalar
+            (
+                "sigmaMag",
+                pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+                gMax(getElectro().sigma()())
+            );
+            volScalarField sigmaOld = getUpdatedConductivity(true);
+            volScalarField sigmaNormalizedOld = sigmaOld/
+            dimensionedScalar
+            (
+                "sigmaMagOld",
+                pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
+                gMax(sigmaOld())
+            );
+            const volVectorField U = getU()*sigmaNormalized;
+            const volVectorField U_old = getUold()*sigmaNormalizedOld;
+
+            scalar maxRelativeVelocityDifference =gMax((mag(U_old-U)/(gAverage((mag(U))())+smallU.value()))());
+
+            maxRelDiff_local = max(
+                maxRelativeVelocityDifference,
+                maxRelDiff_local);*/
+                
             const volScalarField& alpha1 = getAlpha1();
             const volScalarField& alpha1_old = getAlpha1Old();
             scalar maxRelativePhaseDifference =gMax(mag(alpha1_old-alpha1)());
-            Info << "maxRelativePhaseDifference: " << maxRelativePhaseDifference
-            //<< ", maxRemDiff: " << maxRemDiff_local
-            << endl;
 
-                maxRelDiff_local = max(
-                    maxRelativePhaseDifference,
-                    maxRelDiff_local);
-            Info << "maxRelDiff_local: " << maxRelDiff_local
-            //<< ", maxRemDiff: " << maxRemDiff_local
-            << endl;
+            maxRelDiff_local = max(
+                maxRelativePhaseDifference,
+                maxRelDiff_local);
+            //Info << "maxRelDiff_local: " << maxRelDiff_local
+            //<< endl;
         }
-        Info << "maxRelDiff: " << maxRelDiff_local
-        //<< ", maxRemDiff: " << maxRemDiff_local
-        << endl;
 
         if((maxRelDiff_local>maxRelDiff_ || maxRelDiff_<SMALL) && maxRelDiff_+SMALL<=1.0) {
             doUpdate = true;

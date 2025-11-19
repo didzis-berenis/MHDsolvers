@@ -220,8 +220,8 @@ public:
         //- Solve electromagnetic modelling
         virtual void solveElectromagnetics();
 
-        //- Called after the PIMPLE loop at the end of the time-step
-        //virtual void postSolve();
+        //- Fix currents based on mixture conductivity
+        virtual void fixCurrentsWithMixtureConductivity();
 
 
     // Member Operators

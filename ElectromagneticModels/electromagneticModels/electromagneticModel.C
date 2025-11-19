@@ -366,12 +366,7 @@ Foam::electromagneticModel::electromagneticModel
         patchSigmaBoundaries(sigma_);
     }*/
     // Update inverse of sigma
-    forAll(sigma_, cellI)
-    {
-        sigmaInv_[cellI] = 
-        sigma_[cellI] == 0 ? //Perhaps better to use "< SMALL" instead of "== 0"
-        0 : 1/sigma_[cellI];
-    }
+    sigmaInv();
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -468,12 +463,12 @@ void Foam::electromagneticModel::predict()
     JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
-    /*JJsigma_ =
+    JJsigma_ =
     0.5*(
         (J() & J())
         +(J(imaginary) & J(imaginary))
     )*sigmaInv();
-    JJsigma_.correctBoundaryConditions();*/
+    JJsigma_.correctBoundaryConditions();
 }
 
 void Foam::electromagneticModel::correct()
@@ -555,11 +550,13 @@ Foam::volScalarField& Foam::electromagneticModel::sigma()
 
 Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
 {
+    // Ignore small sigma values when computing inverse
+    scalar sigmaCutoff = gMax(sigma_())*SMALL;
     // Update inverse of sigma
     forAll(sigma_, cellI)
     {
         sigmaInv_[cellI] = 
-        sigma_[cellI] == 0 ? //Perhaps better to use "< SMALL" instead of "== 0"
+        abs(sigma_[cellI]) < sigmaCutoff ?
         0 : 1/sigma_[cellI];
     }
     return sigmaInv_;
