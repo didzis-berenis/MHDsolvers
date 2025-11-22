@@ -313,6 +313,9 @@ public:
         bool needsReference(const word regionName);
         
         bool hasAnyRole(const word regionRole);
+        
+        //- Check if any region has velocity field
+        bool checkIfAnyVelocityRegions();
 
         //- Check if electromagnetic solver time type is harmonic
         bool isElectroHarmonic();

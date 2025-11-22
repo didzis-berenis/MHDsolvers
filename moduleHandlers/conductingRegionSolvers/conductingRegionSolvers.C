@@ -137,23 +137,31 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
     characteristicSizes_.setSize(names_.size());
     forAll(names_, i)
     {
-        IOdictionary physicalProperties
-        (
-            IOobject
+        const word& regionName = names_[i].first();
+        if (isFluid(regionName) || isSolid(regionName))
+        {
+            IOdictionary physicalProperties
             (
-                "physicalProperties",
-                runTime.constant(),
-                regions_[i],
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE
-            )
-        );
-        characteristicSizes_[i] =
-        (
-            physicalProperties.found("Lchar") ?
-            dimensionedScalar("Lchar",dimLength,physicalProperties) :
-            dimensionedScalar("Lchar",dimLength,0)
-        ).value();
+                IOobject
+                (
+                    "physicalProperties",
+                    runTime.constant(),
+                    regions_[i],
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                )
+            );
+            characteristicSizes_[i] =
+            (
+                physicalProperties.found("Lchar") ?
+                dimensionedScalar("Lchar",dimLength,physicalProperties) :
+                dimensionedScalar("Lchar",dimLength,0)
+            ).value();
+        }
+        else
+        {
+            characteristicSizes_[i] = 0;
+        }
     }
     // get write controls / magnetic field update controls
     if (isElectroHarmonic())
@@ -1023,6 +1031,21 @@ Foam::vector Foam::conductingRegionSolvers::getNormal(const word regionName, con
     FatalIOError << "Region " << regionName << " doesn't have a boundary named " << patchName << "!\n"
     << exit(FatalIOError);
     return Foam::vector(0,0,0);
+}
+
+bool Foam::conductingRegionSolvers::checkIfAnyVelocityRegions()
+{
+    bool hasVelocityRegions = false;
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (isFluid(regionName))
+        {
+            hasVelocityRegions = true;
+            break;
+        }
+    }
+    return hasVelocityRegions;
 }
 
 void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& JreGlobal,volVectorField& JimGlobal

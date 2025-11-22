@@ -12,10 +12,13 @@ forAll(regionNames, i)
     }
 }
 // Send fields to Elmer
-Info<< "\nSending fields to Elmer for all regions " << endl;
-if (initialize_elmer) sending.initialize();
-sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-sending.sendVector(UGlobal);
+if (solvers.checkIfAnyVelocityRegions())
+{
+    Info<< "\nSending fields to Elmer for all regions " << endl;
+    if (initialize_elmer) sending.initialize();
+    sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+    sending.sendVector(UGlobal);
+}
 // Receive fields from Elmer
 Info<< "\nReceiving fields from Elmer for all regions " << endl;
 if (initialize_elmer) receiving.initialize();
