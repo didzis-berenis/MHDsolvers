@@ -206,6 +206,8 @@ class conductingRegionSolvers
         scalar getTransientPhaseShift_(scalar argument, scalar step_shift);
         // Calculates unit vector field from current density
         volVectorField getJdirection_(word regionName, bool imaginary);
+        //Check if imaginary Jref is the same direction as real part
+        bool isJsameDirection(word regionName);
         // Calculates integral current density for a region
         scalar getCurrentSum_(word regionName,bool imaginary=false);//volVectorField JGlobal,
         scalar getInductionSum_(word regionName, coilParameters_ terminalControls, bool imaginary=false);

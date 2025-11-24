@@ -275,23 +275,66 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
             {
                 const word terminalName = electrPtr->electro.lookup<word>("terminalName");
                 Info << "Setting up controls for terminal: " << terminalName << endl;
-                const scalar target_phase =
-                dimensionedScalar(
-                    "phaseShift",
-                    dimless,
-                    electrPtr->electro
-                ).value();
                 if (feedbackType == "current")
                 {
                     integralCurrent_[terminalName] = 0;// Used to store integral values
-                    const scalar target_value =
+                    scalar phaseReference = 90.0;//PI
+                    scalar target_phase =
+                    dimensionedScalar(
+                        "phaseShift",
+                        dimless,
+                        electrPtr->electro
+                    ).value();
+                    if (target_phase < - phaseReference)
+                    {
+                        target_phase = -phaseReference;
+                        Info << "Target phase should be in range (-90:90)degrees!" << endl
+                        << "Value set to: " << target_phase << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
+                    if (target_phase > phaseReference)
+                    {
+                        target_phase = phaseReference;
+                        Info << "Target phase should be in range (-90:90)degrees!" << endl
+                        << "Value set to: " << target_phase << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
+                    scalar target_value =
                     dimensionedScalar(
                         "currentDensity",
                         dimCurrent/dimLength/dimLength,
                         electrPtr->electro
                     ).value();
-                    const scalar initial_value = readControlValue_("coilVoltages/"+terminalName);
-                    const scalar initial_phase = readControlValue_("coilPhases/"+terminalName);
+                    if (target_value < 0)
+                    {
+                        target_value = -target_value;
+                        Info << "Target value should be positive!" << endl
+                        << "Value set to: " << target_value << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
+                    scalar initial_phase = readControlValue_("coilPhases/"+terminalName);
+                    if (initial_phase < - phaseReference)
+                    {
+                        initial_phase = -phaseReference;
+                        Info << "Initial phase should be in range (-90:90)degrees!" << endl
+                        << "Value set to: " << initial_phase << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
+                    if (initial_phase > phaseReference)
+                    {
+                        initial_phase = phaseReference;
+                        Info << "Initial phase should be in range (-90:90)degrees!" << endl
+                        << "Value set to: " << initial_phase << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
+                    scalar initial_value = readControlValue_("coilVoltages/"+terminalName);
+                    if (initial_value < 0)
+                    {
+                        initial_value = -target_value;
+                        Info << "Initial value should be positive!" << endl
+                        << "Value set to: " << initial_value << endl
+                        << "For other values switch terminal and ground boundaries." << endl;
+                    }
                     /*
                     TODO: Check if the initially guessed proportionality coefficient of target_value isn't grossly incorrect when
                     ferromagnetic materials are present.
@@ -305,7 +348,6 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             feedbackType,
                             Pair<scalar>(initial_value,initial_phase)
                         );
-                    scalar phaseReference = 180.0;//PI
                     feedbackControllers_[terminalName].setReference(Pair<scalar>(target_value,phaseReference));
                     // Variables are linked, so phase error is limited by value error
                     scalar maxCurrentError = MAX_CONTROL_ERROR;
@@ -328,14 +370,21 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
                     // Stabilizer detects positive feedback loop and stops controller
                     feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,2));
-                    feedbackControllers_[terminalName].setMinMaxValue(Pair<scalar>(-great,-phaseReference),Pair<scalar>(great,phaseReference));
                     feedbackControllers_[terminalName].updateCoefficients(
                         Pair<scalar>(
                             target_value != 0 ? -0.5*initial_value/target_value : 0 , 
-                            0.5
+                            -0.5
                         ),
                         Pair<scalar>(0,0),
                         Pair<scalar>(0,0));
+                        feedbackControllers_[terminalName].setMinMaxValue(
+                            Pair<scalar>(
+                                //Limit min voltage magnitude to small portion of initial value
+                                initial_value/100,
+                                -phaseReference
+                            ),
+                            Pair<scalar>(great,phaseReference)
+                        );
                 }
                 if (feedbackType == "voltage")
                 {
@@ -604,6 +653,12 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             fPtr->store(fPtr);
                         }
                     }
+                    const scalar target_phase =
+                    dimensionedScalar(
+                        "phaseShift",
+                        dimless,
+                        electrPtr->electro
+                    ).value();
                     const scalar target_value =
                     dimensionedScalar(
                         "voltage",
@@ -843,6 +898,28 @@ Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, co
     //Info << "region: " << regionName << " volume: " << gSum(volume) << endl;
     //Info << "sumI: " << sumI << endl;
     return sumI;
+}
+
+bool Foam::conductingRegionSolvers::isJsameDirection(word regionName)
+{
+    if (!isElectroHarmonic())
+    {
+        return true;
+    }
+    const volVectorField Jdirection = getJdirection_(regionName,false);//Get reference
+    const volVectorField JdirectionIm = getJdirection_(regionName,true);//Get reference
+    const scalarField Jprojection(JdirectionIm & Jdirection);//Project to a reference
+    const scalarField volume = mesh(regionName).V();
+    //gSum() (also gAverage()) is multi-threading-safe way to sum over all grid points.
+    scalar sumJ = gSum(volume*Jprojection)/max(gSum(volume), vSmall);//Find volume average
+    if (sumJ < 0)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(word regionName,bool imaginary)//volVectorField JGlobal,
@@ -1295,9 +1372,15 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 avgJre += getCurrentSum_(regionName);
                 if (isElectroHarmonic())
                 {
-                    avgJim += getCurrentSum_(regionName,true);
+                    int signJ = 1;
+                    if (!isJsameDirection(regionName))
+                    {
+                        signJ = -1;
+                    }
+                    avgJim += signJ*getCurrentSum_(regionName,true);
                 }
             }
+            Info << "Terminal " << terminalName << " avgJre: " << avgJre << "; avgJim: " << avgJim << endl;
             
             if (!isElectroHarmonic())
             {
@@ -1325,6 +1408,13 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 );
             if (feedbackControllers_[terminalName].needsUpdate())
             {
+                //Safe step-back in case of previous overshoot
+                const scalar previous_value = readControlValue_("coilVoltages/"+terminalName);
+                if (control_values.first() < 0.5*previous_value)
+                {
+                    control_values = Pair<scalar>(0.5*previous_value,control_values.second());
+                }
+
                 Info << "Starting feedback update " << endl;
                 Info << "Updating voltage for terminal " << terminalName << endl;
                 Info << "Present values: (" << present_value << " " << present_phase << ")" << endl
