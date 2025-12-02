@@ -185,6 +185,8 @@ public:
         //- Store old phase-fraction field
         virtual void storeAlpha1();
 
+        const virtual volScalarField& getNu();
+
         //- Get phase-fraction field alpha1Old
         const virtual volScalarField& getAlpha1Old() const;
 

@@ -243,6 +243,11 @@ void Foam::solvers::incompressibleConductingVoF::storeU()
     U_old_ = U_;
 }
 
+const Foam::volScalarField& Foam::solvers::incompressibleConductingVoF::getNu()
+{
+    return mixture.nu();
+}
+
 
 void Foam::solvers::incompressibleConductingVoF::postCorrector()
 {

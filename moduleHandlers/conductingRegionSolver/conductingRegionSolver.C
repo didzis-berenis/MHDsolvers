@@ -416,6 +416,13 @@ void Foam::conductingRegionSolver::storeU()
         getIncompressibleFluidPtr_()->storeU();
     }
 }
+void Foam::conductingRegionSolver::updateNu(volScalarField& globalField)
+{
+    if(isIncompressibleConductingVoF())
+    {
+        globalField = getIncompressibleConductingVoFPtr_()->getNu();
+    }
+}
 void Foam::conductingRegionSolver::storeAlpha1()
 {
     if(getIncompressibleConductingVoFPtr_())

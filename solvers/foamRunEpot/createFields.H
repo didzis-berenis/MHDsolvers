@@ -75,3 +75,18 @@ forAll(fieldPaths, i)
 }
 
 const dimensionedScalar absoluteZero(dimTemperature,-273.15);
+
+volScalarField nuGlobal
+(
+    IOobject
+    (
+        "viscosity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar(dimViscosity, 0)
+);
+

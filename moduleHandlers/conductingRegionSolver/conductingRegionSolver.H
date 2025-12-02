@@ -166,6 +166,8 @@ public:
         // save old velocity
         void storeU();
 
+        void updateNu(volScalarField& globalField);
+
         // save old phase-fraction field
         void storeAlpha1();
 

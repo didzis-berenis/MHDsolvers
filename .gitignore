@@ -3,3 +3,4 @@
 *.dep
 *.so
 additionalSolvers/
+CDsolvers/
