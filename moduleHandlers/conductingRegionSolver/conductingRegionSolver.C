@@ -250,13 +250,13 @@ void Foam::conductingRegionSolver::updateMixtureConductivity()
     if (isIncompressibleConductingVoF())
     {
         volScalarField new_sigma = getUpdatedConductivity();
-        //scalar sigmaCutoff = gMax(new_sigma())*SMALL;
+        scalar sigmaCutoff = 0;//gMax(new_sigma())*SMALL;
         volScalarField& sigma = getElectroBasePtr_()->getSigma();
         forAll(new_sigma, cellI)
         {
-            sigma[cellI] = new_sigma[cellI];// < sigmaCutoff ? 0 : new_sigma[cellI];
+            sigma[cellI] = new_sigma[cellI] < sigmaCutoff ? 0 : new_sigma[cellI];
         }
-        //sigma.correctBoundaryConditions();
+        sigma.correctBoundaryConditions();
     }
 }
 
