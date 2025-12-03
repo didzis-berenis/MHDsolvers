@@ -150,6 +150,14 @@ const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary
     return imaginary ? Jim_ : Jre_;
 }
 
+Foam::tmp<Foam::vectorField> Foam::harmonicElectromagneticModel::J(const label patchi, bool imaginary) const
+{
+    if (!imaginary)
+        return Jre_.boundaryField()[patchi].patchInternalField();
+    else
+        return Jim_.boundaryField()[patchi].patchInternalField();
+}
+
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::Jref(bool imaginary) const
 {
     return imaginary ? JimReference_ : JreReference_;

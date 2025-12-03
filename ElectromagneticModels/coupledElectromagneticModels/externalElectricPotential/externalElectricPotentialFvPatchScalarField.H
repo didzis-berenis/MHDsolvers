@@ -235,6 +235,8 @@ public:
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
 
+            scalar calculateI(bool imaginary=false) const;
+
 
         // I-O
 

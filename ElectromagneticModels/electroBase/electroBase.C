@@ -209,6 +209,34 @@ bool Foam::electroBase::isElectricPotentialBoundary(const word terminalName)
     return false;
 }
 
+Foam::scalar Foam::electroBase::getI(const word terminalName, bool imaginary)
+{
+    volScalarField& PotE = electroPtr_->PotE(imaginary);
+    volScalarField::Boundary& PotEBf = PotE.boundaryFieldRef();
+    forAll(PotEBf, patchi)
+    {
+        fvPatchScalarField& pPotE = PotEBf[patchi];
+        if (pPotE.patch().name() != terminalName) {continue;}
+        if (isA<externalElectricPotentialFvPatchScalarField>(pPotE) )
+        {
+            externalElectricPotentialFvPatchScalarField& cpPotE =
+            refCast<externalElectricPotentialFvPatchScalarField>(pPotE);
+            return cpPotE.calculateI(imaginary);
+        }
+    }
+    if (hasBoundary(terminalName))
+    {
+        FatalIOError << "Boundary named " << terminalName << " is not defined as electric terminal!\n"
+        << exit(FatalIOError);
+    }
+    else
+    {
+        FatalIOError << "Region doesn't have boundary named " << terminalName << "!\n"
+        << exit(FatalIOError);
+    }
+    return -1;
+}
+
 Foam::word Foam::electroBase::findGroundTerminal(const word terminalName)
 {
     volScalarField& PotE = electroPtr_->PotE();
@@ -276,6 +304,18 @@ Foam::vector Foam::electroBase::getCenter(const word terminalName)
     << exit(FatalIOError);
     return Foam::vector(0,0,0);
 }
+
+
+/*void Foam::electroBase::evalSigmaBnd()
+{
+        volScalarField& sigma = electroPtr_->sigma();
+        volScalarField::Boundary& sigmaBf = sigma.boundaryFieldRef();
+        forAll(sigmaBf, patchi)
+        {
+            fvPatchScalarField& pSigma = sigmaBf[patchi];
+            pSigma.evaluate();
+        }
+}*/
 
 
 void Foam::electroBase::initDeltaJ(bool imaginary)

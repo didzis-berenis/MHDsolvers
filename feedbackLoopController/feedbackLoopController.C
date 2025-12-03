@@ -84,9 +84,17 @@ Foam::Pair<Foam::scalar> Foam::feedbackLoopController::calculateCorrection(Pair<
         scalar error = present_value[i]-target_value_[i]+offset_value_[i];
         // Switch sign to avoid positive feedback loop
         // This can happen if small error remains despite of incrementing control value
-        if (!first_iteration_[i] && use_stabilizer_[i] && abs(error)>abs(previous_error[i]))
+        if (!first_iteration_[i] && use_stabilizer_[i] )
         {
-            positive_feedback_counter_[i] ++;
+            if (abs(error)>abs(previous_error[i]))
+            {
+                positive_feedback_counter_[i] ++;
+                proportional_coeff_[i] = -proportional_coeff_[i];
+            }
+            else
+            {
+                positive_feedback_counter_[i] = 0;
+            }
         }
         if (positive_feedback_counter_[i]>positive_feedback_tolerance_[i])
         {

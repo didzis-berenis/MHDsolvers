@@ -76,7 +76,7 @@ SourceFiles
 #include <vector>
 #include <fstream>
 
-static const double MAX_CONTROL_ERROR = 0.01;//relative error of 1%
+static const double MAX_CONTROL_ERROR = 0.05;//relative error of 5%
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -188,6 +188,7 @@ class conductingRegionSolvers
         void updatePotErefGrad_(const word regionName, scalar newGrad, bool imaginary=false);
         void updatePotErefValue_(const word terminalName, scalar newValue, bool imaginary=false);
         scalar getPotErefValue_(const word terminalName, bool imaginary=false);
+        scalar calculateBoundaryCurrent_(const word terminalName, bool imaginary=false);
         int initial_iter_ = 0;
         int wait_iter_ = 0;
 
@@ -197,6 +198,7 @@ class conductingRegionSolvers
 
         bool hasVoltageControl_=false;
         void checkIfAnyVoltageControl_();
+        //void checkIfAnyElectricSources_()
 
         // Performs feedback control initialization
         void setUpFeedbackControllers_();
@@ -284,7 +286,7 @@ public:
         void setJ(volVectorField& field, bool imaginary=false);
 
         // Check if any region is electric source
-        //bool hasElectricSources();
+        bool hasElectricSources();
 
         // Get formatted current density from electric source regions
         //volVectorField getSourceJ(word regionName, bool imaginary);
@@ -292,6 +294,7 @@ public:
         //- Assign current density to specified region
         void setJToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
         void setJRefToRegion(volVectorField& field, const word& regionName, bool imaginary=false);
+        void setJRef(const word& regionName);
 
         //- Assign magnetic field to solvers
         void setB(volVectorField& field, bool imaginary=false);
@@ -313,6 +316,7 @@ public:
 
         // Check if region is electric source
         bool needsReference(const word regionName);
+        bool referenceNotSet(const word regionName);
         
         bool hasAnyRole(const word regionRole);
         

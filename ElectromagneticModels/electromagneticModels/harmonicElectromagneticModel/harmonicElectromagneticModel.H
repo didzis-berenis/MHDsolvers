@@ -124,6 +124,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+        virtual tmp<vectorField> J(const label patchi,bool imaginary=false) const override;
         virtual volVectorField& Jref(bool imaginary=false) override;
 
         //- Magnetic field [T]

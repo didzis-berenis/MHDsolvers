@@ -110,6 +110,8 @@ public:
         //- Magnetic field [T]
         virtual volVectorField& getB(bool imaginary=false);
 
+        //virtual void evalSigmaBnd();
+        scalar getI(const word terminalName, bool imaginary = false);
         //- Electric potential [V/m]
         virtual void initPotE(bool imaginary=false);
         virtual void updatePotErefGrad(scalar newGrad, bool imaginary);

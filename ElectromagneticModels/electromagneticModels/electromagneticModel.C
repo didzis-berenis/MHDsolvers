@@ -556,7 +556,7 @@ Foam::volScalarField& Foam::electromagneticModel::sigmaInv()
     forAll(sigma_, cellI)
     {
         sigmaInv_[cellI] = 
-        abs(sigma_[cellI]) < sigmaCutoff ?
+        abs(sigma_[cellI]) <= sigmaCutoff ?
         0 : 1/sigma_[cellI];
     }
     return sigmaInv_;

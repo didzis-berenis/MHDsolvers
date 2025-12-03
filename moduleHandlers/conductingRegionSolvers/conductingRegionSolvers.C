@@ -93,12 +93,12 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         prefixes_[i] = regionName;
         nRegionNameChars = max(nRegionNameChars, regionName.size());
     }
-    forAll(names_, i)
+    /*forAll(names_, i)
     {
         const word& regionName = names_[i].first();
         Pout << "regionName: " << regionName << endl;
         Pout << "mesh(regionName).cells().size(): " << mesh(regionName).cells().size() << endl;
-    }
+    }*/
     //Initialize coupled boundary conditions after all solvers have been loaded,
     //because coupledElectricPotentialFvPatchScalarField constructor requires
     //also the solver of the neighbour patch to be loaded.
@@ -122,6 +122,11 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         {
             evaluateDeltaJBfs_(regionName,true);
         }
+        /*evaluateJBfs_(regionName);
+        if (imaginary)
+        {
+            evaluateJBfs_(regionName,true);
+        }*/
     }
 
     nRegionNameChars++;
@@ -201,6 +206,7 @@ Foam::conductingRegionSolvers::conductingRegionSolvers(const Time& runTime)
         }
     }
     checkIfAnyVoltageControl_();
+    //checkIfAnyElectricSources_()
     // Find regions, which need feedback control
     // And initialize feedback loop controller
     setUpFeedbackControllers_();
@@ -278,7 +284,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                 if (feedbackType == "current")
                 {
                     integralCurrent_[terminalName] = 0;// Used to store integral values
-                    scalar phaseReference = 90.0;//PI
+                    scalar phaseReference = 180.0;//180;//PI
                     scalar target_phase =
                     dimensionedScalar(
                         "phaseShift",
@@ -301,8 +307,8 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     }
                     scalar target_value =
                     dimensionedScalar(
-                        "currentDensity",
-                        dimCurrent/dimLength/dimLength,
+                        "current",//"currentDensity",
+                        dimCurrent,///dimLength/dimLength
                         electrPtr->electro
                     ).value();
                     if (target_value < 0)
@@ -330,7 +336,7 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     scalar initial_value = readControlValue_("coilVoltages/"+terminalName);
                     if (initial_value < 0)
                     {
-                        initial_value = -target_value;
+                        initial_value = -initial_value;
                         Info << "Initial value should be positive!" << endl
                         << "Value set to: " << initial_value << endl
                         << "For other values switch terminal and ground boundaries." << endl;
@@ -370,10 +376,11 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
                     // Stabilizer detects positive feedback loop and stops controller
                     feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,2));
+                    Info << "Proportional coefficient updated: " << -0.05*initial_value/target_value << endl;
                     feedbackControllers_[terminalName].updateCoefficients(
                         Pair<scalar>(
-                            target_value != 0 ? -0.5*initial_value/target_value : 0 , 
-                            -0.5
+                            target_value != 0 ? -0.05*initial_value/target_value : 0 , 
+                            0.5//TODO: Sign should be quadrant dependent
                         ),
                         Pair<scalar>(0,0),
                         Pair<scalar>(0,0));
@@ -774,6 +781,23 @@ Foam::scalar Foam::conductingRegionSolvers::getPotErefValue_(const word terminal
     }
     return refValue;
 }
+Foam::scalar Foam::conductingRegionSolvers::calculateBoundaryCurrent_(const word terminalName, bool imaginary)
+{
+    scalar refValue = 0;
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName))
+        {
+            electroBase* electrPtr = getElectroBasePtr_(regionName);
+            if (electrPtr->hasBoundary(terminalName))
+            {
+                refValue = electrPtr->getI(terminalName, imaginary);
+            }
+        }
+    }
+    return refValue;
+}
 void Foam::conductingRegionSolvers::updatePotErefValue_(const word terminalName, scalar newValue, bool imaginary)
 {
     forAll(names_, i)
@@ -793,6 +817,15 @@ void Foam::conductingRegionSolvers::evaluateDeltaJBfs_(const word regionName, bo
         getElectroBasePtr_(regionName)->initDeltaJ(imaginary);
     }
 }
+/*void Foam::conductingRegionSolvers::evaluateJBfs_(const word regionName, bool imaginary)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        electroBase* electrPtr = getElectroBasePtr_(regionName);
+        if (electrPtr->electro.getRegionRole() == "wire")
+            electrPtr->initJ(imaginary);
+    }
+}*/
 
 void Foam::conductingRegionSolvers::checkIfAnyVoltageControl_()
 {
@@ -850,6 +883,25 @@ int Foam::conductingRegionSolvers::surfaceHitCount_(const point test_point,const
     return outer_hit_count;
 }
 
+/*void Foam::conductingRegionSolvers::checkIfAnyElectricSources_()
+{
+    forAll(names_, i)
+    {
+        const word& regionName = names_[i].first();
+        if (getElectroBasePtr_(regionName))
+        {
+            const word regionRole = getElectroBasePtr_(regionName)->electro.getRegionRole();
+            if (regionRole == "wire")
+            {
+                // For these regions current density is calculated on OpenFOAM side
+                // and incorporated in Elmer as an external current source.
+                hasElectricSources_ = true;
+                break;
+            }
+        }
+    }
+}*/
+
 Foam::volVectorField Foam::conductingRegionSolvers::getJdirection_(word regionName, bool imaginary)
 {
     if (getElectroBasePtr_(regionName) && getElectroBasePtr_(regionName)->currentReferenceSet(imaginary))
@@ -900,7 +952,7 @@ Foam::scalar Foam::conductingRegionSolvers::getInductionSum_(word regionName, co
     return sumI;
 }
 
-bool Foam::conductingRegionSolvers::isJsameDirection(word regionName)
+/*bool Foam::conductingRegionSolvers::isJsameDirection(word regionName)
 {
     if (!isElectroHarmonic())
     {
@@ -920,7 +972,7 @@ bool Foam::conductingRegionSolvers::isJsameDirection(word regionName)
     {
         return true;
     }
-}
+}*/
 
 Foam::scalar Foam::conductingRegionSolvers::getCurrentSum_(word regionName,bool imaginary)//volVectorField JGlobal,
 {
@@ -1367,18 +1419,29 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
         {
             scalar avgJre = 0;
             scalar avgJim = 0;
-            for (word regionName : element.second)
+            if (element.second.size() == 1)
             {
-                avgJre += getCurrentSum_(regionName);
+                avgJre += calculateBoundaryCurrent_(terminalName);
                 if (isElectroHarmonic())
                 {
-                    int signJ = 1;
-                    if (!isJsameDirection(regionName))
-                    {
-                        signJ = -1;
-                    }
-                    avgJim += signJ*getCurrentSum_(regionName,true);
+                    avgJim += calculateBoundaryCurrent_(terminalName,true);
                 }
+            }
+            else
+            {
+                for (word regionName : element.second)
+                {
+                    avgJre += getCurrentSum_(regionName);
+                    if (isElectroHarmonic())
+                    {
+                        /*int signJ = 1;
+                        if (!isJsameDirection(regionName))
+                        {
+                            signJ = -1;
+                        }*/
+                        avgJim += getCurrentSum_(regionName,true);
+                    }
+            }
             }
             Info << "Terminal " << terminalName << " avgJre: " << avgJre << "; avgJim: " << avgJim << endl;
             
@@ -1427,12 +1490,13 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Pair<scalar> old_proportional_coeff = feedbackControllers_[terminalName].getProportionalCoefficient();
                 scalar target_value = feedbackControllers_[terminalName].getReference().first();
                 scalar old_value_coeff = old_proportional_coeff.first();
-                scalar new_value_coeff = -0.5*control_values.first()/target_value;
+                scalar new_value_coeff = -0.05*control_values.first()/target_value;
                 bool needs_coeff_update = abs(new_value_coeff) > 10*old_value_coeff;
                 if (needs_coeff_update)
                 {
                     Pair<scalar> new_proportional_coeff(new_value_coeff,old_proportional_coeff.second());
                     feedbackControllers_[terminalName].updateProportionalCoefficient(new_proportional_coeff);
+                    Info << "Proportional coefficient updated: " << new_proportional_coeff << endl;
                 }
             }
             else
@@ -1550,11 +1614,77 @@ void Foam::conductingRegionSolvers::setJRefToRegion(volVectorField& globalField,
     {
         electroBase* electrPtr = getElectroBasePtr_(regionName);
         if (electrPtr->currentReferenceSet(imaginary)) return;// Set only once
+    }
+    for (auto element : terminalToRegions_)
+    {
+        const word terminalName = element.first;
+        if (feedbackControllers_.find(terminalName) != feedbackControllers_.end()
+        && feedbackControllers_[terminalName].getControlType() == "current"
+        && element.second.size() == 1)
+        {
+            for (word regionNameLoop : element.second)
+            {
+                if (regionNameLoop ==regionName)
+                {
+                    if (getElectroBasePtr_(regionName))
+                    {
+                        electroBase* electrPtr = getElectroBasePtr_(regionName);
+                        if (electrPtr->hasBoundary(terminalName))
+                        {
+                            electrPtr->markCurrentReferenceAsSet(imaginary);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (getElectroBasePtr_(regionName))
+    {
+        electroBase* electrPtr = getElectroBasePtr_(regionName);
         volVectorField& regionField = electrPtr->getJref(imaginary);
         vectorGlobalToField_(globalField,regionField,regionName);
         // Update boundary values based on boundary conditions.
         regionField.correctBoundaryConditions();
         electrPtr->markCurrentReferenceAsSet(imaginary);
+    }
+}
+void Foam::conductingRegionSolvers::setJRef(const word& regionName)
+{
+    if (getElectroBasePtr_(regionName))
+    {
+        electroBase* electroPtr = getElectroBasePtr_(regionName);
+        electroPtr->markCurrentReferenceAsSet(false);
+        electroPtr->markCurrentReferenceAsSet(true);
+        /*bool imaginary  = false;
+        if (!electroPtr->currentReferenceSet(imaginary))// Set only once
+        {
+            volVectorField J = getElectro(regionName).J(imaginary);
+            volVectorField& Jref = electroPtr->getJref(imaginary);
+            forAll(J, cellI)
+            {
+                Jref[cellI] = J[cellI];
+            }
+            // Update boundary values based on boundary conditions.
+            Jref.correctBoundaryConditions();
+            electroPtr->markCurrentReferenceAsSet(imaginary);
+            if (isElectroHarmonic())
+            {
+                imaginary  = true;
+                //if (!electroPtr->currentReferenceSet(imaginary))// Set only once
+                {
+                    volVectorField J = getElectro(regionName).J(imaginary);
+                    volVectorField& Jref = electroPtr->getJref(imaginary);
+                    forAll(J, cellI)
+                    {
+                        Jref[cellI] = J[cellI];
+                    }
+                    // Update boundary values based on boundary conditions.
+                    Jref.correctBoundaryConditions();
+                    electroPtr->markCurrentReferenceAsSet(imaginary);
+                }
+            }
+        }*/
     }
 }
 //Assigns fluid and solid region values from global to each region field
@@ -1661,7 +1791,12 @@ bool Foam::conductingRegionSolvers::needsReference(const word regionName)
     const electromagneticModel& electro = getElectro(regionName);
     const word regionRole = electro.getRegionRole();
     const word feedbackType = electro.lookupOrDefault<word>("feedbackControl","");
-    const bool regionNeedsReference = isElectric(regionName) && (regionRole == "wire") && (feedbackType == "current");
+    return isElectric(regionName) && (regionRole == "wire") && (feedbackType == "current");
+}
+
+bool Foam::conductingRegionSolvers::referenceNotSet(const word regionName)
+{
+    const bool regionNeedsReference = needsReference(regionName);
     if (!regionNeedsReference) return false;
     const bool referenceNotSet = isElectroHarmonic()
     ?

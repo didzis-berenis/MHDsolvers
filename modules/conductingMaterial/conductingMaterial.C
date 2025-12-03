@@ -116,20 +116,22 @@ void Foam::solvers::conductingMaterial::pressureCorrector()
 
 void Foam::solvers::conductingMaterial::postCorrector()
 {
-    // Presently set as passive.
-    // Uncomment to enable current calculation.
 
     // Solve only for source regions
     if (electro.correctElectromagnetics())
     {
         //Calculate current density
-        /*electro_.findJ();
-        bool imaginary = electro.isComplex();
-        if (imaginary)
+        /*if (!currentReferenceSet())
         {
-            electro_.findJ(imaginary);
-        }
-        if (electro.getRegionRole() == "coil")
+            electro_.findJ();
+            bool imaginary = electro.isComplex();
+            //if (imaginary && !electroPtr->currentReferenceSet(imaginary))
+            {
+                electro_.findJ(imaginary);
+            }
+        }*/
+            
+        /*if (electro.getRegionRole() == "wire")
         {
             electro_.predict();
         }
@@ -157,7 +159,10 @@ void Foam::solvers::conductingMaterial::solveElectromagnetics()
     // Solve only for source regions
     //if (electro.isSource())
     //{
-        //electro_.solve();
+    /*if (!currentReferenceSet() )//&& !electroPtr->currentReferenceSet(true))
+    {
+        electro_.solve();
+    }*/
     //}
 }
 

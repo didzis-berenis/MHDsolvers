@@ -257,6 +257,7 @@ void Foam::conductingRegionSolver::updateMixtureConductivity()
             sigma[cellI] = new_sigma[cellI] < sigmaCutoff ? 0 : new_sigma[cellI];
         }
         sigma.correctBoundaryConditions();
+        //getElectroBasePtr_()->evalSigmaBnd();
     }
 }
 

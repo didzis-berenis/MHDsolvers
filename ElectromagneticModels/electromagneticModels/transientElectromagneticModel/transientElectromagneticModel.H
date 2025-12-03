@@ -106,6 +106,7 @@ public:
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+        virtual tmp<vectorField> J(const label patchi,bool imaginary=false) const override;
 
         //- Current density reference value [A/m^2]
         virtual volVectorField& Jref(bool imaginary=false) override;

@@ -119,6 +119,11 @@ const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginar
     return Jre_;
 }
 
+Foam::tmp<Foam::vectorField> Foam::transientElectromagneticModel::J(const label patchi, bool imaginary) const
+{
+    return Jre_.boundaryField()[patchi].patchInternalField();
+}
+
 const Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imaginary) const
 {
     return Jreference_;

@@ -44,14 +44,14 @@ forAll(regionNames, i)
     {
         solvers.setJToRegion(JimGlobal,regionNames[i],true);
     }
-    if (solvers.needsReference(regionNames[i]))
+    /*if (solvers.referenceNotSet(regionNames[i]) && controlStepsTaken > 10)
     {
         solvers.setJRefToRegion(JreGlobal,regionNames[i]);
         if (solvers.isElectroHarmonic())
         {
             solvers.setJRefToRegion(JimGlobal,regionNames[i],true);
         }
-    }
+    }*/
 }
 solvers.setB(BreGlobal);
 if (solvers.isElectroHarmonic())
@@ -78,5 +78,5 @@ if (Pstream::master() && logElmerTime)
 if (initialize_elmer)
     initialize_elmer = false;
 
-if (!skipControllerUpdate)
-    solvers.updateFeedbackControl();
+//if (!skipControllerUpdate)
+    //solvers.updateFeedbackControl();

@@ -99,27 +99,51 @@ int main(int argc, char *argv[])
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
     bool logElmerTime = true;
-    bool skipControllerUpdate = false;
+    bool skipControllerUpdate = true;
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     // Initialize electromagnetic sources.
+    /*if (solvers.hasAnyRole("wire"))//wire roles only need reference
+    {
+        #include "initializeElectricSources.H"
+    }*/
+
+    /*forAll(regionNames, i)
+    {
+        if (solvers.referenceNotSet(regionNames[i]))
+        {
+            solvers.setJRef(regionNames[i]);
+        }
+    }*/
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
     {
         Info<< nl << "Initializing electromagnetic controls...\n" << endl;
     }
+    //runTime.writeNow();
     int controlStepsTaken = 0;
     // Time == startTime() iteration
     #include "runElmerUpdate.H"
     logElmerTime = false;
     controlStepsTaken++;
+    for (int iter = 0; iter < 10; iter++)
+    {
+        #include "runElmerUpdate.H"
+        controlStepsTaken++;
+    }
+    skipControllerUpdate = false;
     if (solvers.isElectroHarmonic())
     {
         // Iterate until target values reached
         while (solvers.controllersNeedUpdate())
         {
-            #include "runElmerUpdate.H"
-            controlStepsTaken++;
+            for (int iter = 0; iter < 10; iter++)
+            {
+                #include "runElmerUpdate.H"
+                controlStepsTaken++;
+            }
+            solvers.updateFeedbackControl();
+            
         }
     }
     else

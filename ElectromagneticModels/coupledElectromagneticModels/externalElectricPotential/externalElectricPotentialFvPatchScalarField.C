@@ -198,6 +198,17 @@ void Foam::externalElectricPotentialFvPatchScalarField::reset
 }
 
 
+Foam::scalar Foam::externalElectricPotentialFvPatchScalarField::calculateI(bool imaginary) const
+{
+    const electromagneticModel& em =
+        patch().boundaryMesh().mesh()
+       .lookupType<electromagneticModel>();
+    const vectorField J(em.J(patch().index(),imaginary));
+    scalar current = gSum(J & patch().Sf());
+    return current;
+}
+
+
 void Foam::externalElectricPotentialFvPatchScalarField::updateCoeffs()
 {
     if (updated())
