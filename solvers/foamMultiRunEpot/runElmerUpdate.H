@@ -11,27 +11,38 @@ forAll(regionNames, i)
         );
     }
 }
-// Send fields to Elmer
-if (solvers.checkIfAnyVelocityRegions())
+for (int iter = 0; iter < nElmerCorrectors; iter++)
 {
-    Info<< "\nSending fields to Elmer for all regions " << endl;
-    if (initialize_elmer) sending.initialize();
-    sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-    sending.sendVector(UGlobal);
-}
-// Receive fields from Elmer
-Info<< "\nReceiving fields from Elmer for all regions " << endl;
-if (initialize_elmer) receiving.initialize();
-receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-receiving.recvVector(JreGlobal);
-if (solvers.isElectroHarmonic())
-{
-    receiving.recvVector(JimGlobal);
-}
-receiving.recvVector(BreGlobal);
-if (solvers.isElectroHarmonic())
-{
-    receiving.recvVector(BimGlobal);
+    Info << "\nElmer iteration: " << iter << endl;
+    // Send fields to Elmer
+    if (solvers.checkIfAnyVelocityRegions())
+    {
+        Info << "Sending fields to Elmer for all regions" << endl;
+        if (initialize_elmer) sending.initialize();
+        sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+        sending.sendVector(UGlobal);
+    }
+    // Receive fields from Elmer
+    Info << "Receiving fields from Elmer for all regions" << endl;
+    if (initialize_elmer) receiving.initialize();
+    receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+    receiving.recvVector(JreGlobal);
+    if (solvers.isElectroHarmonic())
+    {
+        receiving.recvVector(JimGlobal);
+    }
+    receiving.recvVector(BreGlobal);
+    if (solvers.isElectroHarmonic())
+    {
+        receiving.recvVector(BimGlobal);
+    }
+    // Initialization is needed only on the first update.
+    if (initialize_elmer)
+        initialize_elmer = false;
+
+    if (countControlSteps) controlStepsTaken++;
+    //Quit the loop if bad status
+    if (elmer_status != 1) break;
 }
 //convert global field to regions
 
@@ -74,9 +85,5 @@ if (Pstream::master() && logElmerTime)
     }
     else FatalErrorInFunction << "ERROR: Couldn't open " << elmerTimesFileName << " for writing!\n" << abort(FatalError);
 }
-// Initialization is needed only on the first update.
-if (initialize_elmer)
-    initialize_elmer = false;
-
-//if (!skipControllerUpdate)
-    //solvers.updateFeedbackControl();
+if (!skipControllerUpdate)
+    solvers.updateFeedbackControl();

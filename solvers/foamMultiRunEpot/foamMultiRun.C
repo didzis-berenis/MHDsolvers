@@ -99,22 +99,11 @@ int main(int argc, char *argv[])
     // Create file for logging simulation times whenever Elmer is called
     string elmerTimesFileName = "postProcessing/elmerTimes.log";
     bool logElmerTime = true;
-    bool skipControllerUpdate = true;
+    bool skipControllerUpdate = false;
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
+    int nElmerCorrectors = (runTime.controlDict().lookupOrDefault("nElmerCorrectors",1));
     // Initialize electromagnetic sources.
-    /*if (solvers.hasAnyRole("wire"))//wire roles only need reference
-    {
-        #include "initializeElectricSources.H"
-    }*/
-
-    /*forAll(regionNames, i)
-    {
-        if (solvers.referenceNotSet(regionNames[i]))
-        {
-            solvers.setJRef(regionNames[i]);
-        }
-    }*/
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
     {
@@ -122,28 +111,16 @@ int main(int argc, char *argv[])
     }
     //runTime.writeNow();
     int controlStepsTaken = 0;
+    bool countControlSteps = true;
     // Time == startTime() iteration
     #include "runElmerUpdate.H"
     logElmerTime = false;
-    controlStepsTaken++;
-    for (int iter = 0; iter < 10; iter++)
-    {
-        #include "runElmerUpdate.H"
-        controlStepsTaken++;
-    }
-    skipControllerUpdate = false;
     if (solvers.isElectroHarmonic())
     {
         // Iterate until target values reached
         while (solvers.controllersNeedUpdate())
         {
-            for (int iter = 0; iter < 10; iter++)
-            {
-                #include "runElmerUpdate.H"
-                controlStepsTaken++;
-            }
-            solvers.updateFeedbackControl();
-            
+            #include "runElmerUpdate.H"
         }
     }
     else
@@ -182,6 +159,7 @@ int main(int argc, char *argv[])
         }
         runTime.setTime(startTime, startTimeLabel);
     }
+    countControlSteps = false;
     logElmerTime = true;
 
     // Run extra iterations to stabilize Electromagnetic solution before starting OpenFOAM

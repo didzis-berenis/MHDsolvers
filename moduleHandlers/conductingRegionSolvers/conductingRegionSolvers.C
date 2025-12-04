@@ -376,11 +376,10 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                     feedbackControllers_[terminalName].setMaxError(Pair<scalar>(maxCurrentError,maxPhaseError));
                     // Stabilizer detects positive feedback loop and stops controller
                     feedbackControllers_[terminalName].setStabilizer(Pair<bool>(false,true),Pair<int>(0,2));
-                    Info << "Proportional coefficient updated: " << -0.05*initial_value/target_value << endl;
                     feedbackControllers_[terminalName].updateCoefficients(
                         Pair<scalar>(
-                            target_value != 0 ? -0.05*initial_value/target_value : 0 , 
-                            0.5//TODO: Sign should be quadrant dependent
+                            target_value != 0 ? DEFAULT_CONTROL_COEFFICIENT*initial_value/target_value : 0 , 
+                            DEFAULT_CONTROL_COEFFICIENT
                         ),
                         Pair<scalar>(0,0),
                         Pair<scalar>(0,0));
@@ -392,6 +391,8 @@ void Foam::conductingRegionSolvers::setUpFeedbackControllers_()
                             ),
                             Pair<scalar>(great,phaseReference)
                         );
+                    scalar new_value_coeff = feedbackControllers_[terminalName].getProportionalCoefficient().first();
+                    Info << "Proportional coefficient updated: " << new_value_coeff << endl;
                 }
                 if (feedbackType == "voltage")
                 {
@@ -1490,13 +1491,13 @@ void Foam::conductingRegionSolvers::updateFeedbackControl()//volVectorField& Jre
                 Pair<scalar> old_proportional_coeff = feedbackControllers_[terminalName].getProportionalCoefficient();
                 scalar target_value = feedbackControllers_[terminalName].getReference().first();
                 scalar old_value_coeff = old_proportional_coeff.first();
-                scalar new_value_coeff = -0.05*control_values.first()/target_value;
-                bool needs_coeff_update = abs(new_value_coeff) > 10*old_value_coeff;
+                scalar new_value_coeff = DEFAULT_CONTROL_COEFFICIENT*control_values.first()/target_value;
+                bool needs_coeff_update = abs(new_value_coeff) > 10*abs(old_value_coeff);
                 if (needs_coeff_update)
                 {
                     Pair<scalar> new_proportional_coeff(new_value_coeff,old_proportional_coeff.second());
                     feedbackControllers_[terminalName].updateProportionalCoefficient(new_proportional_coeff);
-                    Info << "Proportional coefficient updated: " << new_proportional_coeff << endl;
+                    Info << "Proportional coefficient updated: " << new_value_coeff << endl;
                 }
             }
             else

@@ -5,30 +5,40 @@ regionSolver.storeU();
 // Save old phase-fraction field
 regionSolver.storeAlpha1();
 
-// Send fields to Elmer
-if (initialize_elmer) sending.initialize();
-sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-//cannot use const reference, so assign to new field 
-Usent = U;
-sigmaSent = sigma;
-sending.sendVector(Usent);
-if (regionSolver.isIncompressibleConductingVoF())
+for (int iter = 0; iter < nElmerCorrectors; iter++)
 {
-    sending.sendScalar(sigmaSent);
-}
-// Receive fields from Elmer
-Info<< "\nReceiving fields from Elmer " << endl;
-if (initialize_elmer) receiving.initialize();
-receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
-receiving.recvVector(Jre);
-if (regionSolver.isElectroHarmonic())
-{
-    receiving.recvVector(Jim);
-}
-receiving.recvVector(Bre);
-if (regionSolver.isElectroHarmonic())
-{
-    receiving.recvVector(Bim);
+    Info << "\nElmer iteration: " << iter << endl;
+    // Send fields to Elmer
+    Info << "Sending fields to Elmer" << endl;
+    if (initialize_elmer) sending.initialize();
+    sending.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+    //cannot use const reference, so assign to new field 
+    Usent = U;
+    sigmaSent = sigma;
+    sending.sendVector(Usent);
+    if (regionSolver.isIncompressibleConductingVoF())
+    {
+        sending.sendScalar(sigmaSent);
+    }
+    // Receive fields from Elmer
+    Info << "Receiving fields from Elmer" << endl;
+    if (initialize_elmer) receiving.initialize();
+    receiving.sendStatus(elmer_status); // 1=ok, 0=lastIter, -1=error
+    receiving.recvVector(Jre);
+    if (regionSolver.isElectroHarmonic())
+    {
+        receiving.recvVector(Jim);
+    }
+    receiving.recvVector(Bre);
+    if (regionSolver.isElectroHarmonic())
+    {
+        receiving.recvVector(Bim);
+    }
+    // Initialization is needed only on the first update.
+    if (initialize_elmer)
+        initialize_elmer = false;
+    //Quit the loop if bad status
+    if (elmer_status != 1) break;
 }
 //update solver fields
 regionSolver.setJ(Jre);

@@ -76,7 +76,8 @@ SourceFiles
 #include <vector>
 #include <fstream>
 
-static const double MAX_CONTROL_ERROR = 0.05;//relative error of 5%
+static const double MAX_CONTROL_ERROR = 0.01;//relative error of 1%
+static const double DEFAULT_CONTROL_COEFFICIENT = -0.5;
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
