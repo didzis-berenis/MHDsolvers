@@ -13,6 +13,10 @@ forAll(regionNames, i)
 }
 for (int iter = 0; iter < nElmerCorrectors; iter++)
 {
+    volVectorField pJre = JreGlobal;
+    volVectorField pJim = JimGlobal;
+    volVectorField pBre = BreGlobal;
+    volVectorField pBim = BimGlobal;
     Info << "\nElmer iteration: " << iter << endl;
     // Send fields to Elmer
     if (solvers.checkIfAnyVelocityRegions())
@@ -36,13 +40,22 @@ for (int iter = 0; iter < nElmerCorrectors; iter++)
     {
         receiving.recvVector(BimGlobal);
     }
+    scalar eJre = gMax(mag(pJre - JreGlobal)())/(gMax(mag(pJre)())+SMALL);
+    scalar eJim = gMax(mag(pJim - JimGlobal)())/(gMax(mag(pJim)())+SMALL);
+    scalar eBre = gMax(mag(pBre - BreGlobal)())/(gMax(mag(pBre)())+SMALL);
+    scalar eBim = gMax(mag(pBim - BimGlobal)())/(gMax(mag(pBim)())+SMALL);
+    scalar maxError = max(max(eJre,eJim),max(eBre,eBim));
+    bool quitLoop = maxError < ROOTSMALL;
+    //Info << "maxError: " << max(max(eJre,eJim),max(eBre,eBim)) << "; eJre: " << eJre << "; eJim: " << eJim  << "; eBre: " << eBre  << "; eBim: " << eBim <<endl;
+    
     // Initialization is needed only on the first update.
     if (initialize_elmer)
         initialize_elmer = false;
 
     if (countControlSteps) controlStepsTaken++;
     //Quit the loop if bad status
-    if (elmer_status != 1) break;
+    quitLoop |= elmer_status != 1;
+    if (quitLoop) break;
 }
 //convert global field to regions
 

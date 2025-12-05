@@ -21,7 +21,8 @@ std::set<word> fieldsToKeep = {
     "sigma", "JJsigma",
     "p_rgh", "rho",
     "PotEre","PotEim",
-    "alpha.liquidmetal", "yPlus"
+    "alpha.liquidmetal", "yPlus",
+    "viscosity"
 // Uncomment for debugging
 //"sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE",

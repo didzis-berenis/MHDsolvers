@@ -7,6 +7,10 @@ regionSolver.storeAlpha1();
 
 for (int iter = 0; iter < nElmerCorrectors; iter++)
 {
+    volVectorField pJre = Jre;
+    volVectorField pJim = Jim;
+    volVectorField pBre = Bre;
+    volVectorField pBim = Bim;
     Info << "\nElmer iteration: " << iter << endl;
     // Send fields to Elmer
     Info << "Sending fields to Elmer" << endl;
@@ -34,11 +38,18 @@ for (int iter = 0; iter < nElmerCorrectors; iter++)
     {
         receiving.recvVector(Bim);
     }
+    scalar eJre = gMax(mag(pJre - Jre)())/(gMax(mag(pJre)())+SMALL);
+    scalar eJim = gMax(mag(pJim - Jim)())/(gMax(mag(pJim)())+SMALL);
+    scalar eBre = gMax(mag(pBre - Bre)())/(gMax(mag(pBre)())+SMALL);
+    scalar eBim = gMax(mag(pBim - Bim)())/(gMax(mag(pBim)())+SMALL);
+    scalar maxError = max(max(eJre,eJim),max(eBre,eBim));
+    bool quitLoop = maxError < ROOTSMALL;
     // Initialization is needed only on the first update.
     if (initialize_elmer)
         initialize_elmer = false;
     //Quit the loop if bad status
-    if (elmer_status != 1) break;
+    quitLoop |= elmer_status != 1;
+    if (quitLoop) break;
 }
 //update solver fields
 regionSolver.setJ(Jre);
