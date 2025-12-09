@@ -1916,9 +1916,9 @@ bool Foam::conductingRegionSolvers::needsCleanup()
     bool doCleanup = true;
     if (restartInterval_ > 0 && cleanupCounter_ % restartInterval_ == 0)
     {
-        if (runTime_.startTime().value() > 0 || cleanupCounter_ > 0 )
+        //if (runTime_.startTime().value() > 0 || cleanupCounter_ > 0 )
         {
-            // Do not clean initial time step when calculation restarted.
+            // Do not clean initial time step //when calculation restarted.
             doCleanup = false;
         }
     }

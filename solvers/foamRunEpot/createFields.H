@@ -33,6 +33,20 @@ if (regionSolver.isFluid() || regionSolver.isSolid())//fluid == hydro + thermo
     //fieldsToKeep.insert("JJsigma");
     fieldsToKeep.insert("T");
 }
+//Viscosity field for output
+volScalarField nuGlobal
+(
+    IOobject
+    (
+        "viscosity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar(dimViscosity, 0)
+);
 
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
@@ -76,18 +90,4 @@ forAll(fieldPaths, i)
 }
 
 const dimensionedScalar absoluteZero(dimTemperature,-273.15);
-
-volScalarField nuGlobal
-(
-    IOobject
-    (
-        "viscosity",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar(dimViscosity, 0)
-);
 
