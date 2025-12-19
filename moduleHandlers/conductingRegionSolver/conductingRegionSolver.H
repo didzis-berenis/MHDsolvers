@@ -101,6 +101,9 @@ class conductingRegionSolver
         //-Phase electrical conductivities
         Pair<scalar> phaseConductivities_ = Pair<scalar>(0,0);
 
+        //- Log phase viscosity flags
+        bool logViscosity_ = false;
+
         //- Region characteristic geometric size
         scalar characteristicSize_ = 0;
         
@@ -166,7 +169,11 @@ public:
         // save old velocity
         void storeU();
 
-        void updateNu(volScalarField& globalField);
+        // Return whether to log viscosity
+        bool logNu();
+
+        // Return viscosity string for logging
+        word getNuString();
 
         // save old phase-fraction field
         void storeAlpha1();

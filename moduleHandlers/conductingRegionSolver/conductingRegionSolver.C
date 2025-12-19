@@ -94,6 +94,20 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
             physicalPropertiesPhase2.lookup<scalar>("sigma")
         );
 
+        IOdictionary phaseProperties
+        (
+            IOobject
+            (
+                "phaseProperties",
+                runTime.constant(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            )
+        );
+
+        logViscosity_ = phaseProperties.lookupOrDefault("logViscosity",false);
+
         updateMixtureConductivity();
 
     }
@@ -110,6 +124,8 @@ Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh
                 IOobject::NO_WRITE
             )
         );
+
+        logViscosity_ = physicalProperties.lookupOrDefault("logViscosity",false);
         //get region characteristic size
         characteristicSize_ =
         (
@@ -275,6 +291,11 @@ void Foam::conductingRegionSolver::electromagneticPredictor()
 {
     if (getElectroBasePtr_())
     {
+        if (isIncompressibleConductingVoF())
+        {
+            //Fixes currents to be in conducting phase only
+            getIncompressibleConductingVoFPtr_()->fixCurrentsWithMixtureConductivity();
+        }
         getElectroBasePtr_()->electromagneticPredictor();
     }
 }
@@ -417,13 +438,35 @@ void Foam::conductingRegionSolver::storeU()
         getIncompressibleFluidPtr_()->storeU();
     }
 }
-void Foam::conductingRegionSolver::updateNu(volScalarField& globalField)
+bool Foam::conductingRegionSolver::logNu()
+{
+    return logViscosity_;
+}
+
+Foam::word Foam::conductingRegionSolver::getNuString()
 {
     if(isIncompressibleConductingVoF())
     {
-        globalField = getIncompressibleConductingVoFPtr_()->getNu();
+        volScalarField nu = getIncompressibleConductingVoFPtr_()->getNu();
+        volScalarField alpha1 = getIncompressibleConductingVoFPtr_()->getAlpha1();
+        volScalarField alpha2 = getIncompressibleConductingVoFPtr_()->getAlpha2();
+        scalar nu1 = gMax((nu*alpha1)());
+        scalar nu2 = gMax((nu*alpha2)());
+        return Foam::name(nu1)+"\t"+Foam::name(nu2);
     }
+    if (isFluid())
+    {
+        //Not implemented for conductingFluid
+        return word("N/A");
+    }
+    else if (isIncompressibleFluid())
+    {
+        //Not implemented for incompressibleConductingFluid
+        return word("N/A");
+    }
+    return word("N/A");
 }
+
 void Foam::conductingRegionSolver::storeAlpha1()
 {
     if(getIncompressibleConductingVoFPtr_())

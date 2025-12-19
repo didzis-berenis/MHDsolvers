@@ -59,8 +59,6 @@ if (regionSolver.isElectroHarmonic())
     regionSolver.setJ(Jim,true);
     regionSolver.setB(Bim,true);
 }
-//Update mixture conductivity if VoF is used
-regionSolver.updateMixtureConductivity();
 //Update solver Lorentz force term
 // and Joule heating
 regionSolver.electromagneticPredictor();

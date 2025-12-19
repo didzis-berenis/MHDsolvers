@@ -166,7 +166,6 @@ int main(int argc, char *argv[])
         // Write last time step even if not write time
         if(runTime.writeTime() || lastTimeStep)
         {
-            regionSolver.updateNu(nuGlobal);
             runTime.writeNow();
             // Write integral values for all time steps
             #include "writeIntegrals.H"

@@ -50,3 +50,20 @@ if (regionSolver.isFluid())//fluid == hydro + thermo
         else FatalErrorInFunction << "ERROR: Couldn't open " << thermalFileName << " for writing!\n" << abort(FatalError);
     }
 }
+if (regionSolver.logNu())
+{
+    word nuOutput = regionSolver.getNuString();
+    if (Pstream::master())
+    {
+        // Write
+        string viscosityFileName = "postProcessing/viscosity.dat";
+        std::ofstream viscosityFile(viscosityFileName, std::ios::app);
+
+        if (viscosityFile.is_open())
+        {
+            viscosityFile << runTime.timeName() << "\t" << nuOutput << std::endl;
+            viscosityFile.close();
+        }
+        else FatalErrorInFunction << "ERROR: Couldn't open " << viscosityFileName << " for writing!\n" << abort(FatalError);
+    }
+}

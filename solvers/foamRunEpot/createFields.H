@@ -17,12 +17,12 @@ List<Pair<word>> fieldPaths = getFieldPaths(mesh);
 bool needsCleanup = false;
 std::set<word> fieldsToKeep = {
     "U", "p", "JxB",
-    "k", "nut", "omega", "epsilon",
+    "k", "nut", "nuTilda"
+    "omega", "epsilon",
     "sigma", "JJsigma",
     "p_rgh", "rho",
     "PotEre","PotEim",
     "alpha.liquidmetal", "yPlus",
-    "viscosity"
 // Uncomment for debugging
 //"sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE",
@@ -33,20 +33,6 @@ if (regionSolver.isFluid() || regionSolver.isSolid())//fluid == hydro + thermo
     //fieldsToKeep.insert("JJsigma");
     fieldsToKeep.insert("T");
 }
-//Viscosity field for output
-volScalarField nuGlobal
-(
-    IOobject
-    (
-        "viscosity",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar(dimViscosity, 0)
-);
 
 //Solidification configurations
 word solverSolidificationName = "solidification:alpha1";
