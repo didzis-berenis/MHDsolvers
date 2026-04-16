@@ -169,6 +169,8 @@ public:
         // save old velocity
         void storeU();
 
+        void updateNu(volScalarField& globalField);
+
         // Return whether to log viscosity
         bool logNu();
 

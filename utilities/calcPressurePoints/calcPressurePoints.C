@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         const word& regionName = regionNames[regioni];//singleRegion = "region0"
 
         string pressureFileName = "postProcessing/pressureIntegrals.dat";
-        std::ofstream pressureFile(pressureFileName, std::ios::app);
+        std::ofstream pressureFile(pressureFileName);//, std::ios::app);
 
         if (pressureFile.is_open())
         {
