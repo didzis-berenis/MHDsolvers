@@ -100,6 +100,8 @@ protected:
         //- Inverse Electric conductivity [m/S]
         volScalarField& sigmaInv_;
 
+        volVectorField& UxBdc_;
+
 
     // Protected Static Member Functions
 
@@ -236,12 +238,14 @@ public:
 
         //- calculate and return J correction difference
         virtual void findPotE(bool imaginary=false);
+        virtual void findPotEdc();
 
         //- calculate and return J correction difference
         virtual void findDeltaJ(bool imaginary=false);
 
         //- calculate and return J correction
         virtual void findJ(bool imaginary=false);
+        virtual void findJdc();
 
         //- Inverse Electric conductivity [m/S]
         virtual volScalarField& sigmaInv();
@@ -266,6 +270,7 @@ public:
         //- Update properties
         virtual void correct();
 
+        virtual void updateU(volVectorField& U);
         virtual void updateDeltaU(volVectorField& Udiff) = 0;
 
         //Template functions for derived classes
@@ -275,9 +280,11 @@ public:
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) = 0;
+        virtual volScalarField& PotEdc() = 0;
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) = 0;
+        virtual volVectorField& Jdc() = 0;
         virtual volVectorField& Jref(bool imaginary=false) = 0;
 
         //- Magnetic field [T]
@@ -323,9 +330,11 @@ public:
 
         //- Electric potential [V]
         virtual const volScalarField& PotE(bool imaginary=false) const = 0;
+        virtual const volScalarField& PotEdc() const = 0;
 
         //- Current density [A/m^2]
         virtual const volVectorField& J(bool imaginary=false) const = 0;
+        virtual const volVectorField& Jdc() const = 0;
         virtual tmp<vectorField> J(const label patchi,bool imaginary=false) const = 0;
 
         //- Current density reference value [A/m^2]
@@ -333,6 +342,7 @@ public:
 
         //- Magnetic field [T]
         virtual const volVectorField& B(bool imaginary=false) const = 0;
+        virtual const volVectorField& Bdc() const = 0;
 
         //- Magnetic field [T]
         virtual const volVectorField& deltaUxB(bool imaginary=false) const = 0;

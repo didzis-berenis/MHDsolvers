@@ -1,0 +1,59 @@
+sinclude $(GENERAL_RULES)/mplib$(WM_MPLIB)
+sinclude $(RULES)/mplib$(WM_MPLIB)
+
+FOAM_MAJOR_VERSION=$(firstword $(subst ., ,$(WM_PROJECT_VERSION)))
+EOF_INC = -I$(EOF_SRC)/coupleElmer/lnInclude \
+              -I$(EOF_SRC)/commSplit/lnInclude
+
+EXE_INC = \
+    -I. \
+    -IelectromagneticControls \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(FOAM_MODULES)/incompressibleVoF/incompressibleInterPhaseTransportModel/ \
+    -I$(FOAM_MODULES)/incompressibleVoF/incompressibleTwoPhaseVoFMixture/ \
+    -I$(FOAM_MODULES)/twoPhaseSolver/lnInclude \
+    -I$(FOAM_MODULES)/twoPhaseVoFSolver/lnInclude \
+    -I$(FOAM_MODULES)/VoFSolver/lnInclude \
+    -I$(FOAM_MODULES)/fluidSolver/lnInclude \
+    -I$(FOAM_MODULES)/isothermalFluid/lnInclude \
+    -I$(FOAM_MODULES)/solid/lnInclude \
+    -I$(FOAM_MODULES)/incompressibleFluid/lnInclude \
+    -I$(FOAM_MODULES)/fluidSolver/lnInclude \
+    -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/VoF \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceCompression/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/twoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/incompressibleTwoPhases/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/phaseIncompressible/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/compressible/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/incompressible/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/thermophysicalTransportModel/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/solid/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/fluid/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/fluidThermo/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/cfdTools \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I../../ElectromagneticModels/electromagneticModels/lnInclude \
+    -I../../ElectromagneticModels/electroBase/lnInclude \
+    -I../../moduleHandlers/conductingRegionSolver \
+    -I../../modules/incompressibleConductingFluid/lnInclude \
+    -I../../modules/incompressibleConductingVoF/lnInclude \
+    -I../../modules/conductingFluid/lnInclude \
+    -I../../modules/conductingSolid/lnInclude \
+    -I../../modules/incompressibleConductingVoF/lnInclude \
+    -DELMER_TIME=$(ELMER_TIME) \
+    -DFOAM_MAJOR_VERSION=$(FOAM_MAJOR_VERSION) \
+    $(EOF_INC) \
+    $(PFLAGS) $(PINC)
+
+EXE_LIBS = \
+    -lfiniteVolume \
+    -L$(FOAM_USER_LIBBIN) \
+    -lconductingRegionSolver \
+    $(EOF_LIBS) \
+    -lElmer

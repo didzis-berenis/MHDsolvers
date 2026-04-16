@@ -56,17 +56,21 @@ class transientElectromagneticModel
 
     //- Electric potential [V]
     volScalarField& PotE_;
+    volScalarField& PotEdc_;
 
     //- Current density correction [A/m^2]
     volVectorField& deltaJre_;
 
     //- Current density [A/m^2]
     volVectorField& Jre_;
+    volVectorField& Jdc_;
     // Not the actual current, but for keeping reference value
     volVectorField& Jreference_;
 
     //- Magnetic field [T]
     volVectorField& Bre_;
+
+    volVectorField& Bdc_;
 
     //- Velocity contribution [T*m/s]
     volVectorField& deltaUxBre_;
@@ -103,9 +107,11 @@ public:
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) override;
+        virtual volScalarField& PotEdc() override;
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+        virtual volVectorField& Jdc() override;
         virtual tmp<vectorField> J(const label patchi,bool imaginary=false) const override;
 
         //- Current density reference value [A/m^2]
@@ -127,13 +133,16 @@ public:
 
         //- Electric potential [V]
         const virtual volScalarField& PotE(bool imaginary=false) const override;
+        const virtual volScalarField& PotEdc() const override;
 
         //- Current density [A/m^2]
         const virtual volVectorField& J(bool imaginary=false) const override;
+        const virtual volVectorField& Jdc() const override;
         const virtual volVectorField& Jref(bool imaginary=false) const override;
 
         //- Magnetic field [T]
         const virtual volVectorField& B(bool imaginary=false) const override;
+        const virtual volVectorField& Bdc() const override;
 
         //- Velocity contribution [T*m/s]
         const virtual volVectorField& deltaUxB(bool imaginary=false) const override;

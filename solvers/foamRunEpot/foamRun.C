@@ -148,9 +148,10 @@ int main(int argc, char *argv[])
             solver.thermophysicalPredictor();
             solver.pressureCorrector();
             // Update electromagnetics by calculating electric potential.
-            regionSolver.solveElectromagnetics();
+            //regionSolver.solveElectromagnetics();
             solver.postCorrector();
         }
+        regionSolver.solveElectromagnetics();
 
         solver.postSolve();
         //Update liquid-solid phase fraction

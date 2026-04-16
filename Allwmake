@@ -14,6 +14,8 @@ wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
 wmake modules/incompressibleConductingVoF
+#wmake CDsolvers/viscosityModels/timeDependent
+#wmake CDsolvers/viscosityModels/modules/incompressibleConductingVoF
 
 
 wmake moduleHandlers/conductingRegionSolver
@@ -26,6 +28,7 @@ wmake utilities/initializeRegionSolvers
 wmake utilities/calcKineticEnergy
 wmake utilities/calcCurlU
 wmake utilities/calcPressurePoints
+wmake utilities/getEMFields
 
 wmake solvers/foamRunEpot
 wmake solvers/foamMultiRunEpot

@@ -255,24 +255,32 @@ void Foam::solvers::incompressibleConductingVoF::postCorrector()
     {
         momentumTransport.correct();
     }
-    if (electro.correctElectromagnetics())
-    {
-        // Set as corrected
-        electro_.setCorrected();
-
-        //Correct current density
-        //electro_.correct();
-    }
 }
 
 void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
 {
-    // Doesn't solve for new currents, but at least makes sure that currents stay in the conducting phase.
+    // Makes sure that currents stay in the conducting phase.
     fixCurrentsWithMixtureConductivity();
-    //Update JxB and Joule heating terms without solving
-    electromagneticPredictor();
-    //Solve potential equation
-    //electro_.solve();
+
+    Info<< nl << "Solving for electric potential" << endl;
+    int nPote = 0;
+    //Iterate until solved
+    while (pimple.correct())
+    {
+        Info<< "Iteration " << ++nPote << endl;
+        while (pimple.correctNonOrthogonal())
+        {
+            //Solve potential equation
+            electro_.solve();
+            if (pimple.finalNonOrthogonalIter() && electro.correctElectromagnetics())
+            {
+                // Update JxB and Joule heating terms with new potentials
+                electro_.correct();
+            }
+        }
+    }
+    Info<< "Electric potential converged in " << nPote
+    << " iterations" << endl;
 }
 
 

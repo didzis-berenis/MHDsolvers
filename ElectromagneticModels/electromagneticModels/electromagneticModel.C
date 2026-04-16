@@ -314,6 +314,15 @@ Foam::electromagneticModel::electromagneticModel
     JxB(JxB_),
     JJsigma_(lookupOrConstructScalar(mesh, "JJsigma")),
     JJsigma(JJsigma_),
+    UxBdc_
+    (
+        lookupOrConstructVector
+        (
+            mesh,
+            "UxBdc",
+            dimensionedVector(dimVelocity*dimMass/dimTime/dimTime/dimCurrent, vector::zero)
+        )
+    ),
     sigma_
     (
         lookupOrConstructScalar
@@ -377,6 +386,8 @@ void Foam::electromagneticModel::solve()
     if (isComplex())
     {
         findPotE(true);
+        //DC fields defined only for harmonic solver
+        findPotEdc();
     }
     //Set as needs correction
     setCorrectElectromagnetics();
@@ -394,9 +405,34 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
-        fvm::laplacian(sigma_,PotE)
+        fvm::laplacian(PotE)
         ==
-        sigma_*fvc::div(psiUB)
+        fvc::div(psiUB)
+    );
+    //Will add reference if needed
+    label PotERefCell = 0;
+    scalar PotERefValue = 0;
+    PotEEqn.setReference(PotERefCell, PotERefValue);
+    //Solving Poisson equation
+    PotEEqn.solve();
+}
+
+void Foam::electromagneticModel::findPotEdc()
+{
+    /*---------------------------------------------------------------------------
+    Correction to update electrical currents is based on the epotFoam solver,
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    ---------------------------------------------------------------------------*/
+    //Interpolating cross product u x B over mesh faces
+    surfaceScalarField psiUB = fvc::interpolate(UxBdc_) & mesh_.Sf();
+    //Get reference for modification
+    volScalarField& PotE = this->PotEdc();
+    //Poisson equation for electric potential
+    fvScalarMatrix PotEEqn
+    (
+        fvm::laplacian(PotE)
+        ==
+        fvc::div(psiUB)
     );
     //Will add reference if needed
     label PotERefCell = 0;
@@ -420,6 +456,29 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
     //Computation of current density at cell faces
     surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf()) + psiUB;
+    //Current density at face center
+    surfaceVectorField Env = En * mesh_.Cf();
+
+    //Interpolation of current density at cell center
+    JUB = sigma_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    //Update current density distribution and boundary conditions
+    JUB.correctBoundaryConditions();
+}
+
+void Foam::electromagneticModel::findJdc()
+{
+    // Add deltaU x B correction on top of externally calculated current density.
+    // Is used in correct() method.
+    /*---------------------------------------------------------------------------
+    Correction to update electrical currents is based on the epotFoam solver,
+    found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
+    ---------------------------------------------------------------------------*/
+    //Get J reference (boundary conditions should come from J)
+    volVectorField& JUB = this->Jdc();
+    //Interpolating cross product u x B over mesh faces
+    surfaceScalarField psiUB = fvc::interpolate(UxBdc_) & mesh_.Sf();//U ^ B
+    //Computation of current density at cell faces
+    surfaceScalarField En = -(fvc::snGrad(PotEdc()) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
@@ -460,6 +519,11 @@ void Foam::electromagneticModel::predict()
         (J() ^ B() )
         +(J(imaginary) ^ B(imaginary) )
     );
+    if (imaginary)
+    {
+        //DC fields defined only for harmonic solver
+        JxB_ += Jdc() ^ Bdc();
+    }
     JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
@@ -468,6 +532,11 @@ void Foam::electromagneticModel::predict()
         (J() & J())
         +(J(imaginary) & J(imaginary))
     )*sigmaInv();
+    if (imaginary)
+    {
+        //DC fields defined only for harmonic solver
+        JJsigma_ += (Jdc() & Jdc())*sigmaInv();
+    }
     JJsigma_.correctBoundaryConditions();
 }
 
@@ -480,6 +549,7 @@ void Foam::electromagneticModel::correct()
     if (imaginary)
     {
         findDeltaJ(imaginary);
+        findJdc();
     }
     volVectorField deltaJre = deltaJ();
     volVectorField deltaJim = deltaJ(imaginary);
@@ -491,6 +561,10 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) ^ B() )
         +((J(imaginary)+deltaJim) ^ B(imaginary) )
     );
+    if (imaginary)
+    {
+        JxB_ += Jdc() ^ Bdc();
+    }
     JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
@@ -499,10 +573,17 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) & (J()+deltaJre))
         +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
     )*sigmaInv();
+    if (imaginary)
+    {
+        JJsigma_ += (Jdc() & Jdc())*sigmaInv();
+    }
     JJsigma_.correctBoundaryConditions();
     // Mark as corrected
     setCorrected();
 }
+
+void Foam::electromagneticModel::updateU(volVectorField& U)
+{}
 
 bool Foam::electromagneticModel::read()
 {

@@ -60,6 +60,8 @@ class harmonicElectromagneticModel
         //- imaginary
         volScalarField& PotEim_;
 
+        volScalarField& PotEdc_;
+
     //- Current density correction [A/m^2]
         //real
         volVectorField& deltaJre_;
@@ -75,6 +77,7 @@ class harmonicElectromagneticModel
     //- Current density [A/m^2]
         //- real
         volVectorField& Jre_;
+        volVectorField& Jdc_;
         // Not the actual current, but for keeping reference value
         volVectorField& JreReference_;
 
@@ -89,6 +92,8 @@ class harmonicElectromagneticModel
 
         //- imaginary
         volVectorField& Bim_;
+
+        volVectorField& Bdc_;
 
     //- isComplex_ switch for solvers
         // true for harmonic models
@@ -121,9 +126,11 @@ public:
 
         //- Electric potential [V]
         virtual volScalarField& PotE(bool imaginary=false) override;
+        virtual volScalarField& PotEdc() override;
 
         //- Current density [A/m^2]
         virtual volVectorField& J(bool imaginary=false) override;
+        virtual volVectorField& Jdc() override;
         virtual tmp<vectorField> J(const label patchi,bool imaginary=false) const override;
         virtual volVectorField& Jref(bool imaginary=false) override;
 
@@ -132,6 +139,7 @@ public:
 
         //- Update velocity contribution
         virtual void updateDeltaU(volVectorField& Udiff) override;
+        virtual void updateU(volVectorField& U) override;
 
         //- Current density correction [A/m^2]
         virtual volVectorField& deltaJ(bool imaginary=false) override;
@@ -143,15 +151,18 @@ public:
 
         //- Electric potential [V]
         const virtual volScalarField& PotE(bool imaginary=false) const override;
+        const virtual volScalarField& PotEdc() const override;
 
         //- Current density [A/m^2]
         const virtual volVectorField& J(bool imaginary=false) const override;
+        const virtual volVectorField& Jdc() const override;
 
         //- Current density reference value [A/m^2]
         const virtual volVectorField& Jref(bool imaginary=false) const override;
 
         //- Magnetic field [T]
         const virtual volVectorField& B(bool imaginary=false) const override;
+        const virtual volVectorField& Bdc() const override;
 
         //- Velocity contribution [T*m/s]
         const virtual volVectorField& deltaUxB(bool imaginary=false) const override;

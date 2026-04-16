@@ -97,6 +97,8 @@ public:
         //- Electric conductivity [S/m]
         virtual volScalarField& getSigma();
 
+        dimensionedScalar getSigmaConst();
+
         //- Current density [A/m^2]
         virtual volVectorField& getJ(bool imaginary=false);
 
