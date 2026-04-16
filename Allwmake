@@ -13,9 +13,9 @@ wmake modules/magneticMaterial
 wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
-#wmake modules/incompressibleConductingVoF
-wmake CDsolvers/viscosityModels/timeDependent
-wmake CDsolvers/viscosityModels/modules/incompressibleConductingVoF
+wmake modules/incompressibleConductingVoF
+#wmake CDsolvers/viscosityModels/timeDependent
+#wmake CDsolvers/viscosityModels/modules/incompressibleConductingVoF
 
 
 wmake moduleHandlers/conductingRegionSolver
