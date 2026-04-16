@@ -20,7 +20,7 @@ for (int iter = 0; iter < nElmerCorrectors; iter++)
     Usent = U;
     sigmaSent = sigma;
     sending.sendVector(Usent);
-    if (regionSolver.isIncompressibleConductingVoF())
+    //if (regionSolver.isIncompressibleConductingVoF())
     {
         sending.sendScalar(sigmaSent);
     }

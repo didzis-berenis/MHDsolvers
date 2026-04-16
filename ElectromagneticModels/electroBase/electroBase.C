@@ -82,6 +82,11 @@ Foam::volScalarField& Foam::electroBase::getSigma()
     return electroPtr_->sigma();
 }
 
+Foam::dimensionedScalar Foam::electroBase::getSigmaConst()
+{
+    return electroPtr_->sigmaConst();
+}
+
 Foam::volVectorField& Foam::electroBase::getJ(bool imaginary)
 {
     return electroPtr_->J(imaginary);

@@ -40,10 +40,17 @@ Foam::transientElectromagneticModel::transientElectromagneticModel
     const word& phaseName
 )
 :
+    //DC fields are defined as placeholders, since the implementation is not defined.
     electromagneticModel(mesh),
     PotE_(lookupOrConstructScalar(mesh, "PotE")),
+    PotEdc_(lookupOrConstructScalar(mesh, "PotEdc",
+        dimensionedScalar(dimMass*dimLength*dimLength/dimTime/dimTime/dimTime/dimCurrent, 0))),
     Jre_(lookupOrConstructVector(mesh, "J")),
+    Jdc_(lookupOrConstructVector(mesh, "Jdc",
+        dimensionedVector(dimCurrent/dimLength/dimLength, vector::zero))),
     Bre_(lookupOrConstructVector(mesh, "B")),
+    Bdc_(lookupOrConstructVector(mesh, "Bdc",
+        dimensionedVector(dimMass/dimTime/dimTime/dimCurrent, vector::zero))),
     //Get boundary conditions from J
     deltaJre_
     (
@@ -87,6 +94,11 @@ Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imaginary)
     return PotE_;
 }
 
+Foam::volScalarField& Foam::transientElectromagneticModel::PotEdc()
+{
+    return PotEdc_;
+}
+
 Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imaginary)
 {
     return Jreference_;
@@ -95,6 +107,11 @@ Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imaginary)
 Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary)
 {
     return Jre_;
+}
+
+Foam::volVectorField& Foam::transientElectromagneticModel::Jdc()
+{
+    return Jdc_;
 }
 
 Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary)
@@ -114,9 +131,19 @@ const Foam::volScalarField& Foam::transientElectromagneticModel::PotE(bool imagi
     return PotE_;
 }
 
+const Foam::volScalarField& Foam::transientElectromagneticModel::PotEdc() const
+{
+    return PotEdc_;
+}
+
 const Foam::volVectorField& Foam::transientElectromagneticModel::J(bool imaginary) const
 {
     return Jre_;
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::Jdc() const
+{
+    return Jdc_;
 }
 
 Foam::tmp<Foam::vectorField> Foam::transientElectromagneticModel::J(const label patchi, bool imaginary) const
@@ -132,6 +159,11 @@ const Foam::volVectorField& Foam::transientElectromagneticModel::Jref(bool imagi
 const Foam::volVectorField& Foam::transientElectromagneticModel::B(bool imaginary) const
 {
     return Bre_;
+}
+
+const Foam::volVectorField& Foam::transientElectromagneticModel::Bdc() const
+{
+    return Bdc_;
 }
 
 const Foam::volVectorField& Foam::transientElectromagneticModel::deltaUxB(bool imaginary) const

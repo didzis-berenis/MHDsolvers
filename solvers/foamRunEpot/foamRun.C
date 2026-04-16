@@ -148,9 +148,46 @@ int main(int argc, char *argv[])
             solver.thermophysicalPredictor();
             solver.pressureCorrector();
             // Update electromagnetics by calculating electric potential.
-            regionSolver.solveElectromagnetics();
+            //regionSolver.solveElectromagnetics();
             solver.postCorrector();
         }
+        regionSolver.solveElectromagnetics();
+        /*regionSolver.updateMixtureConductivity();
+
+        Info<< nl << "Solving for electric potential" << endl;
+        bool solved = false;
+        int nPotECorrectors = solver.pimple.dict().lookupOrDefault<label>("nPotECorrectors", 1);
+        int nOuterPotECorrectors = solver.pimple.dict().lookupOrDefault<label>("nOuterPotECorrectors", 20);
+        // Analoge to pimple.loop()
+        for (int it=1; it<=nOuterPotECorrectors; it++)
+        {
+            pimple.read();
+            if (it==1)
+                solver.pimple.resetCorrSolveIndex();
+            else
+                solver.pimple.updateCorrSolveIndex();
+
+            solver.pimple.storePrevIterFields();
+            solver.pimple.storePrevIterFields();
+            bool isFinal = solved || it==nOuterPotECorrectors;
+            solver.pimple.updateFinal(isFinal);
+
+            Info<< "Iteration " << it << endl;
+            for (int it1=1; it1<=nPotECorrectors; it1++)
+            {
+                regionSolver.solveElectromagnetics();
+            }
+            solver.postCorrector();
+            if (solved)
+            {
+                Info<< "Electromagnetic source calculation converged in " << it
+                << " iterations" << endl;
+                break;
+            }
+            bool result = true;
+            result = solver.pimple.corrCriteriaSatisfied() && result;
+            solved = result;
+        }*/
 
         solver.postSolve();
         //Update liquid-solid phase fraction

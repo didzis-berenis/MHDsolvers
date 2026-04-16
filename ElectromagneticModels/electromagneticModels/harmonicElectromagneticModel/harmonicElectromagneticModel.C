@@ -43,11 +43,14 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
 :
     electromagneticModel(mesh),
     PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
+    PotEdc_(lookupOrConstructScalar(mesh, "PotE")),
     PotEim_(lookupOrConstructScalar(mesh, "PotEim")),
     Jre_(lookupOrConstructVector(mesh, "Jre")),
     Jim_(lookupOrConstructVector(mesh, "Jim")),
+    Jdc_(lookupOrConstructVector(mesh, "J")),
     Bre_(lookupOrConstructVector(mesh, "Bre")),
     Bim_(lookupOrConstructVector(mesh, "Bim")),
+    Bdc_(lookupOrConstructVector(mesh, "B")),
     //Get boundary conditions from J
     deltaJre_
     (
@@ -55,7 +58,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJre",
-            lookupOrConstructVector(mesh, "Jre")
+            lookupOrConstructVector(mesh, "Jre"),
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
         )
     ),
     deltaJim_
@@ -64,7 +69,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJim",
-            lookupOrConstructVector(mesh, "Jim")
+            lookupOrConstructVector(mesh, "Jim"),
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
         )
     ),
     JreReference_
@@ -118,6 +125,11 @@ Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imaginary)
     return imaginary ? PotEim_ : PotEre_;
 }
 
+Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEdc()
+{
+    return PotEdc_;
+}
+
 Foam::volVectorField& Foam::harmonicElectromagneticModel::Jref(bool imaginary)
 {
     return imaginary ? JimReference_ : JreReference_;
@@ -126,6 +138,11 @@ Foam::volVectorField& Foam::harmonicElectromagneticModel::Jref(bool imaginary)
 Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary)
 {
     return imaginary ? Jim_ : Jre_;
+}
+
+Foam::volVectorField& Foam::harmonicElectromagneticModel::Jdc()
+{
+    return Jdc_;
 }
 
 Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary)
@@ -145,9 +162,19 @@ const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotE(bool imagin
     return imaginary ? PotEim_ : PotEre_;
 }
 
+const Foam::volScalarField& Foam::harmonicElectromagneticModel::PotEdc() const
+{
+    return PotEdc_;
+}
+
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::J(bool imaginary) const
 {
     return imaginary ? Jim_ : Jre_;
+}
+
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::Jdc() const
+{
+    return Jdc_;
 }
 
 Foam::tmp<Foam::vectorField> Foam::harmonicElectromagneticModel::J(const label patchi, bool imaginary) const
@@ -168,6 +195,11 @@ const Foam::volVectorField& Foam::harmonicElectromagneticModel::B(bool imaginary
     return imaginary ? Bim_ : Bre_;
 }
 
+const Foam::volVectorField& Foam::harmonicElectromagneticModel::Bdc() const
+{
+    return Bdc_;
+}
+
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaUxB(bool imaginary) const
 {
     return imaginary ? deltaUxBim_ : deltaUxBre_;
@@ -177,6 +209,11 @@ void Foam::harmonicElectromagneticModel::updateDeltaU(volVectorField& Udiff)
 {
     deltaUxBre_ = Udiff ^ Bre_;
     deltaUxBim_ = Udiff ^ Bim_;
+}
+
+void Foam::harmonicElectromagneticModel::updateU(volVectorField& U)
+{
+    UxBdc_ = U ^ Bdc_;
 }
 
 const Foam::volVectorField& Foam::harmonicElectromagneticModel::deltaJ(bool imaginary) const

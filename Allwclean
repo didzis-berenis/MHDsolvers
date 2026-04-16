@@ -21,6 +21,7 @@ wclean moduleHandlers/conductingRegionSolvers
 wclean utilities/initializeTemperature
 wclean utilities/initializeMultiRegionTemperature
 wclean utilities/initializeRegionSolvers
+wclean utilities/getEMFields
 
 wclean solvers/foamRunEpot
 wclean solvers/foamMultiRunEpot
