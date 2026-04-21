@@ -83,6 +83,8 @@ protected:
         //- Phase-name
         const word& phaseName_;
 
+        bool hasDCfields_ = false;
+
         //- Electrical conductivity [S/m]
         const dimensionedScalar sigmaConst_;
 

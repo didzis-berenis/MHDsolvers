@@ -387,7 +387,7 @@ void Foam::electromagneticModel::solve()
     {
         findPotE(true);
         //DC fields defined only for harmonic solver
-        findPotEdc();
+        if (hasDCfields_) findPotEdc();
     }
     //Set as needs correction
     setCorrectElectromagnetics();
@@ -546,11 +546,8 @@ void Foam::electromagneticModel::correct()
     bool imaginary = isComplex();
     //Get J difference by incorporating deltaU x B term
     findDeltaJ();
-    if (imaginary)
-    {
-        findDeltaJ(imaginary);
-        findJdc();
-    }
+    if (imaginary) findDeltaJ(imaginary);
+    if (hasDCfields_) findJdc();
     volVectorField deltaJre = deltaJ();
     volVectorField deltaJim = deltaJ(imaginary);
 
@@ -561,10 +558,7 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) ^ B() )
         +((J(imaginary)+deltaJim) ^ B(imaginary) )
     );
-    if (imaginary)
-    {
-        JxB_ += Jdc() ^ Bdc();
-    }
+    if (hasDCfields_) JxB_ += Jdc() ^ Bdc();
     JxB_.correctBoundaryConditions();
     //Joule heating
     //multiply by inverse of sigma to avoid division by zero
@@ -573,10 +567,7 @@ void Foam::electromagneticModel::correct()
         ((J()+deltaJre) & (J()+deltaJre))
         +((J(imaginary)+deltaJim) & (J(imaginary)+deltaJim))
     )*sigmaInv();
-    if (imaginary)
-    {
-        JJsigma_ += (Jdc() & Jdc())*sigmaInv();
-    }
+    if (hasDCfields_) JJsigma_ += (Jdc() & Jdc())*sigmaInv();
     JJsigma_.correctBoundaryConditions();
     // Mark as corrected
     setCorrected();

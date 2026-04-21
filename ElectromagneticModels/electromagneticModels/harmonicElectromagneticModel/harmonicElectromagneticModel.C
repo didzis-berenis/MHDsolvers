@@ -43,14 +43,35 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
 :
     electromagneticModel(mesh),
     PotEre_(lookupOrConstructScalar(mesh, "PotEre")),
-    PotEdc_(lookupOrConstructScalar(mesh, "PotE")),
+    PotEdc_(
+        lookupOrConstructScalar(
+            mesh,
+            "PotE",
+            dimensionedScalar(dimMass*dimLength*dimLength/dimTime/dimTime/dimTime/dimCurrent, 0),
+            IOobject::READ_IF_PRESENT
+        )
+    ),
     PotEim_(lookupOrConstructScalar(mesh, "PotEim")),
     Jre_(lookupOrConstructVector(mesh, "Jre")),
     Jim_(lookupOrConstructVector(mesh, "Jim")),
-    Jdc_(lookupOrConstructVector(mesh, "J")),
+    Jdc_(
+        lookupOrConstructVector(
+            mesh,
+            "J",
+            dimensionedVector(dimCurrent/dimLength/dimLength, vector::zero),
+            IOobject::READ_IF_PRESENT
+        )
+    ),
     Bre_(lookupOrConstructVector(mesh, "Bre")),
     Bim_(lookupOrConstructVector(mesh, "Bim")),
-    Bdc_(lookupOrConstructVector(mesh, "B")),
+    Bdc_(
+        lookupOrConstructVector(
+            mesh,
+            "B",
+            dimensionedVector(dimMass/dimTime/dimTime/dimCurrent, vector::zero),
+            IOobject::READ_IF_PRESENT
+        )
+    ),
     //Get boundary conditions from J
     deltaJre_
     (
@@ -58,9 +79,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJre",
-            lookupOrConstructVector(mesh, "Jre"),
+            lookupOrConstructVector(mesh, "Jre")/*,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::AUTO_WRITE*/
         )
     ),
     deltaJim_
@@ -69,9 +90,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         (
             mesh,
             "deltaJim",
-            lookupOrConstructVector(mesh, "Jim"),
+            lookupOrConstructVector(mesh, "Jim")/*,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::AUTO_WRITE*/
         )
     ),
     JreReference_
@@ -110,7 +131,9 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
             lookupOrConstructVector(mesh, "Bim")*dimensionedScalar(dimVelocity,0)
         )
     )
-{}
+{
+    hasDCfields_ = mesh.time().found("PotE") && mesh.time().found("J") && mesh.time().found("B");
+}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
