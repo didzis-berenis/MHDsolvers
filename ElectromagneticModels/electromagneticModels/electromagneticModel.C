@@ -367,6 +367,59 @@ Foam::electromagneticModel::electromagneticModel
             "sigmaInv",
             dimensionedScalar(dimMass*pow3(dimLength)/pow3(dimTime)/dimCurrent/dimCurrent,0)
         )
+    ),
+    sigmaSolve_
+    (
+        lookupOrConstructScalar
+        (
+            mesh,
+            "sigmaSolve",
+            dimensionedScalar(pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),0)
+        )
+    ),
+    forceMultiplier_
+    (
+        this->found("forceMultiplier") ?
+        dimensionedScalar
+        (
+            "forceMultiplier",
+            dimless,
+            *this
+        ).value() :
+        1
+    ),
+    rampUpCoeff_
+    (
+        this->found("rampUpCoeff") ?
+        dimensionedScalar
+        (
+            "rampUpCoeff",
+            dimless,
+            *this
+        ).value() :
+        1
+    ),
+    rampUpTime_
+    (
+        this->found("rampUpTime") ?
+        dimensionedScalar
+        (
+            "rampUpTime",
+            dimTime,
+            *this
+        ).value() :
+        0
+    ),
+    rampStartTime_
+    (
+        this->found("rampStartTime") ?
+        dimensionedScalar
+        (
+            "rampStartTime",
+            dimTime,
+            *this
+        ).value() :
+        0
     )
 {
     // Update sigma boundary fields if necessary
@@ -376,9 +429,24 @@ Foam::electromagneticModel::electromagneticModel
     }*/
     // Update inverse of sigma
     sigmaInv();
+    /*Info << "rampStartTime " << rampStartTime_ << endl;
+    Info << "rampUpCoeff " << rampUpCoeff_ << endl;
+    Info << "rampUpTime " << rampUpTime_ << endl;*/
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+Foam::scalar Foam::electromagneticModel::rampUp() const
+{
+    scalar coeff = forceMultiplier_;
+    scalar timeNow = mesh_.time().value();
+    if (timeNow < rampUpTime_)
+    {
+        coeff *= ((timeNow-rampStartTime_)/rampUpTime_)*(1-rampUpCoeff_)+rampUpCoeff_;
+        //Info << "coeff " << coeff << endl;
+    }
+    return coeff;
+}
 
 void Foam::electromagneticModel::solve()
 {
@@ -399,13 +467,13 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
     ---------------------------------------------------------------------------*/
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();
+    surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*deltaUxB(imaginary)) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotE(imaginary);
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
-        fvm::laplacian(PotE)
+        fvm::laplacian(sigmaSolve_, PotE)
         ==
         fvc::div(psiUB)
     );
@@ -424,13 +492,13 @@ void Foam::electromagneticModel::findPotEdc()
     found in https://doi.org/10.13140/RG.2.2.12839.55201 (Chapter 4).
     ---------------------------------------------------------------------------*/
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(UxBdc_) & mesh_.Sf();
+    surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*UxBdc_) & mesh_.Sf();
     //Get reference for modification
     volScalarField& PotE = this->PotEdc();
     //Poisson equation for electric potential
     fvScalarMatrix PotEEqn
     (
-        fvm::laplacian(PotE)
+        fvm::laplacian(sigmaSolve_, PotE)
         ==
         fvc::div(psiUB)
     );
@@ -453,14 +521,14 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     //Get deltaJ reference (boundary conditions should come from J)
     volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
+    surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
     //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(PotE(imaginary)) * mesh_.magSf()) + psiUB;
+    surfaceScalarField En = -(fvc::snGrad(sigmaSolve_*PotE(imaginary)) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
     //Interpolation of current density at cell center
-    JUB = sigma_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    JUB = sigma_/sigmaSolve_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary conditions
     JUB.correctBoundaryConditions();
 }
@@ -476,14 +544,14 @@ void Foam::electromagneticModel::findJdc()
     //Get J reference (boundary conditions should come from J)
     volVectorField& JUB = this->Jdc();
     //Interpolating cross product u x B over mesh faces
-    surfaceScalarField psiUB = fvc::interpolate(UxBdc_) & mesh_.Sf();//U ^ B
+    surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*UxBdc_) & mesh_.Sf();//U ^ B
     //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(PotEdc()) * mesh_.magSf()) + psiUB;
+    surfaceScalarField En = -(fvc::snGrad(sigmaSolve_*PotEdc()) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
     //Interpolation of current density at cell center
-    JUB = sigma_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
+    JUB = sigma_/sigmaSolve_*(fvc::surfaceIntegrate(Env) - (fvc::surfaceIntegrate(En) * mesh_.C()) );
     //Update current density distribution and boundary conditions
     JUB.correctBoundaryConditions();
 }
@@ -606,6 +674,11 @@ Foam::volScalarField& Foam::electromagneticModel::sigma()
     return sigma_;
 }
 
+Foam::volScalarField& Foam::electromagneticModel::sigmaSolve()
+{
+    return sigmaSolve_;
+}
+
 /*void Foam::electromagneticModel::patchSigmaBoundaries(Foam::volScalarField& sigma)
 {
     // Update sigma boundary fields.
@@ -677,6 +750,11 @@ const Foam::volScalarField& Foam::electromagneticModel::sigmaInv() const
 const Foam::volScalarField& Foam::electromagneticModel::sigma() const
 {
     return sigma_;
+}
+
+const Foam::volScalarField& Foam::electromagneticModel::sigmaSolve() const
+{
+    return sigmaSolve_;
 }
 
 const Foam::dimensionedScalar Foam::electromagneticModel::sigmaConst() const

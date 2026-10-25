@@ -120,6 +120,9 @@ class conductingRegionSolver
         int restartInterval_;
         bool disableCleanup_;
 
+        const scalar forceAlphaCutoff_ = 0.5;
+        const scalar floor_ = 1e-6;
+
         //- Names of derived solvers
         const word incompressibleFluidSolverName_ = "incompressibleConductingFluid";
         const word fluidSolverName_ = "conductingFluid";

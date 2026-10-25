@@ -3,5 +3,6 @@
 *.dep
 *.so
 .vscode/
+.venv/
 additionalSolvers/
 CDsolvers/

@@ -265,16 +265,27 @@ void Foam::conductingRegionSolver::updateMixtureConductivity()
     //Pout << "Updating mixture conductivity in region " << name_ << endl;
     if (isIncompressibleConductingVoF())
     {
-        volScalarField new_sigma = getUpdatedConductivity();
-        scalar sigmaCutoff = 0;//gMax(new_sigma())*SMALL;
+        //volScalarField new_sigma = getUpdatedConductivity();
+        volScalarField alpha = getIncompressibleConductingVoFPtr_()->getAlpha1();
+        volScalarField a("emAlpha", min(max(alpha, scalar(0)), scalar(1)));
+
+        //Update sigma with phase information
+        volScalarField new_sigma("emSigma", a*getElectroBasePtr_()->getSigmaConst());
+
         volScalarField& sigma = getElectroBasePtr_()->getSigma();
-        forAll(new_sigma, cellI)
-        {
-            sigma[cellI] = new_sigma[cellI] < sigmaCutoff ? 0 : new_sigma[cellI];
-        }
+        sigma = new_sigma;
         sigma.correctBoundaryConditions();
         getIncompressibleConductingVoFPtr_()->fixCurrentsWithMixtureConductivity();
         //getElectroBasePtr_()->evalSigmaBnd();
+
+        //Solve with smooth cutoff
+        //a + floor_*(1-a) == (floor_+(1-floor_)*a)
+        volScalarField k("emKappa", (floor_+(1-floor_)*a));
+        k.correctBoundaryConditions();
+        volScalarField& sigmaSolve = getElectroBasePtr_()->getSigmaSolve();
+        volScalarField new_sigma_solve("emSigma", k*getElectroBasePtr_()->getSigmaConst());
+        sigmaSolve = new_sigma_solve;
+        sigmaSolve.correctBoundaryConditions();
     }
 }
 

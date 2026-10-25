@@ -88,6 +88,12 @@ protected:
         //- Electrical conductivity [S/m]
         const dimensionedScalar sigmaConst_;
 
+        // Force ramp up coefficients
+        const scalar forceMultiplier_;
+        const scalar rampUpCoeff_;
+        const scalar rampUpTime_;
+        const scalar rampStartTime_;
+
         // Fields
 
         // Lorentz force
@@ -101,6 +107,7 @@ protected:
 
         //- Inverse Electric conductivity [m/S]
         volScalarField& sigmaInv_;
+        volScalarField& sigmaSolve_;
 
         volVectorField& UxBdc_;
 
@@ -254,6 +261,7 @@ public:
 
         //- Electric conductivity [S/m]
         virtual volScalarField& sigma();
+        virtual volScalarField& sigmaSolve();
 
         //- assign closest internal field values to sigma boundaries
         //virtual void patchSigmaBoundaries(volScalarField& sigma);
@@ -317,6 +325,7 @@ public:
 
         //- Electric conductivity [S/m]
         virtual const volScalarField& sigma() const;
+        virtual const volScalarField& sigmaSolve() const;
 
         //- Electric conductivity for patch [S/m]
         virtual tmp<scalarField> sigma(const label patchi) const;
@@ -329,6 +338,8 @@ public:
 
         //- Electric conductivity [S/m]
         virtual const dimensionedScalar sigmaConst() const;
+
+        virtual scalar rampUp() const;
 
         //- Electric potential [V]
         virtual const volScalarField& PotE(bool imaginary=false) const = 0;

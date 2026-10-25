@@ -286,14 +286,10 @@ void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
 
 void Foam::solvers::incompressibleConductingVoF::fixCurrentsWithMixtureConductivity()
 {
-    volScalarField sigmaNormalized = electro.sigma()/
-    dimensionedScalar
-    (
-        "sigmaMag",
-        pow3(dimTime)*dimCurrent*dimCurrent/dimMass/pow3(dimLength),
-        gMax(electro.sigma()())
-    );
-    volVectorField new_Jre = electro.J()*sigmaNormalized;
+    volScalarField alpha = getAlpha1();
+    volScalarField a("emAlpha", min(max(alpha, scalar(0)), scalar(1)));
+    
+    volVectorField new_Jre = electro.J()*a;
     volVectorField& Jre = getJ();
     forAll(new_Jre, cellI)
     {
@@ -302,7 +298,7 @@ void Foam::solvers::incompressibleConductingVoF::fixCurrentsWithMixtureConductiv
     Jre.correctBoundaryConditions();
     if (electro.isComplex())
     {
-        volVectorField new_Jim = electro.J(true)*sigmaNormalized;
+        volVectorField new_Jim = electro.J(true)*a;
         volVectorField& Jim = getJ(true);
         forAll(new_Jim, cellI)
         {

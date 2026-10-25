@@ -80,6 +80,9 @@ class incompressibleConductingVoF
     public electroBase
 {
 
+        const scalar forceAlphaCutoff_ = 0.5;
+        const scalar floor_ = 1e-6;
+
 protected:
 
     // Phase properties

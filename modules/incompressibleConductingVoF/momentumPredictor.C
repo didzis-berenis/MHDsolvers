@@ -40,7 +40,7 @@ void Foam::solvers::incompressibleConductingVoF::momentumPredictor()
       + MRF.DDt(rho, U)
       + divDevTau(U)
      ==
-        fvModels().source(rho, U)+electro.JxB()
+        fvModels().source(rho, U)+electro.rampUp()*electro.JxB()
     );
     fvVectorMatrix& UEqn = tUEqn.ref();
 

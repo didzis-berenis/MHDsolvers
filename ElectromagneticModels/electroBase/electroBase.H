@@ -96,6 +96,7 @@ public:
 
         //- Electric conductivity [S/m]
         virtual volScalarField& getSigma();
+        virtual volScalarField& getSigmaSolve();
 
         dimensionedScalar getSigmaConst();
 

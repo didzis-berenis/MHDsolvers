@@ -82,6 +82,11 @@ Foam::volScalarField& Foam::electroBase::getSigma()
     return electroPtr_->sigma();
 }
 
+Foam::volScalarField& Foam::electroBase::getSigmaSolve()
+{
+    return electroPtr_->sigmaSolve();
+}
+
 Foam::dimensionedScalar Foam::electroBase::getSigmaConst()
 {
     return electroPtr_->sigmaConst();
