@@ -325,6 +325,7 @@ void Foam::solvers::incompressibleConductingVoF::fixCurrentsWithMixtureConductiv
 void Foam::solvers::incompressibleConductingVoF::storeReceivedCurrents(bool imaginary)
 {
     autoPtr<volVectorField>& JReceived = imaginary ? JReceivedIm_ : JReceivedRe_;
+    JReceived.clear();
     JReceived.reset
     (
         new volVectorField
@@ -343,6 +344,7 @@ void Foam::solvers::incompressibleConductingVoF::storeReceivedCurrents(bool imag
     if (!imaginary)
     {
         volScalarField alpha = getAlpha1();
+        alphaReceived_.clear();
         alphaReceived_.reset
         (
             new volScalarField
