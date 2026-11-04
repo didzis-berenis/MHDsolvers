@@ -43,6 +43,7 @@ SourceFiles
 #define electromagneticModel_H
 
 #include "volFields.H"
+#include "surfaceFields.H"
 #include "typeInfo.H"
 #include "IOdictionary.H"
 #include "autoPtr.H"
@@ -110,6 +111,21 @@ protected:
         volScalarField& sigmaSolve_;
 
         volVectorField& UxBdc_;
+
+        //- Net current flux of the last potential solve, psiUB - PotEEqn.flux()
+        //  (real, imaginary, DC): the face current balanced by the equation,
+        //  with its conductivity interpolation and non-orthogonal correction.
+        //  The snGrad-based reconstruction matches it only when the snGrad
+        //  and interpolation schemes equal those of the laplacian.
+        autoPtr<surfaceScalarField> JfluxRe_;
+        autoPtr<surfaceScalarField> JfluxIm_;
+        autoPtr<surfaceScalarField> JfluxDc_;
+
+        //- Access to the stored current flux
+        autoPtr<surfaceScalarField>& Jflux(bool imaginary=false, bool dc=false)
+        {
+            return dc ? JfluxDc_ : (imaginary ? JfluxIm_ : JfluxRe_);
+        }
 
 
     // Protected Static Member Functions
