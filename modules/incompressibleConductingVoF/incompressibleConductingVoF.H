@@ -110,9 +110,9 @@ protected:
         autoPtr<volVectorField> JReceivedIm_;
         autoPtr<volScalarField> alphaReceived_;
 
-        //- Melt peak of |JxB|/rho at the previous time step (limit for
-        //  emForceLimiter), and the same peak for the current time step.
-        //  Negative until the first step has been evaluated.
+        //- Peak of |JxB|/rho used to limit the current time step, and the
+        //  current-step melt peak (or conducting-cell peak if no melt cells
+        //  are present) for the next time step. Negative until first use.
         scalar emAccelerationLimit_ = -1;
         scalar emAccelerationCurrent_ = -1;
         label emAccelerationTimeIndex_ = -1;

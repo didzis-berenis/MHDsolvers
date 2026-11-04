@@ -377,21 +377,32 @@ Foam::solvers::incompressibleConductingVoF::emForceLimiter()
     const scalarField& rhoc = rho.primitiveField();
 
     scalar peak = 0;
+    scalar stepPeak = 0;
+    label hasReferenceCells = 0;
     forAll(magF, cellI)
     {
+        if (alpha[cellI] >= gasAlphaCutoff)
+        {
+            stepPeak = max(stepPeak, magF[cellI]/rhoc[cellI]);
+        }
         if (alpha[cellI] >= meltAlpha)
         {
             peak = max(peak, magF[cellI]/rhoc[cellI]);
+            hasReferenceCells = 1;
         }
     }
     reduce(peak, maxOp<scalar>());
+    reduce(stepPeak, maxOp<scalar>());
+    reduce(hasReferenceCells, maxOp<label>());
 
     if (runTime.timeIndex() != emAccelerationTimeIndex_)
     {
         emAccelerationLimit_ = emAccelerationCurrent_;
         emAccelerationTimeIndex_ = runTime.timeIndex();
     }
-    emAccelerationCurrent_ = peak;
+    // Without melt reference cells, leave this step unbounded and use its
+    // conducting-cell peak as the reference for the next step.
+    emAccelerationCurrent_ = hasReferenceCells ? peak : stepPeak;
     const scalar limit =
         emAccelerationLimit_ > 0 ? emAccelerationLimit_ : peak;
 
@@ -411,7 +422,11 @@ Foam::solvers::incompressibleConductingVoF::emForceLimiter()
         {
             weight[cellI] = 0;
         }
-        else if (magF[cellI] > rhoc[cellI]*limit)
+        else if
+        (
+            hasReferenceCells
+         && magF[cellI] > rhoc[cellI]*limit
+        )
         {
             weight[cellI] = rhoc[cellI]*limit/magF[cellI];
         }
