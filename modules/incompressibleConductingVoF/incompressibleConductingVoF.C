@@ -286,19 +286,33 @@ void Foam::solvers::incompressibleConductingVoF::solveElectromagnetics()
 
 void Foam::solvers::incompressibleConductingVoF::fixCurrentsWithMixtureConductivity()
 {
+    // The received current already carries the mixture conductivity
+    // (alpha*sigma), so only rescale it for interface motion since the last
+    // exchange. Rebuilding from the stored copy keeps repeated calls from
+    // compounding the alpha weighting. Before any exchange, J is left as is.
+    if (!JReceivedRe_.valid() || !alphaReceived_.valid())
+    {
+        return;
+    }
     volScalarField alpha = getAlpha1();
     volScalarField a("emAlpha", min(max(alpha, scalar(0)), scalar(1)));
-    
-    volVectorField new_Jre = electro.J()*a;
+    // Capped at 1: a cell that was nearly gas at the exchange must not amplify J
+    volScalarField ratio
+    (
+        "emAlphaRatio",
+        min(a/max(alphaReceived_(), scalar(1e-3)), scalar(1))
+    );
+
+    volVectorField new_Jre = JReceivedRe_()*ratio;
     volVectorField& Jre = getJ();
     forAll(new_Jre, cellI)
     {
         Jre[cellI] = new_Jre[cellI];
     }
     Jre.correctBoundaryConditions();
-    if (electro.isComplex())
+    if (electro.isComplex() && JReceivedIm_.valid())
     {
-        volVectorField new_Jim = electro.J(true)*a;
+        volVectorField new_Jim = JReceivedIm_()*ratio;
         volVectorField& Jim = getJ(true);
         forAll(new_Jim, cellI)
         {
@@ -306,6 +320,120 @@ void Foam::solvers::incompressibleConductingVoF::fixCurrentsWithMixtureConductiv
         }
         Jim.correctBoundaryConditions();
     }
+}
+
+void Foam::solvers::incompressibleConductingVoF::storeReceivedCurrents(bool imaginary)
+{
+    autoPtr<volVectorField>& JReceived = imaginary ? JReceivedIm_ : JReceivedRe_;
+    JReceived.clear();
+    JReceived.reset
+    (
+        new volVectorField
+        (
+            IOobject
+            (
+                imaginary ? "JReceivedIm" : "JReceivedRe",
+                runTime.name(),
+                mesh,
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            getJ(imaginary)
+        )
+    );
+    if (!imaginary)
+    {
+        volScalarField alpha = getAlpha1();
+        alphaReceived_.clear();
+        alphaReceived_.reset
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "alphaReceived",
+                    runTime.name(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::NO_WRITE
+                ),
+                min(max(alpha, scalar(0)), scalar(1))
+            )
+        );
+    }
+}
+
+Foam::tmp<Foam::volScalarField::Internal>
+Foam::solvers::incompressibleConductingVoF::emForceLimiter()
+{
+    // Elmer's current does not follow alpha on this mesh near the interface,
+    // and the small mixture density would turn it into a huge acceleration.
+    // The limit comes from melt cells, where J does follow alpha. It uses the
+    // unlimited force, so the limiter does not feed back on itself.
+    const scalar meltAlpha = 0.9;
+    const scalar gasAlphaCutoff = 1e-4;
+
+    const volScalarField alpha(getAlpha1());
+    const vectorField& JxB = electro.JxB();
+    const scalarField magF(mag(JxB));
+    const scalarField& rhoc = rho.primitiveField();
+
+    scalar peak = 0;
+    scalar stepPeak = 0;
+    label hasReferenceCells = 0;
+    forAll(magF, cellI)
+    {
+        if (alpha[cellI] >= gasAlphaCutoff)
+        {
+            stepPeak = max(stepPeak, magF[cellI]/rhoc[cellI]);
+        }
+        if (alpha[cellI] >= meltAlpha)
+        {
+            peak = max(peak, magF[cellI]/rhoc[cellI]);
+            hasReferenceCells = 1;
+        }
+    }
+    reduce(peak, maxOp<scalar>());
+    reduce(stepPeak, maxOp<scalar>());
+    reduce(hasReferenceCells, maxOp<label>());
+
+    if (runTime.timeIndex() != emAccelerationTimeIndex_)
+    {
+        emAccelerationLimit_ = emAccelerationCurrent_;
+        emAccelerationTimeIndex_ = runTime.timeIndex();
+    }
+    // Without melt reference cells, leave this step unbounded and use its
+    // conducting-cell peak as the reference for the next step.
+    emAccelerationCurrent_ = hasReferenceCells ? peak : stepPeak;
+    const scalar limit =
+        emAccelerationLimit_ > 0 ? emAccelerationLimit_ : peak;
+
+    tmp<volScalarField::Internal> tweight
+    (
+        volScalarField::Internal::New
+        (
+            "emForceLimiter",
+            mesh,
+            dimensionedScalar(dimless, 1)
+        )
+    );
+    scalarField& weight = tweight.ref();
+    forAll(weight, cellI)
+    {
+        if (alpha[cellI] < gasAlphaCutoff)
+        {
+            weight[cellI] = 0;
+        }
+        else if
+        (
+            hasReferenceCells
+         && magF[cellI] > rhoc[cellI]*limit
+        )
+        {
+            weight[cellI] = rhoc[cellI]*limit/magF[cellI];
+        }
+    }
+    return tweight;
 }
 
 // ************************************************************************* //

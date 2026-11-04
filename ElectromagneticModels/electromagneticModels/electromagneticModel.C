@@ -38,6 +38,7 @@ namespace Foam
     defineRunTimeSelectionTable(electromagneticModel, fvMesh);
 }
 
+
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 Foam::volScalarField& Foam::electromagneticModel::lookupOrConstructScalar
@@ -477,8 +478,9 @@ void Foam::electromagneticModel::findPotE(bool imaginary)
         ==
         fvc::div(psiUB)
     );
-    //Will add reference if needed
-    label PotERefCell = 0;
+    //Will add reference if needed, in one cell of the whole domain only:
+    //a reference on every processor grounds the potential at nProcs cells
+    label PotERefCell = Pstream::master() ? 0 : -1;
     scalar PotERefValue = 0;
     PotEEqn.setReference(PotERefCell, PotERefValue);
     //Solving Poisson equation
@@ -502,8 +504,8 @@ void Foam::electromagneticModel::findPotEdc()
         ==
         fvc::div(psiUB)
     );
-    //Will add reference if needed
-    label PotERefCell = 0;
+    //Will add reference if needed, in one cell of the whole domain only
+    label PotERefCell = Pstream::master() ? 0 : -1;
     scalar PotERefValue = 0;
     PotEEqn.setReference(PotERefCell, PotERefValue);
     //Solving Poisson equation
@@ -522,8 +524,13 @@ void Foam::electromagneticModel::findDeltaJ(bool imaginary)
     volVectorField& JUB = this->deltaJ(imaginary);
     //Interpolating cross product u x B over mesh faces
     surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*deltaUxB(imaginary)) & mesh_.Sf();//deltaU_ ^ B(imaginary)
-    //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(sigmaSolve_*PotE(imaginary)) * mesh_.magSf()) + psiUB;
+    //Computation of current at cell faces, the flux of the potential equation.
+    //Conductivity stays outside the gradient: snGrad(sigmaSolve*PotE) adds
+    //PotE*grad(sigmaSolve), a current through the phase boundary set by the
+    //arbitrary potential level. Linear interpolation and snGrad must match the
+    //laplacian(sigmaSolve,PotE) scheme (Gauss linear corrected), or the face
+    //current is no longer the conserved flux of findPotE.
+    surfaceScalarField En = -(fvc::interpolate(sigmaSolve_)*fvc::snGrad(PotE(imaginary)) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 
@@ -545,8 +552,9 @@ void Foam::electromagneticModel::findJdc()
     volVectorField& JUB = this->Jdc();
     //Interpolating cross product u x B over mesh faces
     surfaceScalarField psiUB = fvc::interpolate(sigmaSolve_*UxBdc_) & mesh_.Sf();//U ^ B
-    //Computation of current density at cell faces
-    surfaceScalarField En = -(fvc::snGrad(sigmaSolve_*PotEdc()) * mesh_.magSf()) + psiUB;
+    //Computation of current at cell faces, the flux of the potential equation
+    //(conductivity outside the gradient, as in findDeltaJ)
+    surfaceScalarField En = -(fvc::interpolate(sigmaSolve_)*fvc::snGrad(PotEdc()) * mesh_.magSf()) + psiUB;
     //Current density at face center
     surfaceVectorField Env = En * mesh_.Cf();
 

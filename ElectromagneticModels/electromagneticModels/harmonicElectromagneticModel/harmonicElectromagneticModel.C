@@ -132,7 +132,16 @@ Foam::harmonicElectromagneticModel::harmonicElectromagneticModel
         )
     )
 {
-    hasDCfields_ = mesh.time().found("PotE") && mesh.time().found("J") && mesh.time().found("B");
+    // DC part is on when all three start-time files exist. mesh.time().found()
+    // searched the Time registry, which never holds mesh fields, so it was always false.
+    auto present = [&mesh](const word& name)
+    {
+        IOobject io(name, mesh.time().name(), mesh, IOobject::MUST_READ);
+        return io.headerOk();
+    };
+    hasDCfields_ = present("PotE") && present("J") && present("B");
+    Info<< "harmonicElectromagneticModel: static (DC) fields "
+        << (hasDCfields_ ? "on" : "off") << endl;
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //

@@ -423,6 +423,11 @@ void Foam::conductingRegionSolver::setJ(volVectorField& globalField, bool imagin
             regionField[cellI] = globalField[cellI];
         }
         regionField.correctBoundaryConditions();
+        if (isIncompressibleConductingVoF())
+        {
+            // Reference for the conducting-phase fix until the next exchange
+            getIncompressibleConductingVoFPtr_()->storeReceivedCurrents(imaginary);
+        }
     }
 }
 //Assigns fluid and solid region values from global to each region field

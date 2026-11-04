@@ -102,6 +102,21 @@ protected:
         // Store old alpha1 field
         volScalarField alpha1_old_;
 
+        //- Current density received at the last coupling exchange
+        //  (real and imaginary parts) and the clipped alpha1 at that time.
+        //  fixCurrentsWithMixtureConductivity rescales from these, so
+        //  repeated calls do not compound the alpha weighting.
+        autoPtr<volVectorField> JReceivedRe_;
+        autoPtr<volVectorField> JReceivedIm_;
+        autoPtr<volScalarField> alphaReceived_;
+
+        //- Peak of |JxB|/rho used to limit the current time step, and the
+        //  current-step melt peak (or conducting-cell peak if no melt cells
+        //  are present) for the next time step. Negative until first use.
+        scalar emAccelerationLimit_ = -1;
+        scalar emAccelerationCurrent_ = -1;
+        label emAccelerationTimeIndex_ = -1;
+
 
     // Pressure reference
 
@@ -227,6 +242,14 @@ public:
 
         //- Fix currents based on mixture conductivity
         virtual void fixCurrentsWithMixtureConductivity();
+
+        //- Store the just-received current density (and alpha1) as the
+        //  reference for fixCurrentsWithMixtureConductivity
+        virtual void storeReceivedCurrents(bool imaginary=false);
+
+        //- Cell factor on JxB limiting the acceleration to the melt peak of
+        //  the previous time step, with no force in near-pure gas cells
+        tmp<volScalarField::Internal> emForceLimiter();
 
 
     // Member Operators
