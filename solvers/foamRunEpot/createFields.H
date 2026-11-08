@@ -23,7 +23,9 @@ std::set<word> fieldsToKeep = {
     "p_rgh", "rho",
     "PotEre","PotEim",
     "alpha.liquidmetal", "yPlus",
-    "viscosity"
+    "viscosity",
+    // incompressibleConductingVoF: interface curvature used in the CSF force
+    "K"
 // Uncomment for debugging
 //"sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim","PotE",

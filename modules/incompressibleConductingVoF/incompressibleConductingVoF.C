@@ -29,6 +29,14 @@ License
 #include "geometricZeroField.H"
 #include "findRefCell.H"
 #include "addToRunTimeSelectionTable.H"
+#include "fvcGrad.H"
+#include "fvcDiv.H"
+#include "fvcSnGrad.H"
+#include "surfaceInterpolate.H"
+#include "surfaceTensionModel.H"
+#include "contactAngleFvPatchScalarField.H"
+#include "wedgeFvPatch.H"
+#include "emptyFvPatch.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -101,6 +109,25 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
 
     U_old(U_old_),
 
+    curvatureSmoothing_
+    (
+        mixture.lookupOrDefault<label>("curvatureSmoothing", 0)
+    ),
+
+    interfaceK_
+    (
+        IOobject
+        (
+            "K",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar(dimless/dimLength, 0)
+    ),
+
     pressureReference_
     (
         p,
@@ -138,6 +165,39 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
     }
     // Read the controls
     readControls();
+
+    if (curvatureSmoothing_ < 0)
+    {
+        FatalErrorInFunction
+            << "curvatureSmoothing " << curvatureSmoothing_
+            << " in " << mixture.name() << " must be >= 0"
+            << exit(FatalError);
+    }
+    if (curvatureSmoothing_ > 0)
+    {
+        // The smoothed curvature skips interfaceProperties'
+        // correctContactAngle (private), so contact-angle walls are refused
+        forAll(alpha1.boundaryField(), patchi)
+        {
+            if
+            (
+                isA<contactAngleFvPatchScalarField>
+                (
+                    alpha1.boundaryField()[patchi]
+                )
+            )
+            {
+                FatalErrorInFunction
+                    << "curvatureSmoothing > 0 is not implemented with the "
+                    << "contact-angle patch "
+                    << mesh.boundary()[patchi].name() << " of "
+                    << alpha1.name() << exit(FatalError);
+            }
+        }
+    }
+    Info<< "incompressibleConductingVoF: curvatureSmoothing "
+        << curvatureSmoothing_ << endl;
+    updateInterfaceK();
 
     if (correctPhi || mesh.topoChanging())
     {
@@ -434,6 +494,112 @@ Foam::solvers::incompressibleConductingVoF::emForceLimiter()
         }
     }
     return tweight;
+}
+
+
+void Foam::solvers::incompressibleConductingVoF::correctInterface()
+{
+    twoPhaseVoFSolver::correctInterface();
+    updateInterfaceK();
+}
+
+
+void Foam::solvers::incompressibleConductingVoF::updateInterfaceK()
+{
+    if (curvatureSmoothing_ <= 0)
+    {
+        // The library curvature, unchanged (copy for output only)
+        interfaceK_ =
+            mesh.lookupObject<volScalarField>("interfaceProperties:K");
+        return;
+    }
+
+    // Lafaurie et al. (1994) smoothing of a copy of alpha1: each pass
+    // replaces the cell value by the area-weighted average of the linearly
+    // interpolated face values. Wedge and empty patches are left out of the
+    // average, so on an axisymmetric wedge the stencil is the meridional
+    // one (the wedge faces would otherwise only add the cell's own value,
+    // which near the axis would switch the smoothing off).
+    volScalarField alphaS
+    (
+        IOobject
+        (
+            "alphaSmooth",
+            runTime.name(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        ),
+        alpha1
+    );
+
+    const labelUList& own = mesh.owner();
+    const labelUList& nei = mesh.neighbour();
+    const surfaceScalarField& magSf = mesh.magSf();
+
+    for (label pass = 0; pass < curvatureSmoothing_; pass++)
+    {
+        const surfaceScalarField alphaSf(fvc::interpolate(alphaS));
+        scalarField sumA(mesh.nCells(), Zero);
+        scalarField sumW(mesh.nCells(), Zero);
+
+        forAll(own, facei)
+        {
+            const scalar w = magSf[facei];
+            const scalar wa = w*alphaSf[facei];
+            sumA[own[facei]] += wa;
+            sumW[own[facei]] += w;
+            sumA[nei[facei]] += wa;
+            sumW[nei[facei]] += w;
+        }
+        forAll(mesh.boundary(), patchi)
+        {
+            const fvPatch& fvp = mesh.boundary()[patchi];
+            if (isA<wedgeFvPatch>(fvp) || isA<emptyFvPatch>(fvp))
+            {
+                continue;
+            }
+            const labelUList& fc = fvp.faceCells();
+            const scalarField& pw = magSf.boundaryField()[patchi];
+            const scalarField& pa = alphaSf.boundaryField()[patchi];
+            forAll(fc, i)
+            {
+                sumA[fc[i]] += pw[i]*pa[i];
+                sumW[fc[i]] += pw[i];
+            }
+        }
+        alphaS.primitiveFieldRef() = sumA/sumW;
+        alphaS.correctBoundaryConditions();
+    }
+
+    // interfaceProperties::calculateK with the smoothed alpha
+    const volVectorField gradAlpha(fvc::grad(alphaS, "nHat"));
+    const surfaceVectorField gradAlphaf(fvc::interpolate(gradAlpha));
+    const surfaceVectorField nHatfv
+    (
+        gradAlphaf/(mag(gradAlphaf) + interface.deltaN())
+    );
+    const surfaceScalarField nHatf(nHatfv & mesh.Sf());
+    interfaceK_ = -fvc::div(nHatf);
+}
+
+
+Foam::tmp<Foam::surfaceScalarField>
+Foam::solvers::incompressibleConductingVoF::surfaceTensionForce() const
+{
+    if (curvatureSmoothing_ <= 0)
+    {
+        return twoPhaseVoFSolver::surfaceTensionForce();
+    }
+
+    // As interfaceProperties::surfaceTensionForce, with the smoothed K and
+    // the unsmoothed alpha1 in snGrad
+    const surfaceTensionModel& sigmaModel =
+        mesh.lookupObject<surfaceTensionModel>(surfaceTensionModel::typeName);
+
+    return fvc::interpolate(sigmaModel.sigma()*interfaceK_)
+       *fvc::snGrad(alpha1);
 }
 
 // ************************************************************************* //

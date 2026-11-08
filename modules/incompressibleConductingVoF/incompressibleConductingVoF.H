@@ -118,6 +118,17 @@ protected:
         label emAccelerationTimeIndex_ = -1;
 
 
+    // Interface curvature
+
+        //- Number of Lafaurie face-averaging passes applied to a copy of
+        //  alpha1 before the curvature (phaseProperties curvatureSmoothing,
+        //  default 0 = OpenFOAM-11 interfaceProperties unchanged)
+        label curvatureSmoothing_;
+
+        //- Curvature used in the CSF force (written as K)
+        volScalarField interfaceK_;
+
+
     // Pressure reference
 
         //- Pressure reference
@@ -170,6 +181,18 @@ protected:
         {
             return momentumTransport.divDevTau(rho, U);
         }
+
+        //- Correct the interface properties (library), then the module's
+        //  curvature (smoothed if curvatureSmoothing > 0)
+        virtual void correctInterface();
+
+        //- Surface tension force: the library's at curvatureSmoothing 0,
+        //  otherwise sigma*interp(K_smoothed)*snGrad(alpha1)
+        virtual tmp<surfaceScalarField> surfaceTensionForce() const;
+
+        //- Update interfaceK_ (copy of the library curvature, or the
+        //  curvature of the smoothed alpha1)
+        void updateInterfaceK();
 
 
 public:

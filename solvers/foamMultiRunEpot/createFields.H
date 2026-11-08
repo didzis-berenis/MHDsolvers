@@ -86,6 +86,8 @@ std::set<word> fieldsToKeep = {"U","p","JxB","JJsigma","T","GeometryIds",userSol
 //"sigma","sigmaInv","deltaUxB","deltaUxBre","deltaUxBim",
 //"deltaJ","deltaJre","deltaJim","J","Jre","Jim",
 "PotE","PotEre","PotEim",
+// incompressibleConductingVoF: interface curvature used in the CSF force
+"K",
 };
 if (solvers.isElectroHarmonic())
 {
