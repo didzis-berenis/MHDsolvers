@@ -45,8 +45,9 @@ for (int iter = 0; iter < nElmerCorrectors; iter++)
     scalar eBre = gMax(mag(pBre - BreGlobal)())/(gMax(mag(pBre)())+SMALL);
     scalar eBim = gMax(mag(pBim - BimGlobal)())/(gMax(mag(pBim)())+SMALL);
     scalar maxError = max(max(eJre,eJim),max(eBre,eBim));
-    bool quitLoop = maxError < ROOTSMALL;
-    //Info << "maxError: " << max(max(eJre,eJim),max(eBre,eBim)) << "; eJre: " << eJre << "; eJim: " << eJim  << "; eBre: " << eBre  << "; eBim: " << eBim <<endl;
+    Info<< "ElmerCorrector: iter " << iter << " maxError " << maxError
+        << " " << eJre << " " << eJim << " " << eBre << " " << eBim << endl;
+    bool quitLoop = maxError < elmerCorrectorTol;
     
     // Initialization is needed only on the first update.
     if (initialize_elmer)

@@ -103,6 +103,14 @@ int main(int argc, char *argv[])
     int elmer_status = 1; // 1=ok, 0=lastIter, -1=error
     bool initialize_elmer = true;
     int nElmerCorrectors = (runTime.controlDict().lookupOrDefault("nElmerCorrectors",1));
+    // Break tolerance of the Elmer corrector loop (runElmerUpdate.H): the loop
+    // stops once the largest relative change of Jre, Jim, Bre and Bim between
+    // two consecutive passes is below this value (default 1e-3)
+    const scalar elmerCorrectorTol =
+        runTime.controlDict().lookupOrDefault<scalar>("elmerCorrectorTol", 1e-3);
+    Info<< "Elmer corrector loop: nElmerCorrectors " << nElmerCorrectors
+        << ", elmerCorrectorTol " << elmerCorrectorTol << " (default 1e-3)"
+        << endl;
     // Initialize electromagnetic sources.
     // Run extra iterations to reach controller values
     if (solvers.controllersNeedUpdate())
