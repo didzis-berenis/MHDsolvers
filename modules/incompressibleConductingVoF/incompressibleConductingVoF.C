@@ -175,8 +175,9 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
     }
     if (curvatureSmoothing_ > 0)
     {
-        // The smoothed curvature skips interfaceProperties'
-        // correctContactAngle (private), so contact-angle walls are refused
+        // The smoothed curvature applies interfaceProperties'
+        // contact-angle correction to its own face normal (updateInterfaceK)
+        DynamicList<word> contactAnglePatches;
         forAll(alpha1.boundaryField(), patchi)
         {
             if
@@ -187,12 +188,14 @@ Foam::solvers::incompressibleConductingVoF::incompressibleConductingVoF(fvMesh& 
                 )
             )
             {
-                FatalErrorInFunction
-                    << "curvatureSmoothing > 0 is not implemented with the "
-                    << "contact-angle patch "
-                    << mesh.boundary()[patchi].name() << " of "
-                    << alpha1.name() << exit(FatalError);
+                contactAnglePatches.append(mesh.boundary()[patchi].name());
             }
+        }
+        if (contactAnglePatches.size())
+        {
+            Info<< "incompressibleConductingVoF: smoothed curvature corrects "
+                << "the contact angle on the patches "
+                << contactAnglePatches << " of " << alpha1.name() << endl;
         }
     }
     Info<< "incompressibleConductingVoF: curvatureSmoothing "
@@ -576,10 +579,64 @@ void Foam::solvers::incompressibleConductingVoF::updateInterfaceK()
     // interfaceProperties::calculateK with the smoothed alpha
     const volVectorField gradAlpha(fvc::grad(alphaS, "nHat"));
     const surfaceVectorField gradAlphaf(fvc::interpolate(gradAlpha));
-    const surfaceVectorField nHatfv
+    surfaceVectorField nHatfv
     (
         gradAlphaf/(mag(gradAlphaf) + interface.deltaN())
     );
+
+    // interfaceProperties::correctContactAngle on the smoothed face normal:
+    // on every contactAngle patch of alpha1, reset nHatp to the contact angle
+    // with the library's a12/b1/b2/det correction and the same deltaN, so
+    // nHatf (below) and K carry the wall angle as at curvatureSmoothing 0.
+    // The boundary condition of the real alpha1 (gradient, evaluate, alpha2)
+    // is NOT set here: interface.correct() (twoPhaseVoFSolver::
+    // correctInterface, called just before this function, and the
+    // interfaceProperties constructor before the first call) has already
+    // set it at this alpha1 from the unsmoothed normal. Setting it again
+    // would evaluate the patch twice per call and change the alpha1 wall
+    // values used by MULES and snGrad(alpha1).
+    {
+        const fvBoundaryMesh& boundary = mesh.boundary();
+        surfaceVectorField::Boundary& nHatb = nHatfv.boundaryFieldRef();
+
+        forAll(boundary, patchi)
+        {
+            if (isA<contactAngleFvPatchScalarField>(alpha1.boundaryField()[patchi]))
+            {
+                const contactAngleFvPatchScalarField& acap =
+                    refCast<const contactAngleFvPatchScalarField>
+                    (
+                        alpha1.boundaryField()[patchi]
+                    );
+
+                fvsPatchVectorField& nHatp = nHatb[patchi];
+                const scalarField cosTheta
+                (
+                    acap.cosTheta(U.boundaryField()[patchi], nHatp)
+                );
+
+                const vectorField nf(boundary[patchi].nf());
+
+                const scalarField a12(nHatp & nf);
+                const scalarField b1(cosTheta);
+
+                scalarField b2(nHatp.size());
+                forAll(b2, facei)
+                {
+                    b2[facei] = cos(acos(a12[facei]) - acos(cosTheta[facei]));
+                }
+
+                const scalarField det(1.0 - a12*a12);
+
+                scalarField a((b1 - a12*b2)/det);
+                scalarField b((b2 - a12*b1)/det);
+
+                nHatp = a*nf + b*nHatp;
+                nHatp /= (mag(nHatp) + interface.deltaN().value());
+            }
+        }
+    }
+
     const surfaceScalarField nHatf(nHatfv & mesh.Sf());
     interfaceK_ = -fvc::div(nHatf);
 }
