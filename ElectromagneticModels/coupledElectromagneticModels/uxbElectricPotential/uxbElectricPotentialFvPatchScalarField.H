@@ -119,8 +119,9 @@ class uxbElectricPotentialFvPatchScalarField
         //- Default name of magnetic field
         //const word Bname_;
 
-        //- Default name of velocity contribution
-        const word UxBname_;
+        //- Name of the electromotive-force field (velocity contribution);
+        //  copied by the mapping and copy constructors, map() and reset()
+        word UxBname_;
 
 protected:
 
