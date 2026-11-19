@@ -81,7 +81,8 @@ uxbElectricPotentialFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    mixedFvPatchScalarField(ptf, p, iF, mapper)
+    mixedFvPatchScalarField(ptf, p, iF, mapper),
+    UxBname_(ptf.UxBname_)
 {}
 
 
@@ -92,7 +93,8 @@ uxbElectricPotentialFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    mixedFvPatchScalarField(tppsf, iF)
+    mixedFvPatchScalarField(tppsf, iF),
+    UxBname_(tppsf.UxBname_)
 {}
 
 
@@ -109,6 +111,8 @@ void Foam::uxbElectricPotentialFvPatchScalarField::map
 
     const uxbElectricPotentialFvPatchScalarField& tiptf =
         refCast<const uxbElectricPotentialFvPatchScalarField>(ptf);
+
+    UxBname_ = tiptf.UxBname_;
 }
 
 
@@ -121,6 +125,8 @@ void Foam::uxbElectricPotentialFvPatchScalarField::reset
 
     const uxbElectricPotentialFvPatchScalarField& tiptf =
         refCast<const uxbElectricPotentialFvPatchScalarField>(ptf);
+
+    UxBname_ = tiptf.UxBname_;
 }
 
 void Foam::uxbElectricPotentialFvPatchScalarField::updateCoeffs()
@@ -133,12 +139,15 @@ void Foam::uxbElectricPotentialFvPatchScalarField::updateCoeffs()
     const scalarField& ePotP(*this);
     scalarField gradPotE(ePotP.size(), 0);
 
-    // Get UxB from closest value (since the boundary conditions are not set for this field)
+    // Normal component of the face value of the electromotive-force field,
+    // so that the wall flux of the potential equation closes: the source
+    // flux of that equation is the interpolated (face) value, and the
+    // insulating wall requires sigma (n.EMF_f - n.grad(potential)) = 0
     word UxBname = UxBname_ == word("deltaUxB") ? word(UxBname_+suffix()) : UxBname_;
     const fvPatchVectorField& deltaUxBp =
         patch().lookupPatchField<volVectorField, vector>(UxBname);
     tmp<scalarField> deltaUxB;
-    deltaUxB = deltaUxBp.patchInternalField() & patch().nf();
+    deltaUxB = deltaUxBp & patch().nf();
 
     this->refGrad() = deltaUxB();
     
