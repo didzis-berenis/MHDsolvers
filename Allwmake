@@ -14,6 +14,7 @@ wmake modules/conductingMaterial
 wmake modules/conductingFluid
 wmake modules/conductingSolid
 wmake modules/incompressibleConductingVoF
+wmake modules/incompressibleConductingVoFEtransfer
 #wmake CDsolvers/viscosityModels/timeDependent
 #wmake CDsolvers/viscosityModels/modules/incompressibleConductingVoF
 

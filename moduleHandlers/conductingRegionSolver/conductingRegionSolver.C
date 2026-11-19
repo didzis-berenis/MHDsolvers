@@ -26,6 +26,15 @@ License
 #include "conductingRegionSolver.H"
 #include "Time.H"
 
+// * * * * * * * * * * * * * * * Local Data  * * * * * * * * * * * * * * * * //
+
+//- Solver module derived from incompressibleConductingVoF with the optional
+//  electric-field transfer; handled as incompressibleConductingVoF
+static const Foam::word incompressibleConductingVoFEtransferSolverName
+(
+    "incompressibleConductingVoFEtransfer"
+);
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::conductingRegionSolver::conductingRegionSolver(const Time& runTime, fvMesh& mesh)
@@ -590,7 +599,9 @@ bool Foam::conductingRegionSolver::isSolid()
 
 bool Foam::conductingRegionSolver::isIncompressibleConductingVoF()
 {
-    return name_ == incompressibleConductingVoFSolverName_;
+    return
+        name_ == incompressibleConductingVoFSolverName_
+     || name_ == incompressibleConductingVoFEtransferSolverName;
 }
 
 bool Foam::conductingRegionSolver::isElectroHarmonic()
